@@ -4,6 +4,8 @@
 
 #include "Vulkan/Instance.h"
 #include "Vulkan/PhysicalDevice.h"
+#include "Vulkan/LogicalDevice.h"
+#include "Vulkan/RenderSurface.h"
 
 #include <GLFW/glfw3.h>
 #include <cstdint>
@@ -31,7 +33,9 @@ namespace Mango
         uint32_t _windowHeight;
         GLFWwindow* _window;
         Mango::Instance _vkInstance;
+        Mango::RenderSurface _vkRenderSurface;
         Mango::PhysicalDevice _vkPhysicalDevice;
+        Mango::LogicalDevice _vkLogicalDevice;
     };
 
 }

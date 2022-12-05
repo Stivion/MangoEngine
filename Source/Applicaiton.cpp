@@ -18,12 +18,15 @@ void Mango::Application::InitializeWindow(uint32_t width, uint32_t height)
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
     _window = glfwCreateWindow(static_cast<int>(_windowWidth), static_cast<int>(_windowHeight), "Learning Vulkan", nullptr, nullptr);
+    
 }
 
 void Mango::Application::InitializeVulkan()
 {
     _vkInstance.CreateInstance();
-    _vkPhysicalDevice.PickPhysicalDevice(&_vkInstance.GetInstance());
+    _vkRenderSurface.CreateRenderSurface(_window, &_vkInstance);
+    _vkPhysicalDevice.PickPhysicalDevice(_vkInstance, _vkRenderSurface);
+    _vkLogicalDevice.CreateLogicalDevice(_vkPhysicalDevice, _vkRenderSurface);
 }
 
 void Mango::Application::RunMainLoop()
