@@ -12,6 +12,9 @@ file(
         Source/**/*.cpp
 )
 
+# Enable debug
+add_compile_definitions(DEBUG)
+
 # Project executable
 add_executable(
         Mango
