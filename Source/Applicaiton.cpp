@@ -28,6 +28,7 @@ void Mango::Application::InitializeVulkan()
     _physicalDevice.PickPhysicalDevice(_instance, _renderSurface);
     _logicalDevice.CreateLogicalDevice(_physicalDevice, _renderSurface);
     _swapChain.CreateSwapChain(_window, _physicalDevice, _logicalDevice, _renderSurface);
+    _graphicsPipeline.CreateGraphicsPipeline(_logicalDevice);
 }
 
 void Mango::Application::RunMainLoop()

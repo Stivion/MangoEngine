@@ -70,3 +70,32 @@ target_link_libraries("ImGui" glfw)
 
 ## Link with ImGui
 target_link_libraries(${PROJECT_NAME} ImGui)
+
+# Compile shaders
+file(
+        GLOB VERTEX_SHADERS
+        Source/Shaders/*.vert
+        Source/Shaders/**/*.vert
+)
+
+file(
+        GLOB FRAGMENT_SHADERS
+        Source/Shaders/*.frag
+        Source/Shaders/**/*.frag
+)
+
+foreach(vertexShader ${VERTEX_SHADERS})
+    add_custom_command(
+            TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND glslc -fshader-stage=vert ${vertexShader} -o vert.spv
+    )
+endforeach()
+
+foreach(fragmentShader ${FRAGMENT_SHADERS})
+    add_custom_command(
+            TARGET ${PROJECT_NAME}
+            POST_BUILD
+            COMMAND glslc -fshader-stage=frag ${fragmentShader} -o frag.spv
+    )
+endforeach()

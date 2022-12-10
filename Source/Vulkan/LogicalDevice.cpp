@@ -40,7 +40,7 @@ void Mango::LogicalDevice::CreateLogicalDevice(PhysicalDevice& physicalDevice, R
 
     if (vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &_device) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to create logical _device");
+        throw std::runtime_error("Failed to create logical device");
     }
 
     vkGetDeviceQueue(_device, queueFamilyIndices.GraphicsFamily.value(), 0, &_graphicsQueue);
