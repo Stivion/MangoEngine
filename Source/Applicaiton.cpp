@@ -23,10 +23,11 @@ void Mango::Application::InitializeWindow(uint32_t width, uint32_t height)
 
 void Mango::Application::InitializeVulkan()
 {
-    _vkInstance.CreateInstance();
-    _vkRenderSurface.CreateRenderSurface(_window, &_vkInstance);
-    _vkPhysicalDevice.PickPhysicalDevice(_vkInstance, _vkRenderSurface);
-    _vkLogicalDevice.CreateLogicalDevice(_vkPhysicalDevice, _vkRenderSurface);
+    _instance.CreateInstance();
+    _renderSurface.CreateRenderSurface(_window, &_instance);
+    _physicalDevice.PickPhysicalDevice(_instance, _renderSurface);
+    _logicalDevice.CreateLogicalDevice(_physicalDevice, _renderSurface);
+    _swapChain.CreateSwapChain(_window, _physicalDevice, _logicalDevice, _renderSurface);
 }
 
 void Mango::Application::RunMainLoop()

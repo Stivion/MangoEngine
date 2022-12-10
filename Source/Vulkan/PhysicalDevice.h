@@ -4,6 +4,7 @@
 #include "Instance.h"
 #include "RenderSurface.h"
 
+#include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Mango
@@ -23,6 +24,7 @@ namespace Mango
         
     private:
         static bool IsDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface);
+        static bool CheckDeviceExtensions(VkPhysicalDevice& device, const std::vector<const char*> &extensions);
         
     private:
         VkPhysicalDevice _device;

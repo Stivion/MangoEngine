@@ -1,8 +1,12 @@
 ﻿#include "PhysicalDevice.h"
 
+#include "SwapChainSupportDetails.h"
+
 #include <stdexcept>
 
-void Mango::PhysicalDevice::PickPhysicalDevice(Instance &instance, RenderSurface& renderSurface)
+const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+void Mango::PhysicalDevice::PickPhysicalDevice(Instance &instance, RenderSurface &renderSurface)
 {
     uint32_t deviceCount = 0;
     vkEnumeratePhysicalDevices(instance.GetInstance(), &deviceCount, nullptr);
@@ -30,7 +34,7 @@ void Mango::PhysicalDevice::PickPhysicalDevice(Instance &instance, RenderSurface
     }
 }
 
-QueueFamilyIndices Mango::PhysicalDevice::FindQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface)
+QueueFamilyIndices Mango::PhysicalDevice::FindQueueFamilies(VkPhysicalDevice &device, VkSurfaceKHR &renderSurface)
 {
     QueueFamilyIndices indices{};
 
@@ -66,15 +70,54 @@ QueueFamilyIndices Mango::PhysicalDevice::FindQueueFamilies(VkPhysicalDevice& de
     return indices;
 }
 
-bool Mango::PhysicalDevice::IsDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface)
+bool Mango::PhysicalDevice::IsDeviceSuitable(VkPhysicalDevice &device, VkSurfaceKHR &renderSurface)
 {
     VkPhysicalDeviceProperties deviceProperties;
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
     auto queueFamilyIndices = FindQueueFamilies(device, renderSurface);
+    auto extensionsAvailable = CheckDeviceExtensions(device, requiredDeviceExtensions);
+    auto swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(device, renderSurface);
+    auto isSwapChainSuitable = false;
+    if (extensionsAvailable) 
+    {
+        isSwapChainSuitable = !swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty();
+    }
 
-    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-           deviceFeatures.geometryShader && queueFamilyIndices.GraphicsFamily.has_value()
-           && queueFamilyIndices.PresentationFamily.has_value();
+    return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+    && deviceFeatures.geometryShader
+    && queueFamilyIndices.GraphicsFamily.has_value()
+    && queueFamilyIndices.PresentationFamily.has_value()
+    && extensionsAvailable
+    && isSwapChainSuitable;
+}
+
+bool Mango::PhysicalDevice::CheckDeviceExtensions(VkPhysicalDevice& device, const std::vector<const char*> &extensions)
+{
+    uint32_t extensionsCount;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, nullptr);
+
+    std::vector<VkExtensionProperties> availableExtensions(extensionsCount);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionsCount, availableExtensions.data());
+
+    for (const auto& extension : extensions)
+    {
+        bool extensionFound = false;
+        for (size_t extensionIndex = 0; extensionIndex < extensionsCount; extensionIndex++)
+        {
+            if (strcmp(extension, availableExtensions[extensionIndex].extensionName) == 0)
+            {
+                extensionFound = true;
+                break;
+            }
+        }
+        
+        if (!extensionFound)
+        {
+            return false;
+        }
+    }
+    
+    return true;
 }
