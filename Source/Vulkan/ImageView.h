@@ -17,7 +17,7 @@ namespace Mango
         ~ImageView();
         
         void CreateImageViews(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
-        std::vector<VkImageView> GetImageViews() { return _swapChainImageViews; }
+        std::vector<VkImageView>& GetImageViews() { return _swapChainImageViews; }
     private:
         std::vector<VkImageView> _swapChainImageViews;
         VkDevice* _logicalDevice;

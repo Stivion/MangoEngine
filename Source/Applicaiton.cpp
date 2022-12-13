@@ -30,8 +30,10 @@ void Mango::Application::InitializeVulkan()
     _swapChain.CreateSwapChain(_window, _physicalDevice, _logicalDevice, _renderSurface);
     _imageView.CreateImageViews(_logicalDevice, _swapChain);
     _renderPass.CreateRenderPass(_logicalDevice, _swapChain);
-    _framebuffer.CreateFramebuffers(_logicalDevice, _swapChain, _imageView, _renderPass);
     _graphicsPipeline.CreateGraphicsPipeline(_logicalDevice, _swapChain, _renderPass);
+    _framebuffer.CreateFramebuffers(_logicalDevice, _swapChain, _imageView, _renderPass);
+    _commandPool.CreateCommandPool(_physicalDevice, _logicalDevice, _renderSurface);
+    _commandBuffer.CreateCommandBuffer(_logicalDevice, _swapChain, _renderPass, _graphicsPipeline, _framebuffer, _commandPool);
 }
 
 void Mango::Application::RunMainLoop()

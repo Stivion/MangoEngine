@@ -20,6 +20,7 @@ namespace Mango
         ~Framebuffer();
         
         void CreateFramebuffers(LogicalDevice& logicalDevice, SwapChain& swapChain, ImageView& imageView, RenderPass& renderPass);
+        std::vector<VkFramebuffer>& GetSwapChainFramebuffers() { return _swapChainFramebuffers; }
     private:
         std::vector<VkFramebuffer> _swapChainFramebuffers;
         LogicalDevice* _logicalDevice;

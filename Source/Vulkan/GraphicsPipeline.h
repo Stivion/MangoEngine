@@ -19,6 +19,7 @@ namespace Mango
         ~GraphicsPipeline();
         
         void CreateGraphicsPipeline(LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass);
+        VkPipeline& GetGraphicsPipeline() { return _graphicsPipeline; }
     private:
         VkShaderModule CreateShaderModule(const std::vector<char>& shaderCode);
     private:

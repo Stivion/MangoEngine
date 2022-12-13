@@ -9,8 +9,10 @@
 #include "Vulkan/SwapChain.h"
 #include "Vulkan/ImageView.h"
 #include "Vulkan/RenderPass.h"
-#include "Vulkan/Framebuffer.h"
 #include "Vulkan/GraphicsPipeline.h"
+#include "Vulkan/Framebuffer.h"
+#include "Vulkan/CommandPool.h"
+#include "Vulkan/CommandBuffer.h"
 
 #include <GLFW/glfw3.h>
 #include <cstdint>
@@ -46,6 +48,8 @@ namespace Mango
         Mango::RenderPass _renderPass;
         Mango::Framebuffer _framebuffer;
         Mango::GraphicsPipeline _graphicsPipeline;
+        Mango::CommandPool _commandPool;
+        Mango::CommandBuffer _commandBuffer;
     };
 
 }
