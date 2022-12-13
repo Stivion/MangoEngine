@@ -2,6 +2,8 @@
 
 #include "../IO/FileReader.h"
 #include "LogicalDevice.h"
+#include "SwapChain.h"
+#include "RenderPass.h"
 
 #include <vulkan/vulkan.h>
 
@@ -14,12 +16,15 @@ namespace Mango
         GraphicsPipeline() = default;
         GraphicsPipeline(const GraphicsPipeline&) = delete;
         GraphicsPipeline operator=(const GraphicsPipeline&) = delete;
-//        ~GraphicsPipeline();
+        ~GraphicsPipeline();
         
-        void CreateGraphicsPipeline(LogicalDevice& logicalDevice);
+        void CreateGraphicsPipeline(LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
     private:
         VkShaderModule CreateShaderModule(const std::vector<char>& shaderCode);
     private:
         LogicalDevice* _logicalDevice;
+        SwapChain* _swapChain;
+        VkPipelineLayout _pipelineLayout {};
+        VkPipeline _graphicsPipeline;
     };
 }
