@@ -18,7 +18,7 @@ namespace Mango
         GraphicsPipeline operator=(const GraphicsPipeline&) = delete;
         ~GraphicsPipeline();
         
-        void CreateGraphicsPipeline(LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
+        void CreateGraphicsPipeline(LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass);
     private:
         VkShaderModule CreateShaderModule(const std::vector<char>& shaderCode);
     private:

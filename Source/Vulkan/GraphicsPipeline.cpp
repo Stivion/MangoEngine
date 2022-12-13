@@ -8,7 +8,7 @@ std::vector<VkDynamicState> dynamicStates = {
         VK_DYNAMIC_STATE_SCISSOR
 };
 
-void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain)
+void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass)
 {
     _logicalDevice = &logicalDevice;
     _swapChain = &swapChain;
@@ -123,9 +123,7 @@ void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logic
     if (vkCreatePipelineLayout(_logicalDevice->GetDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create pipeline layout");
     }
-
-    Mango::RenderPass renderPass {};
-    renderPass.CreateRenderPass(*_logicalDevice, *_swapChain);
+    
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;

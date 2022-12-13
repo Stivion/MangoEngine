@@ -8,6 +8,8 @@
 #include "Vulkan/RenderSurface.h"
 #include "Vulkan/SwapChain.h"
 #include "Vulkan/ImageView.h"
+#include "Vulkan/RenderPass.h"
+#include "Vulkan/Framebuffer.h"
 #include "Vulkan/GraphicsPipeline.h"
 
 #include <GLFW/glfw3.h>
@@ -41,6 +43,8 @@ namespace Mango
         Mango::LogicalDevice _logicalDevice;
         Mango::SwapChain _swapChain;
         Mango::ImageView _imageView;
+        Mango::RenderPass _renderPass;
+        Mango::Framebuffer _framebuffer;
         Mango::GraphicsPipeline _graphicsPipeline;
     };
 
