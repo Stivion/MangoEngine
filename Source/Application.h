@@ -33,6 +33,8 @@ namespace Mango
         void InitializeWindow(uint32_t width, uint32_t height);
         void InitializeVulkan();
         void RunMainLoop();
+        void DrawFrame();
+        void CreateSyncObjects();
         void Dispose();
         
     private:
@@ -50,6 +52,9 @@ namespace Mango
         Mango::GraphicsPipeline _graphicsPipeline;
         Mango::CommandPool _commandPool;
         Mango::CommandBuffer _commandBuffer;
+        VkSemaphore _imageAvailableSemaphore;
+        VkSemaphore _renderFinishedSemaphore;
+        VkFence _inFlightFence;
     };
 
 }

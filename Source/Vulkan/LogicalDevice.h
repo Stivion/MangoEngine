@@ -17,7 +17,9 @@ namespace Mango
 
         void CreateLogicalDevice(PhysicalDevice& physicalDevice, RenderSurface& renderSurface);
 
-        VkDevice &GetDevice() { return _device; }
+        VkDevice& GetDevice() { return _device; }
+        VkQueue& GetGraphicsQueue() { return _graphicsQueue; }
+        VkQueue& GetPresentationQueue() { return _presentationQueue; }
 
     private:
         VkDevice _device;

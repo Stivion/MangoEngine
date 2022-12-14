@@ -22,6 +22,8 @@ namespace Mango
         
         void CreateCommandBuffer(LogicalDevice& logicalDevice, SwapChain& swapChain, RenderPass& renderPass, GraphicsPipeline& graphicsPipeline, Framebuffer& framebuffer, CommandPool& commandPool);
         void RecordCommandBuffer(uint32_t imageIndex);
+
+        VkCommandBuffer& GetCommandBuffer() { return _commandBuffer; }
     private:
         VkCommandBuffer _commandBuffer;
         LogicalDevice* _logicalDevice;
