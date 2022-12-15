@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.24)
+﻿cmake_minimum_required(VERSION 3.21)
 project(Mango)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -12,8 +12,12 @@ file(
         Source/**/*.cpp
 )
 
-# Enable debug
-add_compile_definitions(DEBUG)
+# Build type definitions
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG)
+else()
+    add_compile_definitions(RELEASE)
+endif()
 
 # Project executable
 add_executable(
