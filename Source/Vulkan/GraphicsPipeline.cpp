@@ -1,6 +1,8 @@
 ﻿#include "GraphicsPipeline.h"
 
-#include <stdexcept>
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
+
 #include <vector>
 
 std::vector<VkDynamicState> dynamicStates = {
@@ -8,16 +10,19 @@ std::vector<VkDynamicState> dynamicStates = {
         VK_DYNAMIC_STATE_SCISSOR
 };
 
-void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass)
+Mango::GraphicsPipeline::GraphicsPipeline(
+    Mango::LogicalDevice& logicalDevice,
+    Mango::SwapChain& swapChain,
+    Mango::RenderPass& renderPass,
+    const std::string& vertexShaderPath,
+    const std::string& fragmentShaderPath
+) : _logicalDevice(logicalDevice.GetDevice())
 {
-    _logicalDevice = &logicalDevice;
-    _swapChain = &swapChain;
-    
-    const auto vertShader = FileReader::ReadFileBytes("vert.spv");
-    const auto fragShader = FileReader::ReadFileBytes("frag.spv");
+    const auto vertShader = FileReader::ReadFileBytes(vertexShaderPath);
+    const auto fragShader = FileReader::ReadFileBytes(fragmentShaderPath);
 
-    const auto vertShaderModule = CreateShaderModule(vertShader);
-    const auto fragShaderModule = CreateShaderModule(fragShader);
+    const auto vertShaderModule = CreateShaderModule(_logicalDevice, vertShader);
+    const auto fragShaderModule = CreateShaderModule(_logicalDevice, fragShader);
 
     VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
     vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -31,7 +36,7 @@ void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logic
     fragShaderStageInfo.module = fragShaderModule;
     fragShaderStageInfo.pName = "main";
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
+    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
     VkPipelineDynamicStateCreateInfo dynamicState{};
     dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
@@ -50,17 +55,17 @@ void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logic
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    const auto swapChainExtent = _swapChain->GetSwapChainExtent();
+    const auto swapChainExtent = swapChain.GetSwapChainExtent();
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
-    viewport.width = (float) swapChainExtent.width;
-    viewport.height = (float) swapChainExtent.height;
+    viewport.width = (float)swapChainExtent.width;
+    viewport.height = (float)swapChainExtent.height;
     viewport.minDepth = 0.0f;
     viewport.maxDepth = 1.0f;
 
     VkRect2D scissor{};
-    scissor.offset = {0, 0};
+    scissor.offset = { 0, 0 };
     scissor.extent = swapChainExtent;
 
     VkPipelineViewportStateCreateInfo viewportState{};
@@ -120,10 +125,10 @@ void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logic
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
-    if (vkCreatePipelineLayout(_logicalDevice->GetDevice(), &pipelineLayoutInfo, nullptr, &_pipelineLayout) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create pipeline layout");
-    }
-    
+    auto pipelineLayoutCreateResult = vkCreatePipelineLayout(_logicalDevice, &pipelineLayoutInfo, nullptr, &_pipelineLayout);
+    M_TRACE("Pipeline layout create result is: " + std::to_string(pipelineLayoutCreateResult));
+    M_ASSERT(pipelineLayoutCreateResult == VK_SUCCESS && "Failed to create pipeline layout");
+
     VkGraphicsPipelineCreateInfo pipelineInfo{};
     pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipelineInfo.stageCount = 2;
@@ -142,15 +147,21 @@ void Mango::GraphicsPipeline::CreateGraphicsPipeline(Mango::LogicalDevice& logic
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional
 
-    if (vkCreateGraphicsPipelines(_logicalDevice->GetDevice(), VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create graphics pipeline");
-    }
+    auto graphicsPipelineCreateResult = vkCreateGraphicsPipelines(_logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &_graphicsPipeline);
+    M_TRACE("Graphics pipeline create result is: " + std::to_string(graphicsPipelineCreateResult));
+    M_ASSERT(graphicsPipelineCreateResult == VK_SUCCESS && "Failed to create graphics pipeline");
 
-    vkDestroyShaderModule(_logicalDevice->GetDevice(), fragShaderModule, nullptr);
-    vkDestroyShaderModule(_logicalDevice->GetDevice(), vertShaderModule, nullptr);
+    vkDestroyShaderModule(_logicalDevice, fragShaderModule, nullptr);
+    vkDestroyShaderModule(_logicalDevice, vertShaderModule, nullptr);
 }
 
-VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(const std::vector<char>& shaderCode)
+Mango::GraphicsPipeline::~GraphicsPipeline()
+{
+    vkDestroyPipeline(_logicalDevice, _graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(_logicalDevice, _pipelineLayout, nullptr);
+}
+
+VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(VkDevice& logicalDevice, const std::vector<char>& shaderCode)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -158,14 +169,8 @@ VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(const std::vector<cha
     createInfo.pCode = reinterpret_cast<const uint32_t*>(shaderCode.data());
 
     VkShaderModule shaderModule;
-    if (vkCreateShaderModule(_logicalDevice->GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to create shader module");
-    }
+    auto createShaderModuleResult = vkCreateShaderModule(logicalDevice, &createInfo, nullptr, &shaderModule);
+    M_TRACE("Create shader module result is: " + std::to_string(createShaderModuleResult));
+    M_ASSERT(createShaderModuleResult == VK_SUCCESS && "Failed to create shader module");
     return shaderModule;
-}
-
-Mango::GraphicsPipeline::~GraphicsPipeline()
-{
-    vkDestroyPipeline(_logicalDevice->GetDevice(), _graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(_logicalDevice->GetDevice(), _pipelineLayout, nullptr);
 }

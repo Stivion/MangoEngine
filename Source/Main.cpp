@@ -6,7 +6,7 @@
 
 int main()
 {
-    Mango::Application application {};
+    Mango::Application application{};
     try
     {
         application.Run();

@@ -4,32 +4,36 @@
 #include "SwapChain.h"
 #include "RenderPass.h"
 #include "GraphicsPipeline.h"
-#include "Framebuffer.h"
+#include "Framebuffers.h"
 #include "CommandPool.h"
 
-#include <cstdlib>
-
-#include "vulkan/vulkan.h"
+#include <vulkan/vulkan.h>
 
 namespace Mango
 {
     class CommandBuffer
     {
     public:
-        CommandBuffer() = default;
+        CommandBuffer(
+            Mango::LogicalDevice& logicalDevice,
+            Mango::SwapChain& swapChain,
+            Mango::RenderPass& renderPass,
+            Mango::GraphicsPipeline& graphicsPipeline,
+            Mango::Framebuffers& framebuffers,
+            Mango::CommandPool& commandPool
+        );
+        CommandBuffer() = delete;
         CommandBuffer(const CommandBuffer&) = delete;
         CommandBuffer operator=(const CommandBuffer&) = delete;
+        ~CommandBuffer();
         
-        void CreateCommandBuffer(LogicalDevice& logicalDevice, SwapChain& swapChain, RenderPass& renderPass, GraphicsPipeline& graphicsPipeline, Framebuffer& framebuffer, CommandPool& commandPool);
         void RecordCommandBuffer(uint32_t imageIndex);
-
-        VkCommandBuffer& GetCommandBuffer() { return _commandBuffer; }
+        const VkCommandBuffer& GetCommandBuffer() const { return _commandBuffer; }
     private:
         VkCommandBuffer _commandBuffer;
-        LogicalDevice* _logicalDevice;
-        RenderPass* _renderPass;
-        Framebuffer* _framebuffer;
-        SwapChain* _swapChain;
-        GraphicsPipeline* _graphicsPipeline;
+        const VkRenderPass& _renderPass;
+        const std::vector<VkFramebuffer>& _framebuffers;
+        const Mango::SwapChain& _swapChain;
+        const VkPipeline& _graphicsPipeline;
     };
 }

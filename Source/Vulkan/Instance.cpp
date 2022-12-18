@@ -1,5 +1,8 @@
 ﻿#include "Instance.h"
 
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
+
 #include <GLFW/glfw3.h>
 
 #include <vector>
@@ -11,36 +14,23 @@ const bool enableValidationLayers = true;
 const bool enableValidationLayers = false;
 #endif
 
-bool CheckRequiredExtensions(const char **extensions, uint32_t requiredExtensionsCount);
-
-bool CheckValidationLayerSupport();
-
-Mango::Instance::~Instance()
+Mango::Instance::Instance()
 {
-    vkDestroyInstance(_instance, nullptr);
-}
-
-void Mango::Instance::CreateInstance()
-{
-    if (enableValidationLayers && !CheckValidationLayerSupport())
-    {
-        throw std::runtime_error("Validation layers enabled, but not available");
-    }
+    const auto validationLayersAvailable = enableValidationLayers && CheckValidationLayerSupport();
+    M_ASSERT(validationLayersAvailable && "Validation layers enabled, but not available");
 
     VkApplicationInfo applicationInfo{};
     applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    applicationInfo.pApplicationName = "Vulkan learning";
+    applicationInfo.pApplicationName = "Mango Engine";
     applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-    applicationInfo.pEngineName = "No Engine";
+    applicationInfo.pEngineName = "Mango";
     applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
     applicationInfo.apiVersion = VK_API_VERSION_1_0;
 
     uint32_t glfwExtensionsCount = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
-    if (!CheckRequiredExtensions(glfwExtensions, glfwExtensionsCount))
-    {
-        throw std::runtime_error("One or more required extension layers is missing");
-    }
+    M_TRACE("GLFW required extensions count: " + glfwExtensionsCount);
+    M_ASSERT(CheckRequiredExtensions(glfwExtensions, glfwExtensionsCount) && "One or more required extension layers is missing");
 
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -51,18 +41,23 @@ void Mango::Instance::CreateInstance()
     {
         instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
         instanceCreateInfo.ppEnabledLayerNames = validationLayers.data();
-    } else
+    }
+    else
     {
         instanceCreateInfo.enabledLayerCount = 0;
     }
 
-    if (vkCreateInstance(&instanceCreateInfo, nullptr, &_instance) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create Vulkan Instance");
-    }
+    const auto createInstanceResult = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
+    M_TRACE("Vulkan instance create result is: " + createInstanceResult);
+    M_ASSERT(createInstanceResult == VK_SUCCESS && "Failed to create Vulkan Instance");
 }
 
-bool CheckRequiredExtensions(const char **requiredExtensions, uint32_t requiredExtensionsCount)
+Mango::Instance::~Instance()
+{
+    vkDestroyInstance(_instance, nullptr);
+}
+
+bool Mango::Instance::CheckRequiredExtensions(const char **requiredExtensions, const uint32_t requiredExtensionsCount)
 {
     uint32_t extensionsCount = 0;
     vkEnumerateInstanceExtensionProperties(nullptr, &extensionsCount, nullptr);
@@ -94,7 +89,7 @@ bool CheckRequiredExtensions(const char **requiredExtensions, uint32_t requiredE
     return true;
 }
 
-bool CheckValidationLayerSupport()
+bool Mango::Instance::CheckValidationLayerSupport()
 {
     uint32_t layerCount;
     vkEnumerateInstanceLayerProperties(&layerCount, nullptr);

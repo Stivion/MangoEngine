@@ -1,73 +1,37 @@
 ﻿#include "PhysicalDevice.h"
 
-#include "SwapChainSupportDetails.h"
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
 
-#include <stdexcept>
+#include <string>
 
 const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-void Mango::PhysicalDevice::PickPhysicalDevice(Instance &instance, RenderSurface &renderSurface)
+Mango::PhysicalDevice::PhysicalDevice(Mango::Instance& instance, Mango::RenderSurface& renderSurface)
 {
+    auto vkInstance = instance.GetInstance();
+    auto vkRenderSurface = renderSurface.GetRenderSurface();
+
     uint32_t deviceCount = 0;
-    vkEnumeratePhysicalDevices(instance.GetInstance(), &deviceCount, nullptr);
-    if (deviceCount == 0)
-    {
-        throw std::runtime_error("Failed to find GPUs with Vulkan support");
-    }
+    vkEnumeratePhysicalDevices(vkInstance, &deviceCount, nullptr);
+    M_TRACE("Found " + std::to_string(deviceCount) + " GPUs with Vulkan support");
+    M_ASSERT(deviceCount != 0 && "Failed to find GPUs with Vulkan support");
 
-    auto *physicalDevices = new VkPhysicalDevice[deviceCount];
-    vkEnumeratePhysicalDevices(instance.GetInstance(), &deviceCount, physicalDevices);
+    auto* physicalDevices = new VkPhysicalDevice[deviceCount];
+    vkEnumeratePhysicalDevices(vkInstance, &deviceCount, physicalDevices);
 
+    _physicalDevice = VK_NULL_HANDLE;
     for (size_t deviceIndex = 0; deviceIndex < deviceCount; deviceIndex++)
     {
-        if (IsDeviceSuitable(physicalDevices[deviceIndex], renderSurface.GetRenderSurface()))
+        if (IsDeviceSuitable(physicalDevices[deviceIndex], vkRenderSurface))
         {
-            _device = physicalDevices[deviceIndex];
+            _physicalDevice = physicalDevices[deviceIndex];
             break;
         }
     }
 
     delete[] physicalDevices;
-    if (_device == nullptr)
-    {
-        throw std::runtime_error("Failed to find a suitable GPU!");
-    }
-}
-
-QueueFamilyIndices Mango::PhysicalDevice::FindQueueFamilies(VkPhysicalDevice &device, VkSurfaceKHR &renderSurface)
-{
-    QueueFamilyIndices indices{};
-
-    uint32_t queueFamilyCount = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-    auto *queueFamilies = new VkQueueFamilyProperties[queueFamilyCount];
-    vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies);
-
-    for (size_t queueFamilyIndex = 0; queueFamilyIndex < queueFamilyCount; queueFamilyIndex++)
-    {
-        // Check for graphics support
-        if (queueFamilies[queueFamilyIndex].queueFlags & VK_QUEUE_GRAPHICS_BIT)
-        {
-            indices.GraphicsFamily = queueFamilyIndex;
-        }
-
-        // Check for presentation support
-        VkBool32 presentSupport = false;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, queueFamilyIndex, renderSurface, &presentSupport);
-        if (presentSupport) 
-        {
-            indices.PresentationFamily = queueFamilyIndex;
-        }
-        
-
-        if (indices.GraphicsFamily.has_value() && indices.PresentationFamily.has_value())
-        {
-            break;
-        }
-    }
-
-    delete[] queueFamilies;
-    return indices;
+    M_ASSERT(_physicalDevice != VK_NULL_HANDLE && "Failed to find a suitable GPU with Vulkan support");
 }
 
 bool Mango::PhysicalDevice::IsDeviceSuitable(VkPhysicalDevice &device, VkSurfaceKHR &renderSurface)
@@ -76,13 +40,13 @@ bool Mango::PhysicalDevice::IsDeviceSuitable(VkPhysicalDevice &device, VkSurface
     VkPhysicalDeviceFeatures deviceFeatures;
     vkGetPhysicalDeviceProperties(device, &deviceProperties);
     vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
-    auto queueFamilyIndices = FindQueueFamilies(device, renderSurface);
+    auto queueFamilyIndices = QueueFamilyIndices::FindQueueFamilies(device, renderSurface);
     auto extensionsAvailable = CheckDeviceExtensions(device, requiredDeviceExtensions);
     auto swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(device, renderSurface);
     auto isSwapChainSuitable = false;
     if (extensionsAvailable) 
     {
-        isSwapChainSuitable = !swapChainDetails.formats.empty() && !swapChainDetails.presentModes.empty();
+        isSwapChainSuitable = !swapChainDetails.Formats.empty() && !swapChainDetails.PresentModes.empty();
     }
 
     return deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU

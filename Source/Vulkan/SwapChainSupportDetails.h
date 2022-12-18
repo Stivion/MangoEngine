@@ -1,4 +1,6 @@
-﻿#include <vector>
+﻿#pragma once
+
+#include <vector>
 #include <vulkan/vulkan.h>
 
 namespace Mango 
@@ -6,11 +8,11 @@ namespace Mango
     struct SwapChainSupportDetails
     {
     public:
-        VkSurfaceCapabilitiesKHR surfaceCapabilities {};
-        std::vector<VkSurfaceFormatKHR> formats;
-        std::vector<VkPresentModeKHR> presentModes;
+        VkSurfaceCapabilitiesKHR SurfaceCapabilities {};
+        std::vector<VkSurfaceFormatKHR> Formats;
+        std::vector<VkPresentModeKHR> PresentModes;
 
-        static SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& renderSurface);
+        static Mango::SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& renderSurface);
     private:
         SwapChainSupportDetails() = default;
     };

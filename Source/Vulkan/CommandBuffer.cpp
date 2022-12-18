@@ -1,22 +1,32 @@
 ﻿#include "CommandBuffer.h"
 
-void Mango::CommandBuffer::CreateCommandBuffer(LogicalDevice& logicalDevice, SwapChain& swapChain, RenderPass& renderPass, GraphicsPipeline& graphicsPipeline, Framebuffer& framebuffer, CommandPool& commandPool)
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
+
+#include <string>
+
+Mango::CommandBuffer::CommandBuffer(
+    Mango::LogicalDevice& logicalDevice,
+    Mango::SwapChain& swapChain,
+    Mango::RenderPass& renderPass,
+    Mango::GraphicsPipeline& graphicsPipeline,
+    Mango::Framebuffers& framebuffers,
+    Mango::CommandPool& commandPool
+) : _renderPass(renderPass.GetRenderPass()), _framebuffers(framebuffers.GetSwapChainFramebuffers()), _swapChain(swapChain), _graphicsPipeline(graphicsPipeline.GetGraphicsPipeline())
 {
-    _logicalDevice = &logicalDevice;
-    _renderPass = &renderPass;
-    _framebuffer = &framebuffer;
-    _swapChain = &swapChain;
-    _graphicsPipeline = &graphicsPipeline;
-    
     VkCommandBufferAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     allocInfo.commandPool = commandPool.GetCommandPool();
     allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
 
-    if (vkAllocateCommandBuffers(_logicalDevice->GetDevice(), &allocInfo, &_commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate command buffers");
-    }
+    auto allocateCommandBuffersResult = vkAllocateCommandBuffers(logicalDevice.GetDevice(), &allocInfo, &_commandBuffer);
+    M_TRACE("Allocate command buffers result is: " + std::to_string(allocateCommandBuffersResult));
+    M_ASSERT(allocateCommandBuffersResult == VK_SUCCESS && "Failed to allocate command buffers");
+}
+
+Mango::CommandBuffer::~CommandBuffer()
+{
 }
 
 void Mango::CommandBuffer::RecordCommandBuffer(uint32_t imageIndex)
@@ -26,15 +36,14 @@ void Mango::CommandBuffer::RecordCommandBuffer(uint32_t imageIndex)
     beginInfo.flags = 0; // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    if (vkBeginCommandBuffer(_commandBuffer, &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to begin recording command buffer");
-    }
+    auto beginCommandBufferResult = vkBeginCommandBuffer(_commandBuffer, &beginInfo);
+    M_ASSERT(beginCommandBufferResult == VK_SUCCESS && "Failed to begin recording command buffer");
 
-    const auto& swapChainExtent = _swapChain->GetSwapChainExtent();
+    const auto& swapChainExtent = _swapChain.GetSwapChainExtent();
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = _renderPass->GetRenderPass();
-    renderPassInfo.framebuffer = _framebuffer->GetSwapChainFramebuffers()[imageIndex];
+    renderPassInfo.renderPass = _renderPass;
+    renderPassInfo.framebuffer = _framebuffers[imageIndex];
     renderPassInfo.renderArea.offset = {0, 0};
     renderPassInfo.renderArea.extent = swapChainExtent;
     
@@ -43,7 +52,7 @@ void Mango::CommandBuffer::RecordCommandBuffer(uint32_t imageIndex)
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline->GetGraphicsPipeline());
+    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -62,7 +71,6 @@ void Mango::CommandBuffer::RecordCommandBuffer(uint32_t imageIndex)
     vkCmdDraw(_commandBuffer, 3, 1, 0, 0);
     vkCmdEndRenderPass(_commandBuffer);
 
-    if (vkEndCommandBuffer(_commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to record command buffer");
-    }
+    auto endCommandBufferResult = vkEndCommandBuffer(_commandBuffer);
+    M_ASSERT(endCommandBufferResult == VK_SUCCESS && "Failed to record command buffer");
 }

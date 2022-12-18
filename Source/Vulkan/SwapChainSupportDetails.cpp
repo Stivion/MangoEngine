@@ -4,22 +4,22 @@ Mango::SwapChainSupportDetails Mango::SwapChainSupportDetails::QuerySwapChainSup
 {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderSurface, &details.surfaceCapabilities);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, renderSurface, &details.SurfaceCapabilities);
 
     uint32_t formatsCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderSurface, &formatsCount, nullptr);
     if (formatsCount != 0)
     {
-        details.formats.resize(formatsCount);
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderSurface, &formatsCount, details.formats.data());
+        details.Formats.resize(formatsCount);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, renderSurface, &formatsCount, details.Formats.data());
     }
 
     uint32_t presentModesCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderSurface, &presentModesCount, nullptr);
     if (presentModesCount != 0)
     {
-        details.presentModes.resize(presentModesCount);
-        vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderSurface, &presentModesCount, details.presentModes.data());
+        details.PresentModes.resize(presentModesCount);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, renderSurface, &presentModesCount, details.PresentModes.data());
     }
 
     return details;

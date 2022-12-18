@@ -9,7 +9,8 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "ctestCommandArgs": "",
+      "enableClangTidyCodeAnalysis": true
     },
     {
       "name": "x64-Release",
@@ -20,7 +21,8 @@
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
       "ctestCommandArgs": "",
-      "inheritEnvironments": [ "clang_cl_x64" ]
+      "inheritEnvironments": [ "clang_cl_x64" ],
+      "enableClangTidyCodeAnalysis":  true
     }
   ]
 }

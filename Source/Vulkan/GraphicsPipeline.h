@@ -1,31 +1,37 @@
 ﻿#pragma once
 
-#include "../IO/FileReader.h"
+#include "../Infrastructure/IO/FileReader.h"
 #include "LogicalDevice.h"
 #include "SwapChain.h"
 #include "RenderPass.h"
 
 #include <vulkan/vulkan.h>
+#include <string>
 
 namespace Mango
 {
     class GraphicsPipeline
     {
     public:
-//        explicit GraphicsPipeline(LogicalDevice& logicalDevice);
-        GraphicsPipeline() = default;
+        GraphicsPipeline(
+            Mango::LogicalDevice& logicalDevice,
+            Mango::SwapChain& swapChain,
+            Mango::RenderPass& renderPass,
+            const std::string& vertexShaderPath,
+            const std::string& fragmentShaderPath
+        );
+        GraphicsPipeline() = delete;
         GraphicsPipeline(const GraphicsPipeline&) = delete;
         GraphicsPipeline operator=(const GraphicsPipeline&) = delete;
         ~GraphicsPipeline();
         
-        void CreateGraphicsPipeline(LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass);
-        VkPipeline& GetGraphicsPipeline() { return _graphicsPipeline; }
+        const VkPipeline& GetGraphicsPipeline() const { return _graphicsPipeline; }
     private:
-        VkShaderModule CreateShaderModule(const std::vector<char>& shaderCode);
+        static VkShaderModule CreateShaderModule(VkDevice& logicalDevice, const std::vector<char>& shaderCode);
+
     private:
-        LogicalDevice* _logicalDevice;
-        SwapChain* _swapChain;
-        VkPipelineLayout _pipelineLayout {};
         VkPipeline _graphicsPipeline;
+        VkPipelineLayout _pipelineLayout;
+        VkDevice& _logicalDevice;
     };
 }

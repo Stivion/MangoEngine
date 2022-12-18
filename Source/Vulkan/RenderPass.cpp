@@ -1,16 +1,14 @@
 ﻿#include "RenderPass.h"
 
-Mango::RenderPass::~RenderPass()
-{
-    vkDestroyRenderPass(_logicalDevice->GetDevice(), _renderPass, nullptr);
-}
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
 
-void Mango::RenderPass::CreateRenderPass(LogicalDevice& logicalDevice, SwapChain& swapChain)
+#include <string>
+
+Mango::RenderPass::RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain) 
+    : _logicalDevice(logicalDevice.GetDevice())
 {
-    _logicalDevice = &logicalDevice;
-    _swapChain = &swapChain;
-    
-    const auto swapChainImageFormat = _swapChain->GetSwapChainImageFormat();
+    const auto swapChainImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -20,7 +18,7 @@ void Mango::RenderPass::CreateRenderPass(LogicalDevice& logicalDevice, SwapChain
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    
+
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
     colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -47,8 +45,12 @@ void Mango::RenderPass::CreateRenderPass(LogicalDevice& logicalDevice, SwapChain
     renderPassInfo.dependencyCount = 1;
     renderPassInfo.pDependencies = &dependency;
 
-    if (vkCreateRenderPass(_logicalDevice->GetDevice(), &renderPassInfo, nullptr, &_renderPass) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create render pass");
-    }
+    auto renderPassCreateResult = vkCreateRenderPass(_logicalDevice, &renderPassInfo, nullptr, &_renderPass);
+    M_TRACE("Render pass create result is: " + std::to_string(renderPassCreateResult));
+    M_ASSERT(renderPassCreateResult == VK_SUCCESS && "Failed to create render pass");
+}
+
+Mango::RenderPass::~RenderPass()
+{
+    vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
 }

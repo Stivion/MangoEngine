@@ -5,11 +5,9 @@ set(CMAKE_CXX_STANDARD 23)
 
 # Project files
 file(
-        GLOB PROJECT_SOURCES
+        GLOB_RECURSE PROJECT_SOURCES
         Source/*.h
         Source/*.cpp
-        Source/**/*.h
-        Source/**/*.cpp
 )
 
 # Build type definitions
@@ -24,14 +22,14 @@ add_executable(
         Mango
         Source/Main.cpp
         ${PROJECT_SOURCES}
-)
+ )
 
 # Link with Vulkan
 ## Find Vulkan SDK
 find_package(Vulkan REQUIRED) # Sets 'Vulkan_INCLUDE_DIRS' variable
 
 ## Add Vulkan
-include_directories(${Vulkan_INCLUDE_DIRS})
+include_directories(SYSTEM ${Vulkan_INCLUDE_DIRS})
 
 ## Link Vulkan
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan)
@@ -66,11 +64,11 @@ file(
         Libraries/ImGui/backends/imgui_impl_glfw.h
         Libraries/ImGui/backends/imgui_impl_glfw.cpp
 )
-add_library("ImGui" ${IMGUI_SOURCES})
-target_include_directories("ImGui" PRIVATE Libraries/ImGui)
-target_include_directories("ImGui" PRIVATE Libraries/ImGui/backends)
+add_library(ImGui STATIC ${IMGUI_SOURCES})
+target_include_directories(ImGui PUBLIC Libraries/ImGui)
+target_include_directories(ImGui PUBLIC Libraries/ImGui/backends)
 ## ImGui GLFW implementation needs to be linked with GLFW
-target_link_libraries("ImGui" glfw)
+target_link_libraries(ImGui glfw)
 
 ## Link with ImGui
 target_link_libraries(${PROJECT_NAME} ImGui)

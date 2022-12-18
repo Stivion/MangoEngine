@@ -1,22 +1,18 @@
 ﻿#include "LogicalDevice.h"
 
+#include "../Infrastructure/Assert/Assert.h"
+#include "../Infrastructure/Logging/Logging.h"
+
 #include <set>
 #include <vector>
-#include <stdexcept>
 
 const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-Mango::LogicalDevice::~LogicalDevice()
+Mango::LogicalDevice::LogicalDevice(Mango::PhysicalDevice& physicalDevice, Mango::QueueFamilyIndices& queueFamilyIndices)
 {
-    vkDestroyDevice(_device, nullptr);
-}
-
-void Mango::LogicalDevice::CreateLogicalDevice(PhysicalDevice& physicalDevice, RenderSurface& renderSurface)
-{
-    auto queueFamilyIndices = Mango::PhysicalDevice::FindQueueFamilies(physicalDevice.GetDevice(), renderSurface.GetRenderSurface());
     std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.GraphicsFamily.value(), queueFamilyIndices.PresentationFamily.value() };
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    
+
     float queuePriority = 1.0f;
     for (const auto& queueFamily : uniqueQueueFamilies)
     {
@@ -38,11 +34,15 @@ void Mango::LogicalDevice::CreateLogicalDevice(PhysicalDevice& physicalDevice, R
     createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
     createInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
-    if (vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &_device) != VK_SUCCESS)
-    {
-        throw std::runtime_error("Failed to create logical device");
-    }
+    const auto createLogicalDeviceResult = vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &_logicalDevice);
+    M_TRACE("Create logical device result is: " + createLogicalDeviceResult);
+    M_ASSERT(createLogicalDeviceResult == VK_SUCCESS && "Failed to create logical device");
+    
+    vkGetDeviceQueue(_logicalDevice, queueFamilyIndices.GraphicsFamily.value(), 0, &_graphicsQueue);
+    vkGetDeviceQueue(_logicalDevice, queueFamilyIndices.PresentationFamily.value(), 0, &_presentationQueue);
+}
 
-    vkGetDeviceQueue(_device, queueFamilyIndices.GraphicsFamily.value(), 0, &_graphicsQueue);
-    vkGetDeviceQueue(_device, queueFamilyIndices.PresentationFamily.value(), 0, &_presentationQueue);
+Mango::LogicalDevice::~LogicalDevice()
+{
+    vkDestroyDevice(_logicalDevice, nullptr);
 }

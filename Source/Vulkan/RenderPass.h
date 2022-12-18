@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "LogicalDevice.h"
 #include "SwapChain.h"
 
 #include <vulkan/vulkan.h>
@@ -9,16 +10,16 @@ namespace Mango
     class RenderPass
     {
     public:
-        RenderPass() = default;
+        RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
+        RenderPass() = delete;
         RenderPass(const RenderPass&) = delete;
         RenderPass operator=(const RenderPass&) = delete;
         ~RenderPass();
+
+        const VkRenderPass& GetRenderPass() const { return _renderPass; }
         
-        void CreateRenderPass(LogicalDevice& logicalDevice, SwapChain& swapChain);
-        VkRenderPass& GetRenderPass() { return _renderPass; }
     private:
-        LogicalDevice* _logicalDevice;
-        SwapChain* _swapChain;
         VkRenderPass _renderPass;
+        VkDevice& _logicalDevice;
     };
 }
