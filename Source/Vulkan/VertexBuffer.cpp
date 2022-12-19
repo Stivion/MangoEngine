@@ -59,14 +59,18 @@ void Mango::VertexBuffer::CopyToVertexBuffer(
 	copyRegion.dstOffset = 0;
 	copyRegion.size = bufferSizeBytes;
 	vkCmdCopyBuffer(commandBuffer, sourceBuffer, _buffer, 1, &copyRegion);
-	vkEndCommandBuffer(commandBuffer);
+	auto endResult = vkEndCommandBuffer(commandBuffer);
+	M_TRACE("End command buffer result is: " + std::to_string(endResult));
+	M_ASSERT(endResult == VK_SUCCESS && "Failed to end command buffer");
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	auto submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	M_TRACE("Copy buffer submit result is: " + std::to_string(submitResult));
+	M_ASSERT(submitResult == VK_SUCCESS && "Failed to submit buffer copy command");
 	vkQueueWaitIdle(graphicsQueue);
 	vkFreeCommandBuffers(_logicalDevice, commandPool, 1, &commandBuffer);
 }
