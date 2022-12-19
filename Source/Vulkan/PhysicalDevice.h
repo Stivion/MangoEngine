@@ -18,6 +18,8 @@ namespace Mango
         PhysicalDevice() = delete;
         PhysicalDevice(const PhysicalDevice&) = delete;
         PhysicalDevice operator=(const PhysicalDevice&) = delete;
+
+        uint32_t FindSuitableMemoryType(uint32_t memoryType, VkMemoryPropertyFlags requiredProperties);
         
         VkPhysicalDevice& GetDevice() { return _physicalDevice; }
     private:

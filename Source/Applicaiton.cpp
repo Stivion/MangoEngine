@@ -2,7 +2,6 @@
 
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
-
 #include "Vulkan/SwapChainSupportDetails.h"
 
 Mango::Application::Application()
@@ -43,11 +42,19 @@ void Mango::Application::RunMainLoop()
 {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     uint32_t currentFrame = 0;
+    const std::vector<Vertex> vertices =
+    {
+        {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+    };
+    const auto vertexCount = static_cast<uint32_t>(vertices.size());
+    const Mango::VertexBuffer vertexBuffer(vertexCount, sizeof(Vertex) * vertexCount, vertices.data(), _physicalDevice, _logicalDevice);
 
     while (!glfwWindowShouldClose(_window.GetWindow()))
     {
         glfwPollEvents();
-        DrawFrame(currentFrame);
+        DrawFrame(currentFrame, vertexBuffer);
         currentFrame = (currentFrame + 1) % MaxFramesInFlight;
 
         //ImGui_ImplVulkan_NewFrame();
@@ -68,7 +75,7 @@ void Mango::Application::RunMainLoop()
     vkDeviceWaitIdle(_logicalDevice.GetDevice());
 }
 
-void Mango::Application::DrawFrame(uint32_t currentFrame)
+void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer)
 {
     const auto& vkLogicalDevice = _logicalDevice.GetDevice();
 
@@ -116,7 +123,7 @@ void Mango::Application::DrawFrame(uint32_t currentFrame)
 
     const auto& currentCommandBuffer = _commandBuffers.GetCommandBuffer(currentFrame);
     vkResetCommandBuffer(currentCommandBuffer, 0);
-    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, imageIndex);
+    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, vertexBuffer, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -135,7 +142,8 @@ void Mango::Application::DrawFrame(uint32_t currentFrame)
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(_logicalDevice.GetGraphicsQueue(), 1, &submitInfo, _inFlightFences[currentFrame]) != VK_SUCCESS) {
+    if (vkQueueSubmit(_logicalDevice.GetGraphicsQueue(), 1, &submitInfo, _inFlightFences[currentFrame]) != VK_SUCCESS) 
+    {
         throw std::runtime_error("Failed to submit draw command buffer");
     }
 

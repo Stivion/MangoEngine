@@ -28,7 +28,7 @@ Mango::CommandBuffers::CommandBuffers(
     M_ASSERT(allocateCommandBuffersResult == VK_SUCCESS && "Failed to allocate command buffers");
 }
 
-void Mango::CommandBuffers::RecordCommandBuffer(const VkCommandBuffer& commandBuffer, uint32_t imageIndex)
+void Mango::CommandBuffers::RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const Mango::VertexBuffer& vertexBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -67,7 +67,11 @@ void Mango::CommandBuffers::RecordCommandBuffer(const VkCommandBuffer& commandBu
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+    VkBuffer vertexBuffers[] = { vertexBuffer.GetBuffer() };
+    VkDeviceSize offsets[] = { 0 };
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+
+    vkCmdDraw(commandBuffer, vertexBuffer.GetVertexCount(), 1, 0, 0);
     vkCmdEndRenderPass(commandBuffer);
 
     auto endCommandBufferResult = vkEndCommandBuffer(commandBuffer);

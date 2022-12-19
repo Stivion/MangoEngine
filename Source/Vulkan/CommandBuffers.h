@@ -6,6 +6,7 @@
 #include "GraphicsPipeline.h"
 #include "Framebuffers.h"
 #include "CommandPool.h"
+#include "VertexBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -29,7 +30,7 @@ namespace Mango
         CommandBuffers(const CommandBuffers&) = delete;
         CommandBuffers operator=(const CommandBuffers&) = delete;
         
-        void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, uint32_t imageIndex);
+        void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, const Mango::VertexBuffer& vertexBuffer, const  uint32_t imageIndex);
         const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return _commandBuffers; }
         const VkCommandBuffer& GetCommandBuffer(uint32_t index) const { return _commandBuffers[index]; }
     private:

@@ -34,6 +34,22 @@ Mango::PhysicalDevice::PhysicalDevice(Mango::Instance& instance, Mango::RenderSu
     M_ASSERT(_physicalDevice != VK_NULL_HANDLE && "Failed to find a suitable GPU with Vulkan support");
 }
 
+uint32_t Mango::PhysicalDevice::FindSuitableMemoryType(uint32_t memoryType, VkMemoryPropertyFlags requiredProperties)
+{
+    VkPhysicalDeviceMemoryProperties memoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(_physicalDevice, &memoryProperties);
+
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+    {
+        if ((memoryType & (1 << i)) && (memoryProperties.memoryTypes[i].propertyFlags & requiredProperties) == requiredProperties)
+        {
+            return i;
+        }
+    }
+
+    M_ASSERT(false && "Unable to find suitable memory type");
+}
+
 bool Mango::PhysicalDevice::IsDeviceSuitable(VkPhysicalDevice &device, VkSurfaceKHR &renderSurface)
 {
     VkPhysicalDeviceProperties deviceProperties;
