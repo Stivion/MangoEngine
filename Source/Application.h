@@ -11,6 +11,7 @@
 #include "Vulkan/Framebuffers.h"
 #include "Vulkan/CommandPool.h"
 #include "Vulkan/VertexBuffer.h"
+#include "Vulkan/IndexBuffer.h"
 #include "Vulkan/CommandBuffers.h"
 #include "Vulkan/Vertex.h"
 
@@ -42,7 +43,7 @@ namespace Mango
         void InitializeWindow();
         void InitializeVulkan();
         void RunMainLoop();
-        void DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer);
+        void DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer);
         void FrameRender(ImDrawData* draw_data);
 
         static void FramebufferResizedCallback(GLFWwindow* window, int width, int height);

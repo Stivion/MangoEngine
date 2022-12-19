@@ -44,17 +44,28 @@ void Mango::Application::RunMainLoop()
     uint32_t currentFrame = 0;
     const std::vector<Vertex> vertices =
     {
+        {{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+
         {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-        {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-        {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+        {{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+        {{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+        {{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+    };
+    const std::vector<uint16_t> indices =
+    {
+        0, 1, 2, 3, 4, 5, 5, 6, 3
     };
     const auto vertexCount = static_cast<uint32_t>(vertices.size());
+    const auto indicesCount = static_cast<uint32_t>(indices.size());
     const Mango::VertexBuffer vertexBuffer(vertexCount, sizeof(Vertex) * vertexCount, vertices.data(), _physicalDevice, _logicalDevice, _commandPool);
+    const Mango::IndexBuffer indexBuffer(indicesCount, sizeof(uint16_t) * indicesCount, indices.data(), _physicalDevice, _logicalDevice, _commandPool);
 
     while (!glfwWindowShouldClose(_window.GetWindow()))
     {
         glfwPollEvents();
-        DrawFrame(currentFrame, vertexBuffer);
+        DrawFrame(currentFrame, vertexBuffer, indexBuffer);
         currentFrame = (currentFrame + 1) % MaxFramesInFlight;
 
         //ImGui_ImplVulkan_NewFrame();
@@ -75,7 +86,7 @@ void Mango::Application::RunMainLoop()
     vkDeviceWaitIdle(_logicalDevice.GetDevice());
 }
 
-void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer)
+void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer)
 {
     const auto& vkLogicalDevice = _logicalDevice.GetDevice();
 
@@ -123,7 +134,7 @@ void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuf
 
     const auto& currentCommandBuffer = _commandBuffers.GetCommandBuffer(currentFrame);
     vkResetCommandBuffer(currentCommandBuffer, 0);
-    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, vertexBuffer, imageIndex);
+    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, vertexBuffer, indexBuffer, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
