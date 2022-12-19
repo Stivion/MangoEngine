@@ -11,13 +11,37 @@ Mango::Framebuffers::Framebuffers(
     Mango::RenderPass& renderPass
 ) : _logicalDevice(logicalDevice.GetDevice())
 {
+    CreateFramebuffers(logicalDevice, swapChain, renderPass);
+}
+
+Mango::Framebuffers::~Framebuffers()
+{
+    DisposeVulkanObjects();
+}
+
+void Mango::Framebuffers::RecreateFramebuffers(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass)
+{
+    DisposeVulkanObjects();
+    CreateFramebuffers(logicalDevice, swapChain, renderPass);
+}
+
+void Mango::Framebuffers::DisposeVulkanObjects()
+{
+    for (const auto& framebuffer : _swapChainFramebuffers)
+    {
+        vkDestroyFramebuffer(_logicalDevice, framebuffer, nullptr);
+    }
+}
+
+void Mango::Framebuffers::CreateFramebuffers(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass)
+{
     const auto& swapChainImageViews = swapChain.GetSwapChainImageViews();
     _swapChainFramebuffers.resize(swapChainImageViews.size());
     const auto& swapChainExtent = swapChain.GetSwapChainExtent();
 
     for (size_t i = 0; i < swapChainImageViews.size(); i++)
     {
-        VkImageView attachments[] = 
+        VkImageView attachments[] =
         {
             swapChainImageViews[i]
         };
@@ -34,13 +58,5 @@ Mango::Framebuffers::Framebuffers(
         auto createFramebufferResult = vkCreateFramebuffer(_logicalDevice, &framebufferInfo, nullptr, &_swapChainFramebuffers[i]);
         M_TRACE("Create framebuffer result is: " + std::to_string(createFramebufferResult));
         M_ASSERT(createFramebufferResult == VK_SUCCESS && "Failed to create framebuffer");
-    }
-}
-
-Mango::Framebuffers::~Framebuffers()
-{
-    for (auto framebuffer : _swapChainFramebuffers)
-    {
-        vkDestroyFramebuffer(_logicalDevice, framebuffer, nullptr);
     }
 }

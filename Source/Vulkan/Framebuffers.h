@@ -18,10 +18,17 @@ namespace Mango
         Framebuffers(const Framebuffers&) = delete;
         Framebuffers operator=(const Framebuffers&) = delete;
         ~Framebuffers();
+
+        void RecreateFramebuffers(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass);
         
         const std::vector<VkFramebuffer>& GetSwapChainFramebuffers() const { return _swapChainFramebuffers; }
+
     private:
         std::vector<VkFramebuffer> _swapChainFramebuffers;
         VkDevice& _logicalDevice;
+
+    private:
+        void DisposeVulkanObjects();
+        void CreateFramebuffers(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, Mango::RenderPass& renderPass);
     };
 }

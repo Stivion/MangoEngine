@@ -16,11 +16,42 @@ Mango::SwapChain::SwapChain(
     Mango::LogicalDevice& logicalDevice,
     Mango::SwapChainSupportDetails& swapChainSupportDetails,
     Mango::QueueFamilyIndices& queueFamilyIndices
-) : _logicalDevice(logicalDevice.GetDevice())
+) : _logicalDevice(logicalDevice.GetDevice()), _window(window.GetWindow()), _renderSurface(renderSurface.GetRenderSurface())
+{
+    CreateSwapChain(
+        _window,
+        _renderSurface,
+        swapChainSupportDetails,
+        queueFamilyIndices
+    );
+}
+
+Mango::SwapChain::~SwapChain()
+{
+    DisposeVulkanObjects();
+}
+
+void Mango::SwapChain::RecreateSwapChain(Mango::SwapChainSupportDetails& swapChainSupportDetails, Mango::QueueFamilyIndices& queueFamilyIndices)
+{
+    DisposeVulkanObjects();
+    CreateSwapChain(
+        _window,
+        _renderSurface,
+        swapChainSupportDetails,
+        queueFamilyIndices
+    );
+}
+
+void Mango::SwapChain::CreateSwapChain(
+    GLFWwindow* window,
+    VkSurfaceKHR& renderSurface,
+    Mango::SwapChainSupportDetails& swapChainSupportDetails,
+    Mango::QueueFamilyIndices& queueFamilyIndices
+)
 {
     auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupportDetails.Formats);
     auto presentMode = ChooseSwapPresentMode(swapChainSupportDetails.PresentModes);
-    auto extent = ChooseSwapExtent(swapChainSupportDetails.SurfaceCapabilities, window.GetWindow());
+    auto extent = ChooseSwapExtent(swapChainSupportDetails.SurfaceCapabilities, window);
 
     _swapChainSurfaceFormat = surfaceFormat;
     _swapChainPresentMode = presentMode;
@@ -34,7 +65,7 @@ Mango::SwapChain::SwapChain(
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = renderSurface.GetRenderSurface();
+    createInfo.surface = renderSurface;
     createInfo.minImageCount = imageCount;
     createInfo.imageFormat = surfaceFormat.format;
     createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -62,37 +93,45 @@ Mango::SwapChain::SwapChain(
     createInfo.clipped = VK_TRUE;
     createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-    const auto createSwapChainResult = vkCreateSwapchainKHR(logicalDevice.GetDevice(), &createInfo, nullptr, &_swapChain);
+    const auto createSwapChainResult = vkCreateSwapchainKHR(_logicalDevice, &createInfo, nullptr, &_swapChain);
     M_TRACE("Create swap chain result is: " + std::to_string(createSwapChainResult));
     M_ASSERT(createSwapChainResult == VK_SUCCESS && "Failed to create swap chain");
 
-    VkResult getSwapChainImagesResult;
-    getSwapChainImagesResult = vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &imageCount, nullptr);
-    M_TRACE("Swap chain image count is: " + std::to_string(imageCount));
-    _swapChainImages.resize(imageCount);
-    getSwapChainImagesResult = vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &imageCount, _swapChainImages.data());
-    M_ASSERT(getSwapChainImagesResult == VK_SUCCESS && "Failed to get swap chain images");
-
-    _swapChainImageViews = CreateImageViews();
+    _swapChainImages = CreateSwapChainImages();
+    _swapChainImageViews = CreateImageViews(_swapChainImages);
 }
 
-Mango::SwapChain::~SwapChain()
+void Mango::SwapChain::DisposeVulkanObjects()
 {
-    for (const auto& imageView : _swapChainImageViews) 
+    for (const auto& imageView : _swapChainImageViews)
     {
         vkDestroyImageView(_logicalDevice, imageView, nullptr);
     }
     vkDestroySwapchainKHR(_logicalDevice, _swapChain, nullptr);
 }
 
-std::vector<VkImageView> Mango::SwapChain::CreateImageViews()
+std::vector<VkImage> Mango::SwapChain::CreateSwapChainImages()
 {
-    std::vector<VkImageView> swapChainImageViews(_swapChainImages.size());
-    for (size_t i = 0; i < _swapChainImages.size(); i++) 
+    std::vector<VkImage> swapChainImages;
+    uint32_t imageCount;
+
+    VkResult getSwapChainImagesResult;
+    getSwapChainImagesResult = vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &imageCount, nullptr);
+    M_TRACE("Swap chain image count is: " + std::to_string(imageCount));
+    swapChainImages.resize(imageCount);
+    getSwapChainImagesResult = vkGetSwapchainImagesKHR(_logicalDevice, _swapChain, &imageCount, swapChainImages.data());
+    M_ASSERT(getSwapChainImagesResult == VK_SUCCESS && "Failed to get swap chain images");
+    return swapChainImages;
+}
+
+std::vector<VkImageView> Mango::SwapChain::CreateImageViews(std::vector<VkImage>& swapChainImages)
+{
+    std::vector<VkImageView> swapChainImageViews(swapChainImages.size());
+    for (size_t i = 0; i < swapChainImages.size(); i++)
     {
         VkImageViewCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        createInfo.image = _swapChainImages[i];
+        createInfo.image = swapChainImages[i];
         createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
         createInfo.format = _swapChainSurfaceFormat.format;
         createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;

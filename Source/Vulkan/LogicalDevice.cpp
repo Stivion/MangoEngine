@@ -5,6 +5,7 @@
 
 #include <set>
 #include <vector>
+#include <string>
 
 const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
@@ -35,7 +36,7 @@ Mango::LogicalDevice::LogicalDevice(Mango::PhysicalDevice& physicalDevice, Mango
     createInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
 
     const auto createLogicalDeviceResult = vkCreateDevice(physicalDevice.GetDevice(), &createInfo, nullptr, &_logicalDevice);
-    M_TRACE("Create logical device result is: " + createLogicalDeviceResult);
+    M_TRACE("Create logical device result is: " + std::to_string(createLogicalDeviceResult));
     M_ASSERT(createLogicalDeviceResult == VK_SUCCESS && "Failed to create logical device");
     
     vkGetDeviceQueue(_logicalDevice, queueFamilyIndices.GraphicsFamily.value(), 0, &_graphicsQueue);

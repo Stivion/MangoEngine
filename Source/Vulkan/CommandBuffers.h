@@ -9,12 +9,15 @@
 
 #include <vulkan/vulkan.h>
 
+#include <vector>
+
 namespace Mango
 {
-    class CommandBuffer
+    class CommandBuffers
     {
     public:
-        CommandBuffer(
+        CommandBuffers(
+            uint32_t commandBuffersCount,
             Mango::LogicalDevice& logicalDevice,
             Mango::SwapChain& swapChain,
             Mango::RenderPass& renderPass,
@@ -22,15 +25,15 @@ namespace Mango
             Mango::Framebuffers& framebuffers,
             Mango::CommandPool& commandPool
         );
-        CommandBuffer() = delete;
-        CommandBuffer(const CommandBuffer&) = delete;
-        CommandBuffer operator=(const CommandBuffer&) = delete;
-        ~CommandBuffer();
+        CommandBuffers() = delete;
+        CommandBuffers(const CommandBuffers&) = delete;
+        CommandBuffers operator=(const CommandBuffers&) = delete;
         
-        void RecordCommandBuffer(uint32_t imageIndex);
-        const VkCommandBuffer& GetCommandBuffer() const { return _commandBuffer; }
+        void RecordCommandBuffer(const VkCommandBuffer& commandBuffer, uint32_t imageIndex);
+        const std::vector<VkCommandBuffer>& GetCommandBuffers() const { return _commandBuffers; }
+        const VkCommandBuffer& GetCommandBuffer(uint32_t index) const { return _commandBuffers[index]; }
     private:
-        VkCommandBuffer _commandBuffer;
+        std::vector<VkCommandBuffer> _commandBuffers;
         const VkRenderPass& _renderPass;
         const std::vector<VkFramebuffer>& _framebuffers;
         const Mango::SwapChain& _swapChain;

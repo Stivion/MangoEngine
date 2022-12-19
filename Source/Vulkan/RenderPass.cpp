@@ -8,6 +8,27 @@
 Mango::RenderPass::RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain) 
     : _logicalDevice(logicalDevice.GetDevice())
 {
+    CreateRenderPass(logicalDevice, swapChain);
+}
+
+Mango::RenderPass::~RenderPass()
+{
+    DisposeVulkanObjects();
+}
+
+void Mango::RenderPass::RecreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain)
+{
+    DisposeVulkanObjects();
+    CreateRenderPass(logicalDevice, swapChain);
+}
+
+void Mango::RenderPass::DisposeVulkanObjects()
+{
+    vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
+}
+
+void Mango::RenderPass::CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain)
+{
     const auto swapChainImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
     VkAttachmentDescription colorAttachment{};
     colorAttachment.format = swapChainImageFormat;
@@ -48,9 +69,4 @@ Mango::RenderPass::RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapCh
     auto renderPassCreateResult = vkCreateRenderPass(_logicalDevice, &renderPassInfo, nullptr, &_renderPass);
     M_TRACE("Render pass create result is: " + std::to_string(renderPassCreateResult));
     M_ASSERT(renderPassCreateResult == VK_SUCCESS && "Failed to create render pass");
-}
-
-Mango::RenderPass::~RenderPass()
-{
-    vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
 }

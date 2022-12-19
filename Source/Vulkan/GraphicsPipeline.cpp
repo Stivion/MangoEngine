@@ -157,8 +157,8 @@ Mango::GraphicsPipeline::GraphicsPipeline(
 
 Mango::GraphicsPipeline::~GraphicsPipeline()
 {
-    vkDestroyPipeline(_logicalDevice, _graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(_logicalDevice, _pipelineLayout, nullptr);
+    vkDestroyPipeline(_logicalDevice, _graphicsPipeline, nullptr);
 }
 
 VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(VkDevice& logicalDevice, const std::vector<char>& shaderCode)

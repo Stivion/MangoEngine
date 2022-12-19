@@ -5,6 +5,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include <string>
 #include <vector>
 
 const std::vector<const char *> validationLayers = {"VK_LAYER_KHRONOS_validation"};
@@ -29,7 +30,7 @@ Mango::Instance::Instance()
 
     uint32_t glfwExtensionsCount = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
-    M_TRACE("GLFW required extensions count: " + glfwExtensionsCount);
+    M_TRACE("GLFW required extensions count: " + std::to_string(glfwExtensionsCount));
     M_ASSERT(CheckRequiredExtensions(glfwExtensions, glfwExtensionsCount) && "One or more required extension layers is missing");
 
     VkInstanceCreateInfo instanceCreateInfo{};
@@ -48,7 +49,7 @@ Mango::Instance::Instance()
     }
 
     const auto createInstanceResult = vkCreateInstance(&instanceCreateInfo, nullptr, &_instance);
-    M_TRACE("Vulkan instance create result is: " + createInstanceResult);
+    M_TRACE("Vulkan instance create result is: " + std::to_string(createInstanceResult));
     M_ASSERT(createInstanceResult == VK_SUCCESS && "Failed to create Vulkan Instance");
 }
 

@@ -3,11 +3,13 @@
 #include "../Infrastructure/Assert/Assert.h"
 #include "../Infrastructure/Logging/Logging.h"
 
+#include <string>
+
 Mango::RenderSurface::RenderSurface(Mango::Window& window, Mango::Instance& instance) 
     : _window(window.GetWindow()), _instance(instance.GetInstance())
 {
     const auto createWindowSurfaceResult = glfwCreateWindowSurface(_instance, _window, nullptr, &_renderSurface);
-    M_TRACE("Create window surface result is: " + createWindowSurfaceResult);
+    M_TRACE("Create window surface result is: " + std::to_string(createWindowSurfaceResult));
     M_ASSERT(createWindowSurfaceResult == VK_SUCCESS && "Failed to create render surface");
 }
 

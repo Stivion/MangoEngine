@@ -10,7 +10,7 @@
 #include "Vulkan/GraphicsPipeline.h"
 #include "Vulkan/Framebuffers.h"
 #include "Vulkan/CommandPool.h"
-#include "Vulkan/CommandBuffer.h"
+#include "Vulkan/CommandBuffers.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -33,15 +33,22 @@ namespace Mango
         void Run();
 
     private:
-        void RunMainLoop();
-        void DrawFrame();
-        void FrameRender(ImDrawData* draw_data);
+        const uint32_t MaxFramesInFlight = 2;
+
         void InitializeImGui();
         void CreateSyncObjects();
+        void InitializeWindow();
+        void InitializeVulkan();
+        void RunMainLoop();
+        void DrawFrame(uint32_t currentFrame);
+        void FrameRender(ImDrawData* draw_data);
+
+        static void FramebufferResizedCallback(GLFWwindow* window, int width, int height);
         
     private:
         // Windowing
-        Mango::Window _window{ 1920, 1080 };
+        Mango::Window _window{ 800, 600 };
+        bool _framebufferResized = false;
 
         // Vulkan
         Mango::Instance _instance{};
@@ -55,11 +62,11 @@ namespace Mango
         Mango::GraphicsPipeline _graphicsPipeline{ _logicalDevice, _swapChain, _renderPass, "vert.spv", "frag.spv" };
         Mango::Framebuffers _framebuffers{ _logicalDevice, _swapChain, _renderPass };
         Mango::CommandPool _commandPool{ _logicalDevice, _queueFamilyIndices };
-        Mango::CommandBuffer _commandBuffer{ _logicalDevice, _swapChain, _renderPass, _graphicsPipeline, _framebuffers, _commandPool };
+        Mango::CommandBuffers _commandBuffers{ MaxFramesInFlight, _logicalDevice, _swapChain, _renderPass, _graphicsPipeline, _framebuffers, _commandPool };
 
-        VkSemaphore _imageAvailableSemaphore;
-        VkSemaphore _renderFinishedSemaphore;
-        VkFence _inFlightFence;
+        std::vector<VkSemaphore> _imageAvailableSemaphores{ MaxFramesInFlight };
+        std::vector<VkSemaphore> _renderFinishedSemaphores{ MaxFramesInFlight };
+        std::vector<VkFence> _inFlightFences{ MaxFramesInFlight };
         
         VkDescriptorPool _descriptorPool;
     };

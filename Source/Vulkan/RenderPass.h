@@ -16,10 +16,16 @@ namespace Mango
         RenderPass operator=(const RenderPass&) = delete;
         ~RenderPass();
 
+        void RecreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
+
         const VkRenderPass& GetRenderPass() const { return _renderPass; }
         
     private:
         VkRenderPass _renderPass;
         VkDevice& _logicalDevice;
+
+    private:
+        void DisposeVulkanObjects();
+        void CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
     };
 }
