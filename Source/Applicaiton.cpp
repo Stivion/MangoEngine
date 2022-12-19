@@ -49,7 +49,7 @@ void Mango::Application::RunMainLoop()
         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
     };
     const auto vertexCount = static_cast<uint32_t>(vertices.size());
-    const Mango::VertexBuffer vertexBuffer(vertexCount, sizeof(Vertex) * vertexCount, vertices.data(), _physicalDevice, _logicalDevice);
+    const Mango::VertexBuffer vertexBuffer(vertexCount, sizeof(Vertex) * vertexCount, vertices.data(), _physicalDevice, _logicalDevice, _commandPool);
 
     while (!glfwWindowShouldClose(_window.GetWindow()))
     {
