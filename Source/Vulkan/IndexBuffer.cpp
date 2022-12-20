@@ -25,7 +25,7 @@ Mango::IndexBuffer::IndexBuffer(
 		logicalDevice
 	);
 
-	stagingBuffer.MapMemory(bufferSizeBytes, memory);
+	stagingBuffer.CopyToBuffer(bufferSizeBytes, memory);
 	CopyToIndexBuffer(stagingBuffer.GetBuffer(), commandPool.GetCommandPool(), logicalDevice.GetGraphicsQueue(), bufferSizeBytes);
 }
 

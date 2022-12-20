@@ -33,6 +33,7 @@ namespace Mango
         
         void RecordCommandBuffer(
             const VkCommandBuffer& commandBuffer,
+            const VkDescriptorSet& descriptorSet,
             const Mango::VertexBuffer& vertexBuffer,
             const Mango::IndexBuffer& indexBuffer,
             const  uint32_t imageIndex
@@ -44,6 +45,6 @@ namespace Mango
         const VkRenderPass& _renderPass;
         const std::vector<VkFramebuffer>& _framebuffers;
         const Mango::SwapChain& _swapChain;
-        const VkPipeline& _graphicsPipeline;
+        const Mango::GraphicsPipeline& _graphicsPipeline;
     };
 }

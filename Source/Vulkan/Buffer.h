@@ -21,13 +21,16 @@ namespace Mango
 		Buffer operator=(const Buffer&) = delete;
 		~Buffer();
 
-		void MapMemory(uint32_t bufferSizeBytes, const void* memoryBuffer);
+		void CopyToBuffer(uint32_t memorySizeBytes, const void* memoryBuffer) const;
+		void* MapMemory(uint32_t memorySizeBytes) const;
+		void UnmapMemory() const;
 
 		const VkBuffer& GetBuffer() const { return _buffer; }
 
 	protected:
 		VkBuffer _buffer;
 		VkDeviceMemory _bufferMemory;
+		VkDeviceSize _bufferSize;
 		VkDevice& _logicalDevice;
 
 	private:

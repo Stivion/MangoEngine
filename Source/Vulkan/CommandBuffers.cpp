@@ -13,7 +13,7 @@ Mango::CommandBuffers::CommandBuffers(
     Mango::GraphicsPipeline& graphicsPipeline,
     Mango::Framebuffers& framebuffers,
     Mango::CommandPool& commandPool
-) : _renderPass(renderPass.GetRenderPass()), _framebuffers(framebuffers.GetSwapChainFramebuffers()), _swapChain(swapChain), _graphicsPipeline(graphicsPipeline.GetGraphicsPipeline())
+) : _renderPass(renderPass.GetRenderPass()), _framebuffers(framebuffers.GetSwapChainFramebuffers()), _swapChain(swapChain), _graphicsPipeline(graphicsPipeline)
 {
     _commandBuffers.resize(commandBuffersCount);
 
@@ -30,6 +30,7 @@ Mango::CommandBuffers::CommandBuffers(
 
 void Mango::CommandBuffers::RecordCommandBuffer(
     const VkCommandBuffer& commandBuffer,
+    const VkDescriptorSet& descriptorSet,
     const Mango::VertexBuffer& vertexBuffer,
     const Mango::IndexBuffer& indexBuffer,
     uint32_t imageIndex
@@ -56,7 +57,7 @@ void Mango::CommandBuffers::RecordCommandBuffer(
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline);
+    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline.GetGraphicsPipeline());
 
     VkViewport viewport{};
     viewport.x = 0.0f;
@@ -76,6 +77,7 @@ void Mango::CommandBuffers::RecordCommandBuffer(
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline.GetPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
     vkCmdDrawIndexed(commandBuffer, indexBuffer.GetIndicesCount(), 1, 0, 0, 0);
     vkCmdEndRenderPass(commandBuffer);

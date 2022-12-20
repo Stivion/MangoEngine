@@ -32,13 +32,27 @@ Mango::Buffer::~Buffer()
 	vkFreeMemory(_logicalDevice, _bufferMemory, nullptr);
 }
 
-void Mango::Buffer::MapMemory(uint32_t bufferSizeBytes, const void* memoryBuffer)
+void Mango::Buffer::CopyToBuffer(uint32_t memorySizeBytes, const void* memoryBuffer) const
 {
 	void* gpuMemoryBuffer;
-	auto mapResult = vkMapMemory(_logicalDevice, _bufferMemory, 0, bufferSizeBytes, 0, &gpuMemoryBuffer);
+	auto mapResult = vkMapMemory(_logicalDevice, _bufferMemory, 0, memorySizeBytes, 0, &gpuMemoryBuffer);
 	M_TRACE("Map memory result is: " + std::to_string(mapResult));
 	M_ASSERT(mapResult == VK_SUCCESS && "Failed to map memory for buffer");
-	memcpy(gpuMemoryBuffer, memoryBuffer, static_cast<size_t>(bufferSizeBytes));
+	memcpy(gpuMemoryBuffer, memoryBuffer, static_cast<size_t>(memorySizeBytes));
+	vkUnmapMemory(_logicalDevice, _bufferMemory);
+}
+
+void* Mango::Buffer::MapMemory(uint32_t memorySizeBytes) const
+{
+	void* gpuMemoryBuffer;
+	auto mapResult = vkMapMemory(_logicalDevice, _bufferMemory, 0, memorySizeBytes, 0, &gpuMemoryBuffer);
+	M_TRACE("Map memory result is: " + std::to_string(mapResult));
+	M_ASSERT(mapResult == VK_SUCCESS && "Failed to map memory for buffer");
+	return gpuMemoryBuffer;
+}
+
+void Mango::Buffer::UnmapMemory() const
+{
 	vkUnmapMemory(_logicalDevice, _bufferMemory);
 }
 

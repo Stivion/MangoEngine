@@ -25,7 +25,7 @@ Mango::VertexBuffer::VertexBuffer(
 		logicalDevice
 	);
 
-	stagingBuffer.MapMemory(bufferSizeBytes, memory);
+	stagingBuffer.CopyToBuffer(bufferSizeBytes, memory);
 	CopyToVertexBuffer(stagingBuffer.GetBuffer(), commandPool.GetCommandPool(), logicalDevice.GetGraphicsQueue(), bufferSizeBytes);
 }
 

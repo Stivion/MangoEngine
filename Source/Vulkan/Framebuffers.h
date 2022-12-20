@@ -10,6 +10,7 @@
 
 namespace Mango 
 {
+    // TODO: Refactor info single framebuffer holder
     class Framebuffers
     {
     public:

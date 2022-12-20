@@ -4,6 +4,12 @@
 #include "Infrastructure/Logging/Logging.h"
 #include "Vulkan/SwapChainSupportDetails.h"
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
+#include <chrono>
+
 Mango::Application::Application()
 {
     InitializeWindow();
@@ -51,7 +57,7 @@ void Mango::Application::RunMainLoop()
         {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
         {{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
         {{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-        {{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+        {{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
     };
     const std::vector<uint16_t> indices =
     {
@@ -134,7 +140,10 @@ void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuf
 
     const auto& currentCommandBuffer = _commandBuffers.GetCommandBuffer(currentFrame);
     vkResetCommandBuffer(currentCommandBuffer, 0);
-    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, vertexBuffer, indexBuffer, imageIndex);
+    vkDeviceWaitIdle(_logicalDevice.GetDevice()); // FIX ME
+    UpdateUniformBuffer(currentFrame);
+    _descriptorPool.ConfigureForUniformBuffers(static_cast<uint32_t>(_uniformBuffers.size()), _uniformBuffers.data());
+    _commandBuffers.RecordCommandBuffer(currentCommandBuffer, _descriptorPool.GetDescriptorSets()[currentFrame], vertexBuffer, indexBuffer, imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -197,6 +206,21 @@ void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuf
     {
         M_ASSERT(presentImageResult == VK_SUCCESS && "Failed to acquire present swap chain image");
     }
+}
+
+void Mango::Application::UpdateUniformBuffer(uint32_t currentFrame)
+{
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    Mango::UniformBufferObject ubo{};
+    ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.Projection = glm::perspective(glm::radians(45.0f), _swapChainSupportDetails.SurfaceCapabilities.currentExtent.width / static_cast<float>(_swapChainSupportDetails.SurfaceCapabilities.currentExtent.width), 0.1f, 10.0f);
+    ubo.Projection[1][1] *= -1;
+    memcpy(_uniformBuffers[currentFrame].GetMappedMemoryPointer(), &ubo, sizeof(ubo));
 }
 
 void Mango::Application::FrameRender(ImDrawData* draw_data)
