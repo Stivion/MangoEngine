@@ -1,5 +1,7 @@
 #pragma once
 
+#include "PhysicalDevice.h"
+#include "LogicalDevice.h"
 #include "Buffer.h"
 
 #include <vulkan/vulkan.h>

@@ -4,21 +4,23 @@
 
 #include <vulkan/vulkan.h>
 
+#include <vector>
+
 namespace Mango
 {
 	class DescriptorSetLayout
 	{
-    public:
-        DescriptorSetLayout(Mango::LogicalDevice& logicalDevice);
-        DescriptorSetLayout() = delete;
-        DescriptorSetLayout(const DescriptorSetLayout&) = delete;
-        DescriptorSetLayout operator=(const DescriptorSetLayout&) = delete;
-        ~DescriptorSetLayout();
+	public:
+		DescriptorSetLayout(Mango::LogicalDevice& logicalDevice);
+		DescriptorSetLayout() = delete;
+		DescriptorSetLayout(const DescriptorSetLayout&) = delete;
+		DescriptorSetLayout operator=(const DescriptorSetLayout&) = delete;
+		~DescriptorSetLayout();
 
-        const VkDescriptorSetLayout& GetDescriptorSetLayout() const { return _descriptorSetLayout; }
+		VkDescriptorSetLayout& GetDescriptorSetLayout() { return _layout; }
 
-    private:
-        VkDescriptorSetLayout _descriptorSetLayout;
-        const VkDevice& _logicalDevice;
+	private:
+		VkDescriptorSetLayout _layout;
+		const VkDevice& _logicalDevice;
 	};
 }
