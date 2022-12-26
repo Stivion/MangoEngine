@@ -45,7 +45,6 @@ Mango::GraphicsPipeline::GraphicsPipeline(
     dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
     dynamicState.pDynamicStates = dynamicStates.data();
 
-
     auto bindingDescription = Vertex::GetBindingDescription();
     auto attributeDescription = Vertex::GetAttributeDescriptions();
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};

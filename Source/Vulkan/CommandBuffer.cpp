@@ -8,12 +8,12 @@
 Mango::CommandBuffer::CommandBuffer(
     VkCommandBuffer commandBuffer,
     Mango::RenderPass& renderPass,
-    Mango::SwapChain& swapChain,
-    Mango::GraphicsPipeline& graphicsPipeline
-) : _renderPass(renderPass), _swapChain(swapChain), _graphicsPipeline(graphicsPipeline), _commandBuffer(commandBuffer)
+    Mango::SwapChain& swapChain
+) : _renderPass(renderPass), _swapChain(swapChain), _commandBuffer(commandBuffer)
 {
 }
 
+// TODO: Refactor Begin, Draw and End methods
 void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
 {
     VkCommandBufferBeginInfo beginInfo{};
@@ -37,8 +37,18 @@ void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
     renderPassInfo.pClearValues = &clearColor;
 
     vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline.GetGraphicsPipeline());
+}
 
+void Mango::CommandBuffer::DrawIndexed(
+    const Mango::GraphicsPipeline& graphicsPipeline,
+    const Mango::VertexBuffer& vertexBuffer,
+    const Mango::IndexBuffer& indexBuffer,
+    const VkDescriptorSet& descriptorSet
+)
+{
+    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetGraphicsPipeline());
+
+    const auto& swapChainExtent = _swapChain.GetSwapChainExtent();
     VkViewport viewport{};
     viewport.x = 0.0f;
     viewport.y = 0.0f;
@@ -52,26 +62,19 @@ void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
     scissor.offset = { 0, 0 };
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
-}
 
-void Mango::CommandBuffer::DrawIndexed(
-    const Mango::VertexBuffer& vertexBuffer,
-    const Mango::IndexBuffer& indexBuffer,
-    const VkDescriptorSet& descriptorSet
-)
-{
     VkBuffer vertexBuffers[] = { vertexBuffer.GetBuffer() };
     VkDeviceSize offsets[] = { 0 };
     vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-    vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, _graphicsPipeline.GetPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
 
     vkCmdDrawIndexed(_commandBuffer, indexBuffer.GetIndicesCount(), 1, 0, 0, 0);
+    vkCmdEndRenderPass(_commandBuffer);
 }
 
 void Mango::CommandBuffer::EndCommandBuffer()
 {
-    vkCmdEndRenderPass(_commandBuffer);
     auto endCommandBufferResult = vkEndCommandBuffer(_commandBuffer);
     M_ASSERT(endCommandBufferResult == VK_SUCCESS && "Failed to record command buffer");
 }

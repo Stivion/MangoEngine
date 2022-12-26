@@ -5,7 +5,6 @@
 #include "CommandBuffer.h"
 #include "RenderPass.h"
 #include "SwapChain.h"
-#include "GraphicsPipeline.h"
 
 #include <vulkan/vulkan.h>
 
@@ -21,7 +20,6 @@ namespace Mango
 			Mango::LogicalDevice& logicalDevice,
 			Mango::SwapChain& swapChain,
 			Mango::RenderPass& renderPass,
-			Mango::GraphicsPipeline& graphicsPipeline,
 			Mango::CommandPool& commandPool
 		);
 		CommandBuffersPool() = delete;

@@ -5,10 +5,10 @@
 
 #include <string>
 
-Mango::RenderPass::RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain) 
-    : _logicalDevice(logicalDevice.GetDevice())
+Mango::RenderPass::RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, bool hack)
+    : _logicalDevice(logicalDevice.GetDevice()), _hack(hack)
 {
-    CreateRenderPass(logicalDevice, swapChain);
+    CreateRenderPass(logicalDevice, swapChain, _hack);
 }
 
 Mango::RenderPass::~RenderPass()
@@ -19,7 +19,7 @@ Mango::RenderPass::~RenderPass()
 void Mango::RenderPass::RecreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain)
 {
     DisposeVulkanObjects();
-    CreateRenderPass(logicalDevice, swapChain);
+    CreateRenderPass(logicalDevice, swapChain, _hack);
 }
 
 void Mango::RenderPass::DisposeVulkanObjects()
@@ -27,7 +27,7 @@ void Mango::RenderPass::DisposeVulkanObjects()
     vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
 }
 
-void Mango::RenderPass::CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain)
+void Mango::RenderPass::CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, bool hack)
 {
     const auto swapChainImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
     VkAttachmentDescription colorAttachment{};
@@ -38,11 +38,11 @@ void Mango::RenderPass::CreateRenderPass(Mango::LogicalDevice& logicalDevice, Ma
     colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    colorAttachment.finalLayout = hack ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkAttachmentReference colorAttachmentRef{};
     colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    colorAttachmentRef.layout = hack ? VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
     VkSubpassDescription subpass{};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;

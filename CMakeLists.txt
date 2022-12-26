@@ -73,6 +73,10 @@ target_link_libraries(ImGui glfw)
 ## Link with ImGui
 target_link_libraries(${PROJECT_NAME} ImGui)
 
+# Link with stb_image
+include_directories(Libraries/stb)
+link_directories(Libraries/stb)
+
 # Compile shaders
 file(
         GLOB VERTEX_SHADERS

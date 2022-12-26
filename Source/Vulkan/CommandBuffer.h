@@ -3,6 +3,7 @@
 #include "RenderPass.h"
 #include "SwapChain.h"
 #include "GraphicsPipeline.h"
+#include "Framebuffer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
 
@@ -14,11 +15,10 @@ namespace Mango
 	{
 	public:
 		CommandBuffer() = delete;
-		CommandBuffer(const CommandBuffer&) = delete;
-		CommandBuffer operator=(const CommandBuffer&) = delete;
 
 		void BeginCommandBuffer(const VkFramebuffer& framebuffer);
 		void DrawIndexed(
+			const Mango::GraphicsPipeline& graphicsPipeline,
 			const Mango::VertexBuffer& vertexBuffer,
 			const Mango::IndexBuffer& indexBuffer,
 			const VkDescriptorSet& descriptorSet
@@ -31,15 +31,13 @@ namespace Mango
 		CommandBuffer(
 			VkCommandBuffer commandBuffer,
 			Mango::RenderPass& renderPass,
-			Mango::SwapChain& swapChain,
-			Mango::GraphicsPipeline& graphicsPipeline
+			Mango::SwapChain& swapChain
 		);
 
 	private:
 		VkCommandBuffer _commandBuffer;
 		Mango::RenderPass& _renderPass;
 		Mango::SwapChain& _swapChain;
-		Mango::GraphicsPipeline& _graphicsPipeline;
 
 		friend class CommandBuffersPool;
 	};

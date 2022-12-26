@@ -10,7 +10,6 @@ Mango::CommandBuffersPool::CommandBuffersPool(
     Mango::LogicalDevice& logicalDevice,
     Mango::SwapChain& swapChain,
     Mango::RenderPass& renderPass,
-    Mango::GraphicsPipeline& graphicsPipeline,
     Mango::CommandPool& commandPool
 )
 {
@@ -29,7 +28,7 @@ Mango::CommandBuffersPool::CommandBuffersPool(
     _commandBuffers.resize(commandBuffersCount);
     for (size_t i = 0; i < commandBuffersCount; i++)
     {
-        Mango::CommandBuffer* commandBuffer = new Mango::CommandBuffer(commandBuffers[i], renderPass, swapChain, graphicsPipeline);
+        Mango::CommandBuffer* commandBuffer = new Mango::CommandBuffer(commandBuffers[i], renderPass, swapChain);
         _commandBuffers[i] = commandBuffer;
     }
 
