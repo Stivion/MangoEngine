@@ -10,7 +10,8 @@ Mango::CommandBuffersPool::CommandBuffersPool(
     Mango::LogicalDevice& logicalDevice,
     Mango::SwapChain& swapChain,
     Mango::RenderPass& renderPass,
-    Mango::CommandPool& commandPool
+    Mango::CommandPool& commandPool,
+    Mango::GraphicsPipeline& graphicsPipeline
 )
 {
     auto commandBuffers = new VkCommandBuffer[commandBuffersCount];
@@ -28,7 +29,7 @@ Mango::CommandBuffersPool::CommandBuffersPool(
     _commandBuffers.resize(commandBuffersCount);
     for (size_t i = 0; i < commandBuffersCount; i++)
     {
-        Mango::CommandBuffer* commandBuffer = new Mango::CommandBuffer(commandBuffers[i], renderPass, swapChain);
+        Mango::CommandBuffer* commandBuffer = new Mango::CommandBuffer(commandBuffers[i], renderPass, swapChain, graphicsPipeline);
         _commandBuffers[i] = commandBuffer;
     }
 

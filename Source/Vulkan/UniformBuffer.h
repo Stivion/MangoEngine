@@ -18,11 +18,8 @@ namespace Mango
 		);
 		UniformBuffer(const UniformBuffer&) = delete;
 		UniformBuffer operator=(const UniformBuffer&) = delete;
-		~UniformBuffer();
+		~UniformBuffer() = default;
 
-		void* GetMappedMemoryPointer() const { return _memoryPointer; };
-
-	private:
-		void* _memoryPointer;
+		void* MapMemory() const;
 	};
 }

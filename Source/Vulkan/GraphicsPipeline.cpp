@@ -13,9 +13,8 @@ std::vector<VkDynamicState> dynamicStates = {
 
 Mango::GraphicsPipeline::GraphicsPipeline(
     Mango::LogicalDevice& logicalDevice,
-    Mango::SwapChain& swapChain,
     Mango::RenderPass& renderPass,
-    Mango::DescriptorSetLayout& descriptorSetLayout,
+    std::vector<const Mango::DescriptorSetLayout*>& descriptorSetLayouts,
     const std::string& vertexShaderPath,
     const std::string& fragmentShaderPath
 ) : _logicalDevice(logicalDevice.GetDevice())
@@ -59,25 +58,10 @@ Mango::GraphicsPipeline::GraphicsPipeline(
     inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
-    const auto swapChainExtent = swapChain.GetSwapChainExtent();
-    VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = (float)swapChainExtent.width;
-    viewport.height = (float)swapChainExtent.height;
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-
-    VkRect2D scissor{};
-    scissor.offset = { 0, 0 };
-    scissor.extent = swapChainExtent;
-
     VkPipelineViewportStateCreateInfo viewportState{};
     viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     viewportState.viewportCount = 1;
-    viewportState.pViewports = &viewport;
     viewportState.scissorCount = 1;
-    viewportState.pScissors = &scissor;
 
     VkPipelineRasterizationStateCreateInfo rasterizer{};
     rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
@@ -122,10 +106,16 @@ Mango::GraphicsPipeline::GraphicsPipeline(
     colorBlending.blendConstants[2] = 0.0f; // Optional
     colorBlending.blendConstants[3] = 0.0f; // Optional
 
+    const uint32_t setLayoutCount = static_cast<uint32_t>(descriptorSetLayouts.size());
+    std::vector<VkDescriptorSetLayout> setLayouts(setLayoutCount);
+    for (size_t i = 0; i < setLayoutCount; i++)
+    {
+        setLayouts[i] = descriptorSetLayouts[i]->GetDescriptorSetLayout();
+    }
     VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
     pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutInfo.setLayoutCount = 1;
-    pipelineLayoutInfo.pSetLayouts = &descriptorSetLayout.GetDescriptorSetLayout();
+    pipelineLayoutInfo.setLayoutCount = setLayoutCount;
+    pipelineLayoutInfo.pSetLayouts = setLayouts.data();
     pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
     pipelineLayoutInfo.pPushConstantRanges = nullptr; // Optional
 
@@ -146,7 +136,7 @@ Mango::GraphicsPipeline::GraphicsPipeline(
     pipelineInfo.pColorBlendState = &colorBlending;
     pipelineInfo.pDynamicState = &dynamicState;
     pipelineInfo.layout = _pipelineLayout;
-    pipelineInfo.renderPass = renderPass.GetRenderPass();
+    pipelineInfo.renderPass = renderPass.GetRenderPass(); // We don't recreate graphics pipeline on render pass recreation
     pipelineInfo.subpass = 0;
     pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
     pipelineInfo.basePipelineIndex = -1; // Optional

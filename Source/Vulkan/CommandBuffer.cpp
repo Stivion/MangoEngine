@@ -8,13 +8,13 @@
 Mango::CommandBuffer::CommandBuffer(
     VkCommandBuffer commandBuffer,
     Mango::RenderPass& renderPass,
-    Mango::SwapChain& swapChain
-) : _renderPass(renderPass), _swapChain(swapChain), _commandBuffer(commandBuffer)
+    Mango::SwapChain& swapChain,
+    Mango::GraphicsPipeline& graphicsPipeline
+) : _renderPass(renderPass), _swapChain(swapChain), _commandBuffer(commandBuffer), _graphicsPipeline(graphicsPipeline)
 {
 }
 
-// TODO: Refactor Begin, Draw and End methods
-void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
+void Mango::CommandBuffer::BeginCommandBuffer()
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -23,7 +23,10 @@ void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
 
     auto beginCommandBufferResult = vkBeginCommandBuffer(_commandBuffer, &beginInfo);
     M_ASSERT(beginCommandBufferResult == VK_SUCCESS && "Failed to begin recording command buffer");
+}
 
+void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo)
+{
     const auto& swapChainExtent = _swapChain.GetSwapChainExtent();
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -35,41 +38,50 @@ void Mango::CommandBuffer::BeginCommandBuffer(const VkFramebuffer& framebuffer)
     VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
     renderPassInfo.clearValueCount = 1;
     renderPassInfo.pClearValues = &clearColor;
-
     vkCmdBeginRenderPass(_commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-}
 
-void Mango::CommandBuffer::DrawIndexed(
-    const Mango::GraphicsPipeline& graphicsPipeline,
-    const Mango::VertexBuffer& vertexBuffer,
-    const Mango::IndexBuffer& indexBuffer,
-    const VkDescriptorSet& descriptorSet
-)
-{
-    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetGraphicsPipeline());
+    vkCmdBindPipeline(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
-    const auto& swapChainExtent = _swapChain.GetSwapChainExtent();
     VkViewport viewport{};
-    viewport.x = 0.0f;
-    viewport.y = 0.0f;
-    viewport.width = static_cast<float>(swapChainExtent.width);
-    viewport.height = static_cast<float>(swapChainExtent.height);
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
+    viewport.x = viewportInfo.X;
+    viewport.y = viewportInfo.Y;
+    viewport.width = viewportInfo.Width;
+    viewport.height = viewportInfo.Height;
+    viewport.minDepth = viewportInfo.MinDepth;
+    viewport.maxDepth = viewportInfo.MaxDepth;
     vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+}
 
+void Mango::CommandBuffer::DrawIndexed(const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer, std::vector<VkDescriptorSet>& descriptors)
+{
     VkBuffer vertexBuffers[] = { vertexBuffer.GetBuffer() };
     VkDeviceSize offsets[] = { 0 };
+    auto descriptorSets = descriptors.data();
+    auto descriptorSetsCount = static_cast<uint32_t>(descriptors.size());
+
     vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-    vkCmdBindDescriptorSets(_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.GetPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
+    vkCmdBindDescriptorSets(
+        _commandBuffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        _graphicsPipeline.GetPipelineLayout(),
+        0,
+        descriptorSetsCount,
+        descriptorSets,
+        0,
+        nullptr
+    );
 
     vkCmdDrawIndexed(_commandBuffer, indexBuffer.GetIndicesCount(), 1, 0, 0, 0);
+}
+
+void Mango::CommandBuffer::EndRenderPass()
+{
     vkCmdEndRenderPass(_commandBuffer);
 }
 
@@ -77,4 +89,9 @@ void Mango::CommandBuffer::EndCommandBuffer()
 {
     auto endCommandBufferResult = vkEndCommandBuffer(_commandBuffer);
     M_ASSERT(endCommandBufferResult == VK_SUCCESS && "Failed to record command buffer");
+}
+
+void Mango::CommandBuffer::Reset()
+{
+    vkResetCommandBuffer(_commandBuffer, 0);
 }

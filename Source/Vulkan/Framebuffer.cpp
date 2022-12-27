@@ -21,7 +21,7 @@ Mango::Framebuffer::~Framebuffer()
 }
 
 void Mango::Framebuffer::RecreateFramebuffer(
-    Mango::RenderPass& renderPass,
+    const Mango::RenderPass& renderPass,
     const VkExtent2D& extent,
     const VkImageView& imageView
 )
@@ -31,7 +31,7 @@ void Mango::Framebuffer::RecreateFramebuffer(
 }
 
 void Mango::Framebuffer::CreateFramebuffer(
-    Mango::RenderPass& renderPass,
+    const Mango::RenderPass& renderPass,
     const VkExtent2D& extent,
     const VkImageView& imageView
 )

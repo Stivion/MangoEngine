@@ -7,11 +7,16 @@
 
 namespace Mango
 {
+    struct RenderPassCreateInfo
+    {
+        VkImageLayout ColorAttachmentReferenceLayout;
+        VkImageLayout ColorAttachmentFinalLayout;
+    };
+
     class RenderPass
     {
     public:
-        // TODO: Fix render pass creation
-        RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, bool hack);
+        RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, const RenderPassCreateInfo& createInfo);
         RenderPass() = delete;
         RenderPass(const RenderPass&) = delete;
         RenderPass operator=(const RenderPass&) = delete;
@@ -24,10 +29,10 @@ namespace Mango
     private:
         VkRenderPass _renderPass;
         VkDevice& _logicalDevice;
-        bool _hack;
+        const RenderPassCreateInfo _createInfo;
 
     private:
         void DisposeVulkanObjects();
-        void CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, bool hack);
+        void CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
     };
 }

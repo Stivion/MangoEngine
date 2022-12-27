@@ -11,7 +11,7 @@ Mango::Buffer::Buffer(
 	VkDeviceSize bufferSizeBytes,
 	Mango::PhysicalDevice& physicalDevice,
 	Mango::LogicalDevice& logicalDevice
-) : _logicalDevice(logicalDevice.GetDevice())
+) : _logicalDevice(logicalDevice.GetDevice()), _bufferSize(bufferSizeBytes)
 {
 	VkBufferCreateInfo bufferCreateInfo{};
 	bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;

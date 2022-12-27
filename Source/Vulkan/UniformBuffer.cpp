@@ -14,10 +14,9 @@ Mango::UniformBuffer::UniformBuffer(
 	Mango::LogicalDevice& logicalDevice
 ) : Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
 {
-	_memoryPointer = MapMemory(bufferSizeBytes);
 }
 
-Mango::UniformBuffer::~UniformBuffer()
+void* Mango::UniformBuffer::MapMemory() const
 {
-	UnmapMemory();
+	return Buffer::MapMemory(_bufferSize);
 }

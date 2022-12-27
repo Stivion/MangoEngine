@@ -20,7 +20,8 @@ namespace Mango
 			Mango::LogicalDevice& logicalDevice,
 			Mango::SwapChain& swapChain,
 			Mango::RenderPass& renderPass,
-			Mango::CommandPool& commandPool
+			Mango::CommandPool& commandPool,
+			Mango::GraphicsPipeline& graphicsPipeline
 		);
 		CommandBuffersPool() = delete;
 		CommandBuffersPool(const CommandBuffersPool&) = delete;

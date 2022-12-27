@@ -24,7 +24,7 @@ namespace Mango
         ~Framebuffer();
 
         void RecreateFramebuffer(
-            Mango::RenderPass& renderPass,
+            const Mango::RenderPass& renderPass,
             const VkExtent2D& extent,
             const VkImageView& imageView
         );
@@ -37,7 +37,7 @@ namespace Mango
 
     private:
         void CreateFramebuffer(
-            Mango::RenderPass& renderPass,
+            const Mango::RenderPass& renderPass,
             const VkExtent2D& extent,
             const VkImageView& imageView
         );

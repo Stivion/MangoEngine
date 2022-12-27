@@ -7,7 +7,9 @@
 #include "DescriptorSetLayout.h"
 
 #include <vulkan/vulkan.h>
+
 #include <string>
+#include <vector>
 
 namespace Mango
 {
@@ -16,9 +18,8 @@ namespace Mango
     public:
         GraphicsPipeline(
             Mango::LogicalDevice& logicalDevice,
-            Mango::SwapChain& swapChain,
             Mango::RenderPass& renderPass,
-            Mango::DescriptorSetLayout& descriptorSetLayout,
+            std::vector<const Mango::DescriptorSetLayout*>& descriptorSetLayouts,
             const std::string& vertexShaderPath,
             const std::string& fragmentShaderPath
         );

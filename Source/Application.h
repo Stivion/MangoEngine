@@ -20,6 +20,10 @@
 #include "Vulkan/UniformBufferObject.h"
 #include "Vulkan/DescriptorPool.h"
 #include "Vulkan/DescriptorSetLayout.h"
+#include "Vulkan/VulkanRenderer.h"
+#include "Vulkan/HardwareInfo.h"
+
+#include "Render/Renderer.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -29,6 +33,7 @@
 #include <cstdint>
 #include <vector>
 #include <array>
+#include <memory>
 
 namespace Mango
 {
@@ -64,8 +69,8 @@ namespace Mango
         // Vulkan
         const std::vector<VkDescriptorPoolSize> _poolSizes =
         {
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1 }
+            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 4 }
         };
 
         Mango::Instance _instance{};
@@ -75,14 +80,23 @@ namespace Mango
         Mango::LogicalDevice _logicalDevice{ _physicalDevice, _queueFamilyIndices };
         Mango::SwapChainSupportDetails _swapChainSupportDetails = SwapChainSupportDetails::QuerySwapChainSupport(_physicalDevice.GetDevice(), _renderSurface.GetRenderSurface());
         Mango::SwapChain _swapChain{ _window, _renderSurface, _logicalDevice, _swapChainSupportDetails, _queueFamilyIndices };
-        Mango::RenderPass _renderPass{ _logicalDevice, _swapChain, true };
-        Mango::DescriptorSetLayout _descriptorSetLayout{ _logicalDevice }; // TODO: Fix descriptor set layout
+        
+        Mango::HardwareInfo _hardwareInfo{ _instance, _physicalDevice, _queueFamilyIndices };
+        Mango::VulkanRendererCreateInfo _rendererCreateInfo{ MaxFramesInFlight, _hardwareInfo, _renderSurface, _logicalDevice, _swapChain };
+        //std::unique_ptr<Mango::Renderer> _renderer = std::make_unique<Mango::VulkanRenderer>(true, _rendererCreateInfo);
+
+        Mango::RenderPassCreateInfo _renderPassCreateInfo{ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL };
+        Mango::RenderPass _renderPass{ _logicalDevice, _swapChain, _renderPassCreateInfo };
+        std::unique_ptr<Mango::DescriptorSetLayout> _globalLayout;
+        std::unique_ptr<Mango::DescriptorSetLayout> _textureLayout;
+        std::unique_ptr<Mango::DescriptorSetLayout> _drawLayout;
+        std::unique_ptr<Mango::UniformBuffersPool> _uniformBuffers;
         Mango::FramebuffersPool _framebuffers{ _logicalDevice, _renderPass, _swapChain };
         Mango::DescriptorPool _descriptorPool{ _poolSizes, _logicalDevice };
-        Mango::UniformBuffersPool _uniformBuffers{ MaxFramesInFlight, _physicalDevice, _logicalDevice, _descriptorPool, _descriptorSetLayout };
         Mango::CommandPool _commandPool{ _logicalDevice, _queueFamilyIndices };
-        Mango::GraphicsPipeline _graphicsPipeline{ _logicalDevice, _swapChain, _renderPass, _descriptorSetLayout, "vert.spv", "frag.spv" };
-        Mango::CommandBuffersPool _commandBuffers{ MaxFramesInFlight, _logicalDevice, _swapChain, _renderPass, _commandPool };
+        std::unique_ptr<Mango::GraphicsPipeline> _graphicsPipeline;
+        std::unique_ptr<Mango::CommandBuffersPool> _commandBuffers;
+        //Mango::CommandBuffersPool _commandBuffers{ MaxFramesInFlight, _logicalDevice, _swapChain, _renderPass, _commandPool, *_graphicsPipeline };
 
         std::vector<VkSemaphore> _imageAvailableSemaphores{ MaxFramesInFlight };
         std::vector<VkSemaphore> _renderFinishedSemaphores{ MaxFramesInFlight };
@@ -104,11 +118,12 @@ namespace Mango
             { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
         };
 
-        Mango::RenderPass _imGuiRenderPass{ _logicalDevice, _swapChain, false };
+        Mango::RenderPassCreateInfo _imGuiRenderPassCreateInfo{ VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR };
+        Mango::RenderPass _imGuiRenderPass{ _logicalDevice, _swapChain, _imGuiRenderPassCreateInfo };
         Mango::FramebuffersPool _imGuiFramebuffers{ _logicalDevice, _imGuiRenderPass, _swapChain };
         Mango::DescriptorPool _imGuiDescriptorPool{ _imGuiPoolSizes, _logicalDevice };
         Mango::CommandPool _imGuiCommandPool{ _logicalDevice, _queueFamilyIndices };
-        Mango::CommandBuffersPool _imGuiCommandBuffers{ MaxFramesInFlight, _logicalDevice, _swapChain, _imGuiRenderPass, _imGuiCommandPool };
+        Mango::CommandBuffersPool _imGuiCommandBuffers{ MaxFramesInFlight, _logicalDevice, _swapChain, _imGuiRenderPass, _imGuiCommandPool, *_graphicsPipeline };
     };
 
 }

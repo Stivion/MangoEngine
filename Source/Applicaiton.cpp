@@ -8,9 +8,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <chrono>
 #include <fstream>
 
@@ -50,6 +47,67 @@ void Mango::Application::InitializeWindow()
 void Mango::Application::InitializeVulkan()
 {
     CreateSyncObjects();
+
+    /*
+    Example:
+    // Global - may be reused between draw calls in single frame
+    Uniform Buffer -> Projection and View matrices -> Binding #0 | Descriptor set layout #0
+    Uniform Buffer -> Point lights                 -> Binding #1 |
+
+    // May be bound once and reused later                        | Descriptor set layout #1
+    Image Buffer   -> Texture #1                   -> Binding #0 | 
+    Image Buffer   -> Texture #2                   -> Binding #1 | 
+    Image Buffer   -> Texture #3                   -> Binding #2 | 
+    Image Buffer   -> Texture #4                   -> Binding #3 | 
+
+    // Bound for each draw call                                  | Descriptor set layout #2
+    Uniform Buffer -> Model matrix                 -> Binding #0 |
+    */
+
+    // All descriptor set layouts is owned by renderer
+    Mango::DescriptorSetLayoutBuilder globalLayoutBuilder(_logicalDevice);
+    _globalLayout = globalLayoutBuilder
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+        .AddBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+        .Build();
+
+    Mango::DescriptorSetLayoutBuilder textureLayoutBuilder(_logicalDevice);
+    _textureLayout = textureLayoutBuilder
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .AddBinding(1, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .AddBinding(2, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .AddBinding(3, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, VK_SHADER_STAGE_FRAGMENT_BIT)
+        .Build();
+
+    Mango::DescriptorSetLayoutBuilder drawLayoutBuilder(_logicalDevice);
+    _drawLayout = drawLayoutBuilder
+        .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+        .Build();
+
+    std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalLayout.get(), _textureLayout.get(), _drawLayout.get() };
+    _descriptorPool.AllocateDescriptorSets(layouts);
+    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(_logicalDevice, _renderPass, layouts, "vert.spv", "frag.spv");
+    _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(MaxFramesInFlight, _logicalDevice, _swapChain, _renderPass, _commandPool, *_graphicsPipeline);
+
+    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(_physicalDevice, _logicalDevice);
+    
+    {
+        UniformBufferCreateInfo createInfo{};
+        createInfo.BufferId = 0;
+        createInfo.Binding = 0;
+        createInfo.BufferSize = sizeof(UniformBufferObject);
+        createInfo.DestinationSet = _descriptorPool.GetDescriptorSet(_globalLayout->GetId());
+        uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
+    }
+
+    {
+        UniformBufferCreateInfo createInfo{};
+        createInfo.BufferId = 1;
+        createInfo.Binding = 0;
+        createInfo.BufferSize = sizeof(UniformBufferObject);
+        createInfo.DestinationSet = _descriptorPool.GetDescriptorSet(_globalLayout->GetId());
+        uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
+    }
 }
 
 void Mango::Application::InitializeImGui()
@@ -118,7 +176,7 @@ void Mango::Application::InitializeImGui()
 
     vkDeviceWaitIdle(vkLogicalDevice);
     ImGui_ImplVulkan_DestroyFontUploadObjects();
-    // End render fonts
+    // End fonts rendering
 }
 
 void Mango::Application::CreateSyncObjects()
@@ -268,6 +326,7 @@ void Mango::Application::RunMainLoop()
 
 void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer, VkImage image, VkImageMemoryBarrier barrier, VkImageMemoryBarrier secondBarrier, VkDescriptorSet viewportDescriptorSet)
 {
+    //_renderer->Draw();
     const auto& vkLogicalDevice = _logicalDevice.GetDevice();
 
     vkWaitForFences(vkLogicalDevice, 1, &_inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -322,17 +381,37 @@ void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuf
     // Reset only if we would issue draw calls
     vkResetFences(vkLogicalDevice, 1, &_inFlightFences[currentFrame]);
 
-    auto& currentCommandBuffer = _commandBuffers.GetCommandBuffer(currentFrame);
+    auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(currentFrame);
     vkResetCommandBuffer(currentCommandBuffer.GetVkCommandBuffer(), 0);
     UpdateUniformBuffer(currentFrame);
 
-    // Begin drawing
-    currentCommandBuffer.BeginCommandBuffer(_framebuffers.GetFramebuffer(imageIndex).GetSwapChainFramebuffer());
+    // Begin recording command buffer
+    currentCommandBuffer.BeginCommandBuffer();
 
     // Render some custom graphics
-    currentCommandBuffer.DrawIndexed(_graphicsPipeline, vertexBuffer, indexBuffer, _uniformBuffers.GetDescriptorSet(currentFrame));
+    const auto& currentExtent = _swapChain.GetSwapChainExtent();
+    Mango::ViewportInfo viewportInfo{};
+    viewportInfo.X = 0;
+    viewportInfo.Y = 0;
+    viewportInfo.Width = currentExtent.width;
+    viewportInfo.Height = currentExtent.height;
+    viewportInfo.MinDepth = 0;
+    viewportInfo.MaxDepth = 1;
+
+    // Begin drawing
+    currentCommandBuffer.BeginRenderPass(
+        _framebuffers.GetFramebuffer(currentFrame).GetSwapChainFramebuffer(),
+        _graphicsPipeline->GetGraphicsPipeline(),
+        viewportInfo
+    );
+    auto descriptors = std::vector<VkDescriptorSet>{ _descriptorPool.GetDescriptorSet(_globalLayout->GetId()) };
+
+    currentCommandBuffer.DrawIndexed(vertexBuffer, indexBuffer, descriptors);
 
     // End drawing
+    currentCommandBuffer.EndRenderPass();
+
+    // End recording command buffer
     currentCommandBuffer.EndCommandBuffer();
 
 
@@ -348,7 +427,6 @@ void Mango::Application::DrawFrame(uint32_t currentFrame, const Mango::VertexBuf
     M_ASSERT(beginCommandBufferResult == VK_SUCCESS && "Failed to begin recording command buffer");
     //imGuiCommandBuffer.BeginCommandBuffer(_imGuiFramebuffers.GetFramebuffer(imageIndex).GetSwapChainFramebuffer());
 
-    const auto& currentExtent = _swapChain.GetSwapChainExtent();
     vkCmdPipelineBarrier(imGuiCommandBuffer.GetVkCommandBuffer(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
     const VkDeviceSize imageSize = currentExtent.width * currentExtent.height * 4;
 
@@ -500,12 +578,29 @@ void Mango::Application::UpdateUniformBuffer(uint32_t currentFrame)
     ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.Projection = glm::perspective(glm::radians(45.0f), _swapChainSupportDetails.SurfaceCapabilities.currentExtent.width / static_cast<float>(_swapChainSupportDetails.SurfaceCapabilities.currentExtent.width), 0.1f, 10.0f);
     ubo.Projection[1][1] *= -1;
-    memcpy(_uniformBuffers.GetUniformBuffer(currentFrame).GetMappedMemoryPointer(), &ubo, sizeof(ubo));
+
+    const auto& uniformBuffer = _uniformBuffers->GetUniformBuffer(currentFrame);
+    void* gpuMemory = uniformBuffer.MapMemory();
+    memcpy(gpuMemory, &ubo, sizeof(ubo));
+    uniformBuffer.UnmapMemory();
 }
 
 void Mango::Application::FramebufferResizedCallback(GLFWwindow* window, int width, int height)
 {
     auto applicationPointer = reinterpret_cast<Mango::Application*>(glfwGetWindowUserPointer(window));
+    // TODO: Fix me
+    //int width = 0, height = 0;
+    //glfwGetFramebufferSize(window, &width, &height);
+    //if (width == 0 || height == 0)
+    //{
+    //    M_TRACE("Window is minimized.");
+    //}
+    //while (width == 0 || height == 0)
+    //{
+    //    glfwGetFramebufferSize(window, &width, &height);
+    //    glfwWaitEvents();
+    //}
+    //applicationPointer->_renderer->HandleFramebuffersResized();
     applicationPointer->_framebufferResized = true;
 }
 
