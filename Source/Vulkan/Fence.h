@@ -18,6 +18,8 @@ namespace Mango
 		void WaitForFence();
 		void ResetFence();
 
+		const VkFence& GetFence() const { return _fence; }
+
 	private:
 		VkFence _fence;
 		VkDevice& _logicalDevice;

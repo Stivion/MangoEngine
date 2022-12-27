@@ -15,6 +15,11 @@
 #include "DescriptorSetLayout.h"
 #include "DescriptorPool.h"
 #include "GraphicsPipeline.h"
+#include "UniformBuffersPool.h"
+#include "UniformBufferObject.h"
+#include "Vertex.h"
+#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
 #include <vulkan/vulkan.h>
 
@@ -42,9 +47,14 @@ namespace Mango
 		~VulkanRenderer();
 
 		void Draw() override;
+		void Draw(Mango::VertexBuffer& vertexBuffer, Mango::IndexBuffer& indexBuffer); // TODO: Temporary
 		void HandleFramebuffersResized() override;
 
+		// TODO: Temporary, remove this
+		void UpdateUniformBuffer(uint32_t currentFrame);
+
 	private:
+		bool _isOffscreen;
 		std::unique_ptr<Mango::RenderPass> _renderPass;
 		Mango::RenderPassCreateInfo _renderPassCreateInfo;
 
@@ -54,21 +64,45 @@ namespace Mango
 		Mango::SwapChain& _swapChain;
 		uint32_t _maxFramesInFlight;
 
-		const std::vector<VkDescriptorPoolSize> _poolSizes =
+		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
+		//std::unique_ptr<Mango::DescriptorSetLayout> _textureDescriptorSetLayout;
+		//std::unique_ptr<Mango::DescriptorSetLayout> _localDescriptorSetLayout;
+
+		const std::vector<VkDescriptorPoolSize> _poolSizes = // TODO: Figure out how to allocate correct pool sizes
 		{
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
 			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2 }
 		};
-		std::unique_ptr<Mango::DescriptorSetLayout> _descriptorSetLayout;
 		std::unique_ptr<Mango::DescriptorPool> _descriptorPool;
+
 		std::unique_ptr<Mango::GraphicsPipeline> _graphicsPipeline;
+		std::unique_ptr<Mango::UniformBuffersPool> _uniformBuffers;
 		std::unique_ptr<Mango::FramebuffersPool> _framebuffers;
 		std::unique_ptr<Mango::CommandPool> _commandPool;
 		std::unique_ptr<Mango::CommandBuffersPool> _commandBuffers;
-		std::vector<std::shared_ptr<Mango::Fence>> _fences;
-		std::vector<std::shared_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
-		std::vector<std::shared_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
+		std::vector<std::unique_ptr<Mango::Fence>> _fences;
+		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
+		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
 
 		uint32_t _currentFrame = 0;
+
+		// Game objects (temporary)
+		const std::vector<Mango::Vertex> _vertices =
+		{
+			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			{{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+			{{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+
+			{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+			{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+			{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
+		};
+		const std::vector<uint16_t> _indices =
+		{
+			0, 1, 2, 3, 4, 5, 5, 6, 3
+		};
+		std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
+		std::unique_ptr<Mango::IndexBuffer> _indexBuffer;
 	};
 }
