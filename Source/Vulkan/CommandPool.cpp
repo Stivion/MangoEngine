@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::CommandPool::CommandPool(Mango::LogicalDevice& logicalDevice, Mango::QueueFamilyIndices& queueFamilyIndices)
+Mango::CommandPool::CommandPool(const Mango::LogicalDevice& logicalDevice, const Mango::QueueFamilyIndices& queueFamilyIndices)
     : _logicalDevice(logicalDevice.GetDevice())
 {
     VkCommandPoolCreateInfo poolInfo{};

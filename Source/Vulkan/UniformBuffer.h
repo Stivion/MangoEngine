@@ -13,8 +13,8 @@ namespace Mango
 	public:
 		UniformBuffer(
 			VkDeviceSize bufferSizeBytes,
-			Mango::PhysicalDevice& physicalDevice,
-			Mango::LogicalDevice& logicalDevice
+			const Mango::PhysicalDevice& physicalDevice,
+			const Mango::LogicalDevice& logicalDevice
 		);
 		UniformBuffer(const UniformBuffer&) = delete;
 		UniformBuffer operator=(const UniformBuffer&) = delete;

@@ -9,7 +9,7 @@
 
 const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
 
-Mango::LogicalDevice::LogicalDevice(Mango::PhysicalDevice& physicalDevice, Mango::QueueFamilyIndices& queueFamilyIndices)
+Mango::LogicalDevice::LogicalDevice(const Mango::PhysicalDevice& physicalDevice, const Mango::QueueFamilyIndices& queueFamilyIndices)
 {
     std::set<uint32_t> uniqueQueueFamilies = { queueFamilyIndices.GraphicsFamily.value(), queueFamilyIndices.PresentationFamily.value() };
     std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;

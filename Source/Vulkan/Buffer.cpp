@@ -9,8 +9,8 @@ Mango::Buffer::Buffer(
 	VkBufferUsageFlags bufferUsage,
 	VkMemoryPropertyFlags requiredProperties,
 	VkDeviceSize bufferSizeBytes,
-	Mango::PhysicalDevice& physicalDevice,
-	Mango::LogicalDevice& logicalDevice
+	const Mango::PhysicalDevice& physicalDevice,
+	const Mango::LogicalDevice& logicalDevice
 ) : _logicalDevice(logicalDevice.GetDevice()), _bufferSize(bufferSizeBytes)
 {
 	VkBufferCreateInfo bufferCreateInfo{};
@@ -56,7 +56,7 @@ void Mango::Buffer::UnmapMemory() const
 	vkUnmapMemory(_logicalDevice, _bufferMemory);
 }
 
-void Mango::Buffer::AllocateMemory(Mango::PhysicalDevice& physicalDevice, VkMemoryPropertyFlags requiredProperties)
+void Mango::Buffer::AllocateMemory(const Mango::PhysicalDevice& physicalDevice, VkMemoryPropertyFlags requiredProperties)
 {
 	VkMemoryRequirements memoryRequirements;
 	vkGetBufferMemoryRequirements(_logicalDevice, _buffer, &memoryRequirements);

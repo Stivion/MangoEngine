@@ -38,6 +38,25 @@ void Mango::Application::InitializeWindow()
 
 void Mango::Application::InitializeVulkan()
 {
+    _instance = std::make_unique<Mango::Instance>();
+    _renderSurface = std::make_unique<Mango::RenderSurface>(_window, *_instance);
+    _physicalDevice = std::make_unique<Mango::PhysicalDevice>(*_instance, *_renderSurface);
+    _queueFamilyIndices = std::make_unique<Mango::QueueFamilyIndices>(QueueFamilyIndices::FindQueueFamilies(_physicalDevice->GetDevice(), _renderSurface->GetRenderSurface()));
+    _logicalDevice = std::make_unique<Mango::LogicalDevice>(*_physicalDevice, *_queueFamilyIndices);
+    
+    int width, height;
+    glfwGetFramebufferSize(_window.GetWindow(), &width, &height);
+
+    Mango::VulkanRendererCreateInfo rendererCreateInfo{};
+    rendererCreateInfo.MaxFramesInFlight = MaxFramesInFlight;
+    rendererCreateInfo.WindowFramebufferWidth = static_cast<uint32_t>(width);
+    rendererCreateInfo.WindowFramebufferHeight = static_cast<uint32_t>(height);
+    rendererCreateInfo.Instance = _instance.get();
+    rendererCreateInfo.RenderSurface = _renderSurface.get();
+    rendererCreateInfo.PhysicalDevice = _physicalDevice.get();
+    rendererCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
+    rendererCreateInfo.LogicalDevice = _logicalDevice.get();
+    _renderer = std::make_unique<Mango::VulkanRenderer>(rendererCreateInfo);
 }
 
 void Mango::Application::InitializeImGui()
@@ -211,7 +230,7 @@ void Mango::Application::RunMainLoop()
         currentFrame = (currentFrame + 1) % MaxFramesInFlight;
     }
 
-    vkDeviceWaitIdle(_logicalDevice.GetDevice());
+    vkDeviceWaitIdle(_logicalDevice->GetDevice());
 }
 
 void Mango::Application::DrawFrame(uint32_t currentFrame)

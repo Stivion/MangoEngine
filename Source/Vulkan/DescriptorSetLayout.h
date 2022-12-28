@@ -15,20 +15,20 @@ namespace Mango
 	class DescriptorSetLayoutBuilder
 	{
 	public:
-		DescriptorSetLayoutBuilder(Mango::LogicalDevice& logicalDevice);
+		DescriptorSetLayoutBuilder(const Mango::LogicalDevice& logicalDevice);
 
 		Mango::DescriptorSetLayoutBuilder& AddBinding(uint64_t binding, VkDescriptorType descriptorType, VkShaderStageFlags shaderStages);
 		std::unique_ptr<Mango::DescriptorSetLayout> Build();
 
 	private:
 		std::unordered_map<uint64_t, VkDescriptorSetLayoutBinding> _bindings;
-		Mango::LogicalDevice& _logicalDevice;
+		const Mango::LogicalDevice& _logicalDevice;
 	};
 
 	class DescriptorSetLayout
 	{
 	public:
-		DescriptorSetLayout(Mango::LogicalDevice& logicalDevice, std::vector<VkDescriptorSetLayoutBinding> bindings);
+		DescriptorSetLayout(const Mango::LogicalDevice& logicalDevice, std::vector<VkDescriptorSetLayoutBinding> bindings);
 		DescriptorSetLayout() = delete;
 		DescriptorSetLayout(const DescriptorSetLayout&) = delete;
 		DescriptorSetLayout operator=(const DescriptorSetLayout&) = delete;

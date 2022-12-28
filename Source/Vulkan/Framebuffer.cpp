@@ -6,8 +6,8 @@
 #include <string>
 
 Mango::Framebuffer::Framebuffer(
-    Mango::LogicalDevice& logicalDevice,
-    Mango::RenderPass& renderPass,
+    const Mango::LogicalDevice& logicalDevice,
+    const Mango::RenderPass& renderPass,
     const VkExtent2D& extent,
     const VkImageView& imageView
 ) : _logicalDevice(logicalDevice.GetDevice())

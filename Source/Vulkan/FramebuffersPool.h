@@ -15,16 +15,16 @@ namespace Mango
 	{
 	public:
         FramebuffersPool(
-            Mango::LogicalDevice& logicalDevice,
-            Mango::RenderPass& renderPass,
-            Mango::SwapChain& swapChain
+            const Mango::LogicalDevice& logicalDevice,
+            const Mango::RenderPass& renderPass,
+            const Mango::SwapChain& swapChain
         );
         FramebuffersPool() = delete;
         FramebuffersPool(const FramebuffersPool&) = delete;
         FramebuffersPool operator=(const FramebuffersPool&) = delete;
         ~FramebuffersPool();
 
-        Mango::Framebuffer& GetFramebuffer(uint32_t index) { return *_framebuffers[index]; }
+        Mango::Framebuffer& GetFramebuffer(uint32_t index) const { return *_framebuffers[index]; }
         const uint32_t GetFramebuffersCount() const { return _framebuffersCount; }
 
     private:

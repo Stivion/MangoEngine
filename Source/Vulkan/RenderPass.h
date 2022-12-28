@@ -16,23 +16,23 @@ namespace Mango
     class RenderPass
     {
     public:
-        RenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain, const RenderPassCreateInfo& createInfo);
+        RenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain, const RenderPassCreateInfo& createInfo);
         RenderPass() = delete;
         RenderPass(const RenderPass&) = delete;
         RenderPass operator=(const RenderPass&) = delete;
         ~RenderPass();
 
-        void RecreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
+        void RecreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain);
 
         const VkRenderPass& GetRenderPass() const { return _renderPass; }
         
     private:
         VkRenderPass _renderPass;
-        VkDevice& _logicalDevice;
+        const VkDevice& _logicalDevice;
         const RenderPassCreateInfo _createInfo;
 
     private:
         void DisposeVulkanObjects();
-        void CreateRenderPass(Mango::LogicalDevice& logicalDevice, Mango::SwapChain& swapChain);
+        void CreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain);
     };
 }

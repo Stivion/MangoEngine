@@ -9,7 +9,7 @@ namespace Mango
 	class Fence
 	{
 	public:
-		Fence(bool startSignaled, Mango::LogicalDevice& logicalDevice); // TODO: Make unique pointer
+		Fence(bool startSignaled, const Mango::LogicalDevice& logicalDevice);
 		Fence() = delete;
 		Fence(const Fence&) = delete;
 		Fence operator=(const Fence&) = delete;
@@ -22,6 +22,6 @@ namespace Mango
 
 	private:
 		VkFence _fence;
-		VkDevice& _logicalDevice;
+		const VkDevice& _logicalDevice;
 	};
 }

@@ -18,7 +18,7 @@ namespace Mango
         RenderSurface operator=(const RenderSurface&) = delete;
         ~RenderSurface();
         
-        VkSurfaceKHR& GetRenderSurface() { return _renderSurface; }
+        const VkSurfaceKHR& GetRenderSurface() const { return _renderSurface; }
     private:
         VkSurfaceKHR _renderSurface;
 

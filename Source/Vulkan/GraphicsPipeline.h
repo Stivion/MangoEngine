@@ -17,8 +17,8 @@ namespace Mango
     {
     public:
         GraphicsPipeline(
-            Mango::LogicalDevice& logicalDevice,
-            Mango::RenderPass& renderPass,
+            const Mango::LogicalDevice& logicalDevice,
+            const Mango::RenderPass& renderPass,
             std::vector<const Mango::DescriptorSetLayout*>& descriptorSetLayouts,
             const std::string& vertexShaderPath,
             const std::string& fragmentShaderPath
@@ -31,11 +31,11 @@ namespace Mango
         const VkPipeline& GetGraphicsPipeline() const { return _graphicsPipeline; }
         const VkPipelineLayout& GetPipelineLayout() const { return _pipelineLayout; }
     private:
-        static VkShaderModule CreateShaderModule(VkDevice& logicalDevice, const std::vector<char>& shaderCode);
+        static VkShaderModule CreateShaderModule(const VkDevice& logicalDevice, const std::vector<char>& shaderCode);
 
     private:
         VkPipeline _graphicsPipeline;
         VkPipelineLayout _pipelineLayout;
-        VkDevice& _logicalDevice;
+        const VkDevice& _logicalDevice;
     };
 }

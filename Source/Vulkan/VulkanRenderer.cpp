@@ -9,43 +9,52 @@
 
 #include <string>
 
-Mango::VulkanRenderer::VulkanRenderer(bool isOffscreen, const VulkanRendererCreateInfo createInfo)
-	: Renderer(), _hardwareInfo(createInfo.HardwareInfo), _renderSurface(createInfo.RenderSurface), _logicalDevice(createInfo.LogicalDevice), _swapChain(createInfo.SwapChain), _maxFramesInFlight(createInfo.MaxFramesInFlight)
+//_renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+//_renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+Mango::VulkanRenderer::VulkanRenderer(const VulkanRendererCreateInfo createInfo)
+	: Renderer()
 {
-    _isOffscreen = isOffscreen;
-	// Create render pass
-	if (isOffscreen)
-	{
-        _renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        _renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	}
-	else
-	{
-        _renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        _renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	}
-	_renderPass = std::make_unique<Mango::RenderPass>(createInfo.LogicalDevice, createInfo.SwapChain, _renderPassCreateInfo);
+    _maxFramesInFlight = createInfo.MaxFramesInFlight;
+    _instance = createInfo.Instance;
+    _physicalDevice = createInfo.PhysicalDevice;
+    _queueFamilyIndices = createInfo.QueueFamilyIndices;
+    _renderSurface = createInfo.RenderSurface;
+    _logicalDevice = createInfo.LogicalDevice;
 
-    // Create descriptor pool
-    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, _logicalDevice);
+    Mango::SwapChainSupportDetails swapChainSupportDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(
+        _physicalDevice->GetDevice(),
+        _renderSurface->GetRenderSurface()
+    );
+    _swapChain = std::make_unique<Mango::SwapChain>(
+        createInfo.WindowFramebufferWidth,
+        createInfo.WindowFramebufferHeight,
+        *_renderSurface,
+        *_logicalDevice,
+        swapChainSupportDetails,
+        *_queueFamilyIndices
+    );
 
-    // Create descriptor set layouts and allocate them from descriptor set pool
+    Mango::RenderPassCreateInfo renderPassCreateInfo{};
+    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	_renderPass = std::make_unique<Mango::RenderPass>(*createInfo.LogicalDevice, *_swapChain, renderPassCreateInfo);
+
+    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_logicalDevice);
+
     // All descriptor set layouts is owned by renderer
     {
-        Mango::DescriptorSetLayoutBuilder builder(_logicalDevice);
+        Mango::DescriptorSetLayoutBuilder builder(*_logicalDevice);
         _globalDescriptorSetLayout = builder
             .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
             .Build();
     }
-
     std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get() };
     _descriptorPool->AllocateDescriptorSets(layouts);
 
-    // Create graphics pipeline
-    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(_logicalDevice, *_renderPass, layouts, "vert.spv", "frag.spv");
+    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_logicalDevice, *_renderPass, layouts, "vert.spv", "frag.spv");
 
-    // Create uniform buffers pool and bind buffers
-    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(_hardwareInfo.PhysicalDevice, _logicalDevice);
+    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_physicalDevice, *_logicalDevice);
     for (uint32_t i = 0; i < _maxFramesInFlight; i++)
     {
         UniformBufferCreateInfo createInfo{};
@@ -56,46 +65,75 @@ Mango::VulkanRenderer::VulkanRenderer(bool isOffscreen, const VulkanRendererCrea
         uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
     }
 
-    // Create framebuffers
-    _framebuffers = std::make_unique<Mango::FramebuffersPool>(_logicalDevice, *_renderPass, _swapChain);
+    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_renderPass, *_swapChain);
 
-    // Create command buffers
-    _commandPool = std::make_unique<Mango::CommandPool>(_logicalDevice, _hardwareInfo.QueueFamilyIndices);
-    _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(_maxFramesInFlight, _logicalDevice, _swapChain, *_renderPass, *_commandPool, *_graphicsPipeline);
+    _commandPool = std::make_unique<Mango::CommandPool>(*_logicalDevice, *_queueFamilyIndices);
+    _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(
+        _maxFramesInFlight,
+        *_logicalDevice,
+        *_swapChain,
+        *_renderPass,
+        *_commandPool,
+        *_graphicsPipeline
+    );
 
-	// Create fences
 	_fences.resize(_maxFramesInFlight);
 	for (size_t i = 0; i < _maxFramesInFlight; i++)
 	{
-		_fences[i] = std::make_unique<Mango::Fence>(true, _logicalDevice);
+		_fences[i] = std::make_unique<Mango::Fence>(true, *_logicalDevice);
 	}
 
-	// Create semaphores
 	_imageAvailableSemaphores.resize(_maxFramesInFlight);
 	_renderFinishedSemaphores.resize(_maxFramesInFlight);
 	for (size_t i = 0; i < _maxFramesInFlight; i++)
 	{
-		_imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(_logicalDevice);
-		_renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(_logicalDevice);
+		_imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
+		_renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
 	}
 
-    // Prepare vertex and index buffers (temporary)
+    // TODO: Prepare vertex and index buffers (temporary)
     const uint32_t vertexCount = static_cast<uint32_t>(_vertices.size());
     const uint32_t indicesCount = static_cast<uint32_t>(_indices.size());
-    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _vertices.data(), _hardwareInfo.PhysicalDevice, _logicalDevice, *_commandPool);
-    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _indices.data(), _hardwareInfo.PhysicalDevice, _logicalDevice, *_commandPool);
-}
+    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _vertices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
+    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _indices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
 
-Mango::VulkanRenderer::~VulkanRenderer()
-{
-    _renderPass = nullptr;
+    std::vector<VkDescriptorSet> descriptors;
+    descriptors.push_back(_descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId()));
 
-    for (size_t i = 0; i < _maxFramesInFlight; i++)
+    const auto& currentExtent = _swapChain->GetSwapChainExtent();
     {
-        _fences[i] = nullptr;
-        _imageAvailableSemaphores[i] = nullptr;
-        _renderFinishedSemaphores[i] = nullptr;
+        Mango::ViewportInfo viewportInfo{};
+        viewportInfo.X = 0;
+        viewportInfo.Y = 0;
+        viewportInfo.Width = currentExtent.width;
+        viewportInfo.Height = currentExtent.height;
+        viewportInfo.MinDepth = 0;
+        viewportInfo.MaxDepth = 1;
+
+        ViewportCommandBufferRecorderInfo info{};
+        info.DescriptorPool = _descriptorPool.get();
+        info.DescriptorSets = descriptors;
+        info.GraphicsPipeline = _graphicsPipeline.get();
+        info.IndexBuffer = _indexBuffer.get();
+        info.VertexBuffer = _vertexBuffer.get();
+        info.ViewportInfo = viewportInfo;
+        _viewportCommandBufferRecorder = std::make_unique<Mango::ViewportCommandBufferRecorder>(info);
     }
+
+    //{
+    //    Mango::ViewportInfo viewportInfo{};
+    //    viewportInfo.X = 0;
+    //    viewportInfo.Y = 0;
+    //    viewportInfo.Width = currentExtent.width;
+    //    viewportInfo.Height = currentExtent.height;
+    //    viewportInfo.MinDepth = 0;
+    //    viewportInfo.MaxDepth = 1;
+
+    //    UICommandBufferRecorderInfo info{};
+    //    info.GraphicsPipeline = _graphicsPipeline.get();
+    //    info.ViewportInfo = viewportInfo;
+    //    _uiCommandBufferRecorder = std::make_unique<Mango::UICommandBufferRecorder>(info);
+    //}
 }
 
 void Mango::VulkanRenderer::Draw()
@@ -105,8 +143,8 @@ void Mango::VulkanRenderer::Draw()
 
 void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::IndexBuffer& indexBuffer)
 {
-	const auto& vkLogicalDevice = _logicalDevice.GetDevice();
-    const auto& vkSwapChain = _swapChain.GetSwapChain();
+	const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+    const auto& vkSwapChain = _swapChain->GetSwapChain();
 
     _fences[_currentFrame]->WaitForFence();
     
@@ -132,39 +170,13 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
 
     _fences[_currentFrame]->ResetFence();
 
-    auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
-    currentCommandBuffer.Reset();
-
-    const auto& currentExtent = _swapChain.GetSwapChainExtent();
     UpdateUniformBuffer(_currentFrame);
 
-    Mango::ViewportInfo viewportInfo{};
-    viewportInfo.X = 0;
-    viewportInfo.Y = 0;
-    viewportInfo.Width = currentExtent.width;
-    viewportInfo.Height = currentExtent.height;
-    viewportInfo.MinDepth = 0;
-    viewportInfo.MaxDepth = 1;
+    const auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
+    const auto& currentFramebuffer = _framebuffers->GetFramebuffer(imageIndex);
 
-    // Start command buffer recording
-    currentCommandBuffer.BeginCommandBuffer();
-
-    // Begin render pass
-    currentCommandBuffer.BeginRenderPass(
-        _framebuffers->GetFramebuffer(imageIndex).GetSwapChainFramebuffer(),
-        _graphicsPipeline->GetGraphicsPipeline(),
-        viewportInfo
-    );
-    auto descriptors = std::vector<VkDescriptorSet>{ _descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId()) };
-
-    // Draw
-    currentCommandBuffer.DrawIndexed(vertexBuffer, indexBuffer, descriptors);
-
-    // End render pass
-    currentCommandBuffer.EndRenderPass();
-
-    // End command buffer recording
-    currentCommandBuffer.EndCommandBuffer();
+    _viewportCommandBufferRecorder->RecordCommandBuffer(&currentCommandBuffer, &currentFramebuffer);
+    //_uiCommandBufferRecorder->RecordCommandBuffer(nullptr, nullptr);
 
     // Submit command buffer to graphics queue
     VkCommandBuffer commandBuffers[] = { currentCommandBuffer.GetVkCommandBuffer() };
@@ -180,27 +192,12 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
     submitInfo.commandBufferCount = 1;
 
     VkSemaphore signalSemaphores[] = { _renderFinishedSemaphores[_currentFrame]->GetSemaphore() };
-    if (_isOffscreen)
-    {
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-    }
-    else
-    {
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = signalSemaphores;
-    }
+    submitInfo.signalSemaphoreCount = 1;
+    submitInfo.pSignalSemaphores = signalSemaphores;
 
-    if (vkQueueSubmit(_logicalDevice.GetGraphicsQueue(), 1, &submitInfo, _fences[_currentFrame]->GetFence()) != VK_SUCCESS)
+    if (vkQueueSubmit(_logicalDevice->GetGraphicsQueue(), 1, &submitInfo, _fences[_currentFrame]->GetFence()) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to submit draw command buffer");
-    }
-
-    if (_isOffscreen)
-    {
-        // Update current frame
-        _currentFrame = (_currentFrame + 1) % _maxFramesInFlight;
-        return;
     }
 
     // Submit rendered image to presentation queue
@@ -209,13 +206,13 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    VkSwapchainKHR swapChains[] = { _swapChain.GetSwapChain() };
+    VkSwapchainKHR swapChains[] = { _swapChain->GetSwapChain() };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
 
-    auto presentImageResult = vkQueuePresentKHR(_logicalDevice.GetPresentationQueue(), &presentInfo);
+    auto presentImageResult = vkQueuePresentKHR(_logicalDevice->GetPresentationQueue(), &presentInfo);
     if (presentImageResult == VK_ERROR_OUT_OF_DATE_KHR || presentImageResult == VK_SUBOPTIMAL_KHR)
     {
         HandleFramebuffersResized();
@@ -239,25 +236,24 @@ void Mango::VulkanRenderer::HandleFramebuffersResized()
         fence->WaitForFence();
     }
 
-    auto vkPhysicalDevice = _hardwareInfo.PhysicalDevice.GetDevice();
-    auto vkRenderSurface = _renderSurface.GetRenderSurface();
-    auto queueFamilyIndices = _hardwareInfo.QueueFamilyIndices;
+    auto vkPhysicalDevice = _physicalDevice->GetDevice();
+    auto vkRenderSurface = _renderSurface->GetRenderSurface();
     auto swapChainSupportDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(vkPhysicalDevice, vkRenderSurface);
 
-    _swapChain.RecreateSwapChain(swapChainSupportDetails, queueFamilyIndices);
-    _renderPass->RecreateRenderPass(_logicalDevice, _swapChain);
+    _swapChain->RecreateSwapChain(800, 600, swapChainSupportDetails, *_queueFamilyIndices); // TODO: Fix me
+    _renderPass->RecreateRenderPass(*_logicalDevice, *_swapChain);
 
-    const auto& imageViews = _swapChain.GetSwapChainImageViews();
+    const auto& imageViews = _swapChain->GetSwapChainImageViews();
     M_ASSERT(imageViews.size() == _framebuffers->GetFramebuffersCount() && "Framebuffers count and image views count doesn't match");
     for (size_t i = 0; i < imageViews.size(); i++)
     {
-        _framebuffers->GetFramebuffer(i).RecreateFramebuffer(*_renderPass, _swapChain.GetSwapChainExtent(), imageViews[i]);
+        _framebuffers->GetFramebuffer(i).RecreateFramebuffer(*_renderPass, _swapChain->GetSwapChainExtent(), imageViews[i]);
     }
 }
 
 void Mango::VulkanRenderer::UpdateUniformBuffer(uint32_t currentFrame)
 {
-    const auto& currentExtent = _swapChain.GetSwapChainExtent();
+    const auto& currentExtent = _swapChain->GetSwapChainExtent();
 
     static auto startTime = std::chrono::high_resolution_clock::now();
 

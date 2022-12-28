@@ -5,21 +5,22 @@
 #include "../Infrastructure/Logging/Logging.h"
 
 #include <string>
-#include <vector>
 #include <cstdint>
 #include <limits>
 #include <algorithm>
 
 Mango::SwapChain::SwapChain(
-    Mango::Window& window,
-    Mango::RenderSurface& renderSurface,
-    Mango::LogicalDevice& logicalDevice,
-    Mango::SwapChainSupportDetails& swapChainSupportDetails,
-    Mango::QueueFamilyIndices& queueFamilyIndices
-) : _logicalDevice(logicalDevice.GetDevice()), _window(window.GetWindow()), _renderSurface(renderSurface.GetRenderSurface())
+    uint32_t windowFramebufferWidth,
+    uint32_t windowFramebufferHeight,
+    const Mango::RenderSurface& renderSurface,
+    const Mango::LogicalDevice& logicalDevice,
+    const Mango::SwapChainSupportDetails& swapChainSupportDetails,
+    const Mango::QueueFamilyIndices& queueFamilyIndices
+) : _logicalDevice(logicalDevice.GetDevice()), _renderSurface(renderSurface.GetRenderSurface())
 {
     CreateSwapChain(
-        _window,
+        windowFramebufferWidth,
+        windowFramebufferHeight,
         _renderSurface,
         swapChainSupportDetails,
         queueFamilyIndices
@@ -31,11 +32,17 @@ Mango::SwapChain::~SwapChain()
     DisposeVulkanObjects();
 }
 
-void Mango::SwapChain::RecreateSwapChain(Mango::SwapChainSupportDetails& swapChainSupportDetails, Mango::QueueFamilyIndices& queueFamilyIndices)
+void Mango::SwapChain::RecreateSwapChain(
+    uint32_t windowFramebufferWidth,
+    uint32_t windowFramebufferHeight,
+    const Mango::SwapChainSupportDetails& swapChainSupportDetails,
+    const Mango::QueueFamilyIndices& queueFamilyIndices
+)
 {
     DisposeVulkanObjects();
     CreateSwapChain(
-        _window,
+        windowFramebufferWidth,
+        windowFramebufferHeight,
         _renderSurface,
         swapChainSupportDetails,
         queueFamilyIndices
@@ -43,15 +50,16 @@ void Mango::SwapChain::RecreateSwapChain(Mango::SwapChainSupportDetails& swapCha
 }
 
 void Mango::SwapChain::CreateSwapChain(
-    GLFWwindow* window,
-    VkSurfaceKHR& renderSurface,
-    Mango::SwapChainSupportDetails& swapChainSupportDetails,
-    Mango::QueueFamilyIndices& queueFamilyIndices
+    uint32_t windowFramebufferWidth,
+    uint32_t windowFramebufferHeight,
+    const VkSurfaceKHR& renderSurface,
+    const Mango::SwapChainSupportDetails& swapChainSupportDetails,
+    const Mango::QueueFamilyIndices& queueFamilyIndices
 )
 {
     auto surfaceFormat = ChooseSwapSurfaceFormat(swapChainSupportDetails.Formats);
     auto presentMode = ChooseSwapPresentMode(swapChainSupportDetails.PresentModes);
-    auto extent = ChooseSwapExtent(swapChainSupportDetails.SurfaceCapabilities, window);
+    auto extent = ChooseSwapExtent(swapChainSupportDetails.SurfaceCapabilities, windowFramebufferWidth, windowFramebufferHeight);
 
     _swapChainSurfaceFormat = surfaceFormat;
     _swapChainPresentMode = presentMode;
@@ -177,7 +185,11 @@ VkPresentModeKHR Mango::SwapChain::ChooseSwapPresentMode(const std::vector<VkPre
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D Mango::SwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities, GLFWwindow* window)
+VkExtent2D Mango::SwapChain::ChooseSwapExtent(
+    const VkSurfaceCapabilitiesKHR& surfaceCapabilities,
+    uint32_t windowFramebufferWidth,
+    uint32_t windowFramebufferHeight
+)
 {
     if (surfaceCapabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
     {
@@ -185,18 +197,9 @@ VkExtent2D Mango::SwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& su
     }
     else
     {
-        int width, height;
-        glfwGetFramebufferSize(window, &width, &height);
-
-        VkExtent2D actualExtent = 
-        {
-        static_cast<uint32_t>(width),
-        static_cast<uint32_t>(height)
-        };
-
+        VkExtent2D actualExtent = { windowFramebufferWidth, windowFramebufferHeight };
         actualExtent.width = std::clamp(actualExtent.width, surfaceCapabilities.minImageExtent.width, surfaceCapabilities.maxImageExtent.width);
         actualExtent.height = std::clamp(actualExtent.height, surfaceCapabilities.minImageExtent.height, surfaceCapabilities.maxImageExtent.height);
-
         return actualExtent;
     }
 }

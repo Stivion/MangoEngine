@@ -1,29 +1,12 @@
 ﻿#pragma once
 
 #include "Windowing/Window.h"
+#include "Render/Renderer.h"
 #include "Vulkan/Instance.h"
 #include "Vulkan/PhysicalDevice.h"
 #include "Vulkan/LogicalDevice.h"
 #include "Vulkan/RenderSurface.h"
-#include "Vulkan/SwapChain.h"
-#include "Vulkan/RenderPass.h"
-#include "Vulkan/GraphicsPipeline.h"
-#include "Vulkan/Framebuffer.h"
-#include "Vulkan/FramebuffersPool.h"
-#include "Vulkan/CommandPool.h"
-#include "Vulkan/VertexBuffer.h"
-#include "Vulkan/IndexBuffer.h"
-#include "Vulkan/CommandBuffersPool.h"
-#include "Vulkan/Vertex.h"
-#include "Vulkan/UniformBuffer.h"
-#include "Vulkan/UniformBuffersPool.h"
-#include "Vulkan/UniformBufferObject.h"
-#include "Vulkan/DescriptorPool.h"
-#include "Vulkan/DescriptorSetLayout.h"
 #include "Vulkan/VulkanRenderer.h"
-#include "Vulkan/HardwareInfo.h"
-
-#include "Render/Renderer.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -65,23 +48,12 @@ namespace Mango
         bool _framebufferResized = false;
 
         // Vulkan
-        const std::vector<VkDescriptorPoolSize> _poolSizes =
-        {
-            { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
-            { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 4 }
-        };
-
-        Mango::Instance _instance{};
-        Mango::RenderSurface _renderSurface{ _window, _instance };
-        Mango::PhysicalDevice _physicalDevice{ _instance, _renderSurface };
-        Mango::QueueFamilyIndices _queueFamilyIndices = QueueFamilyIndices::FindQueueFamilies(_physicalDevice.GetDevice(), _renderSurface.GetRenderSurface());
-        Mango::LogicalDevice _logicalDevice{ _physicalDevice, _queueFamilyIndices };
-        Mango::SwapChainSupportDetails _swapChainSupportDetails = SwapChainSupportDetails::QuerySwapChainSupport(_physicalDevice.GetDevice(), _renderSurface.GetRenderSurface());
-        Mango::SwapChain _swapChain{ _window, _renderSurface, _logicalDevice, _swapChainSupportDetails, _queueFamilyIndices };
-        
-        Mango::HardwareInfo _hardwareInfo{ _instance, _physicalDevice, _queueFamilyIndices };
-        Mango::VulkanRendererCreateInfo _rendererCreateInfo{ MaxFramesInFlight, _hardwareInfo, _renderSurface, _logicalDevice, _swapChain };
-        std::unique_ptr<Mango::Renderer> _renderer = std::make_unique<Mango::VulkanRenderer>(false, _rendererCreateInfo);
+        std::unique_ptr<Mango::Instance> _instance;
+        std::unique_ptr<Mango::RenderSurface> _renderSurface;
+        std::unique_ptr<Mango::PhysicalDevice> _physicalDevice;
+        std::unique_ptr<Mango::QueueFamilyIndices> _queueFamilyIndices;
+        std::unique_ptr<Mango::LogicalDevice> _logicalDevice;
+        std::unique_ptr<Mango::Renderer> _renderer;
 
         //Mango::RenderPassCreateInfo _renderPassCreateInfo{ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL };
         //Mango::RenderPass _renderPass{ _logicalDevice, _swapChain, _renderPassCreateInfo };

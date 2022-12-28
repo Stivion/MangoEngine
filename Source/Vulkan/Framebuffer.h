@@ -13,8 +13,8 @@ namespace Mango
     {
     public:
         Framebuffer(
-            Mango::LogicalDevice& logicalDevice,
-            Mango::RenderPass& renderPass,
+            const Mango::LogicalDevice& logicalDevice,
+            const Mango::RenderPass& renderPass,
             const VkExtent2D& extent,
             const VkImageView& imageView
         );
@@ -29,11 +29,11 @@ namespace Mango
             const VkImageView& imageView
         );
         
-        const VkFramebuffer& GetSwapChainFramebuffer() { return _swapChainFramebuffer; }
+        const VkFramebuffer& GetSwapChainFramebuffer() const { return _swapChainFramebuffer; }
 
     private:
         VkFramebuffer _swapChainFramebuffer;
-        VkDevice& _logicalDevice;
+        const VkDevice& _logicalDevice;
 
     private:
         void CreateFramebuffer(

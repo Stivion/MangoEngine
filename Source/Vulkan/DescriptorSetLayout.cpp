@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::DescriptorSetLayout::DescriptorSetLayout(Mango::LogicalDevice& logicalDevice, std::vector<VkDescriptorSetLayoutBinding> bindings)
+Mango::DescriptorSetLayout::DescriptorSetLayout(const Mango::LogicalDevice& logicalDevice, std::vector<VkDescriptorSetLayoutBinding> bindings)
 	: _logicalDevice(logicalDevice.GetDevice())
 {
 	_descriptorSetId = static_cast<uint64_t>(std::rand()); // TODO: std::rand() is not a good solution for this, it may produce hard to debug collisions
@@ -25,7 +25,7 @@ Mango::DescriptorSetLayout::~DescriptorSetLayout()
 	vkDestroyDescriptorSetLayout(_logicalDevice, _layout, nullptr);
 }
 
-Mango::DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice)
+Mango::DescriptorSetLayoutBuilder::DescriptorSetLayoutBuilder(const Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice)
 {
 }
 

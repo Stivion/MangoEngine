@@ -12,9 +12,9 @@ Mango::IndexBuffer::IndexBuffer(
 	uint32_t indicesCount,
 	VkDeviceSize bufferSizeBytes,
 	const void* memory,
-	Mango::PhysicalDevice& physicalDevice,
-	Mango::LogicalDevice& logicalDevice,
-	Mango::CommandPool& commandPool
+	const Mango::PhysicalDevice& physicalDevice,
+	const Mango::LogicalDevice& logicalDevice,
+	const Mango::CommandPool& commandPool
 ) : _indicesCount(indicesCount), Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
 {
 	Mango::Buffer stagingBuffer(

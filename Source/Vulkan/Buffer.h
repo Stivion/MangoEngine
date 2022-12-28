@@ -14,8 +14,8 @@ namespace Mango
 			VkBufferUsageFlags bufferUsage,
 			VkMemoryPropertyFlags requiredProperties,
 			VkDeviceSize bufferSizeBytes,
-			Mango::PhysicalDevice& physicalDevice,
-			Mango::LogicalDevice& logicalDevice
+			const Mango::PhysicalDevice& physicalDevice,
+			const Mango::LogicalDevice& logicalDevice
 		);
 		Buffer(const Buffer&) = delete;
 		Buffer operator=(const Buffer&) = delete;
@@ -31,9 +31,9 @@ namespace Mango
 		VkBuffer _buffer;
 		VkDeviceMemory _bufferMemory;
 		VkDeviceSize _bufferSize;
-		VkDevice& _logicalDevice;
+		const VkDevice& _logicalDevice;
 
 	private:
-		void AllocateMemory(Mango::PhysicalDevice& physicalDevice, VkMemoryPropertyFlags requiredProperties);
+		void AllocateMemory(const Mango::PhysicalDevice& physicalDevice, VkMemoryPropertyFlags requiredProperties);
 	};
 }

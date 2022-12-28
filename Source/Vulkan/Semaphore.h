@@ -9,7 +9,7 @@ namespace Mango
 	class Semaphore
 	{
 	public:
-		Semaphore(Mango::LogicalDevice& logicalDevice); // TODO: Make unique pointer
+		Semaphore(const Mango::LogicalDevice& logicalDevice);
 		Semaphore() = delete;
 		Semaphore(const Semaphore&) = delete;
 		Semaphore operator=(const Semaphore&) = delete;
@@ -19,6 +19,6 @@ namespace Mango
 
 	private:
 		VkSemaphore _semaphore;
-		VkDevice& _logicalDevice;
+		const VkDevice& _logicalDevice;
 	};
 }

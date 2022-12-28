@@ -10,15 +10,15 @@ namespace Mango
     class LogicalDevice
     {
     public:
-        LogicalDevice(Mango::PhysicalDevice& physicalDevice, Mango::QueueFamilyIndices& queueFamilyIndices);
+        LogicalDevice(const Mango::PhysicalDevice& physicalDevice, const Mango::QueueFamilyIndices& queueFamilyIndices);
         LogicalDevice() = delete;
         LogicalDevice(const LogicalDevice &) = delete;
         LogicalDevice operator=(const LogicalDevice &) = delete;
         ~LogicalDevice();
 
-        VkDevice& GetDevice() { return _logicalDevice; }
-        VkQueue GetGraphicsQueue() { return _graphicsQueue; }
-        VkQueue GetPresentationQueue() { return _presentationQueue; }
+        const VkDevice& GetDevice() const { return _logicalDevice; }
+        const VkQueue GetGraphicsQueue() const { return _graphicsQueue; }
+        const VkQueue GetPresentationQueue() const { return _presentationQueue; }
     private:
         VkDevice _logicalDevice;
         VkQueue _graphicsQueue;

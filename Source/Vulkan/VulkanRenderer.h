@@ -2,16 +2,19 @@
 
 #include "../Render/Renderer.h"
 
+#include "Instance.h"
+#include "PhysicalDevice.h"
+#include "QueueFamilyIndices.h"
+#include "RenderSurface.h"
 #include "LogicalDevice.h"
 #include "SwapChain.h"
-#include "RenderSurface.h"
+#include "SwapChainSupportDetails.h"
 #include "RenderPass.h"
 #include "FramebuffersPool.h"
 #include "CommandPool.h"
 #include "CommandBuffersPool.h"
 #include "Fence.h"
 #include "Semaphore.h"
-#include "HardwareInfo.h"
 #include "DescriptorSetLayout.h"
 #include "DescriptorPool.h"
 #include "GraphicsPipeline.h"
@@ -20,6 +23,8 @@
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "ViewportCommandBufferRecorder.h"
+#include "UICommandBufferRecorder.h"
 
 #include <vulkan/vulkan.h>
 
@@ -30,21 +35,23 @@ namespace Mango
 	struct VulkanRendererCreateInfo
 	{
 		uint32_t MaxFramesInFlight;
-		// TODO: Make them smart (shared?) pointers
-		Mango::HardwareInfo HardwareInfo;
-		Mango::RenderSurface& RenderSurface;
-		Mango::LogicalDevice& LogicalDevice;
-		Mango::SwapChain& SwapChain;
+		uint32_t WindowFramebufferWidth;
+		uint32_t WindowFramebufferHeight;
+		Mango::Instance* Instance;
+		Mango::RenderSurface* RenderSurface;
+		Mango::PhysicalDevice* PhysicalDevice;
+		Mango::QueueFamilyIndices* QueueFamilyIndices;
+		Mango::LogicalDevice* LogicalDevice;
 	};
 
 	class VulkanRenderer : public Renderer
 	{
 	public:
-		VulkanRenderer(bool isOffscreen, const VulkanRendererCreateInfo createInfo);
+		VulkanRenderer(const VulkanRendererCreateInfo createInfo);
 		VulkanRenderer() = delete;
 		VulkanRenderer(const VulkanRenderer&) = delete;
 		VulkanRenderer operator=(const VulkanRenderer&) = delete;
-		~VulkanRenderer();
+		~VulkanRenderer() = default;
 
 		void Draw() override;
 		void Draw(Mango::VertexBuffer& vertexBuffer, Mango::IndexBuffer& indexBuffer); // TODO: Temporary
@@ -54,27 +61,24 @@ namespace Mango
 		void UpdateUniformBuffer(uint32_t currentFrame);
 
 	private:
-		bool _isOffscreen;
-		std::unique_ptr<Mango::RenderPass> _renderPass;
-		Mango::RenderPassCreateInfo _renderPassCreateInfo;
-
-		Mango::HardwareInfo _hardwareInfo;
-		Mango::RenderSurface& _renderSurface;
-		Mango::LogicalDevice& _logicalDevice;
-		Mango::SwapChain& _swapChain;
+		// This members is not owned by renderer
 		uint32_t _maxFramesInFlight;
+		const Mango::Instance* _instance;
+		const Mango::PhysicalDevice* _physicalDevice;
+		const Mango::QueueFamilyIndices* _queueFamilyIndices;
+		const Mango::RenderSurface* _renderSurface;
+		const Mango::LogicalDevice* _logicalDevice;
 
+	private:
+		std::unique_ptr<Mango::SwapChain> _swapChain;
+		std::unique_ptr<Mango::RenderPass> _renderPass;
 		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
-		//std::unique_ptr<Mango::DescriptorSetLayout> _textureDescriptorSetLayout;
-		//std::unique_ptr<Mango::DescriptorSetLayout> _localDescriptorSetLayout;
-
 		const std::vector<VkDescriptorPoolSize> _poolSizes = // TODO: Figure out how to allocate correct pool sizes
 		{
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
 			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2 }
 		};
 		std::unique_ptr<Mango::DescriptorPool> _descriptorPool;
-
 		std::unique_ptr<Mango::GraphicsPipeline> _graphicsPipeline;
 		std::unique_ptr<Mango::UniformBuffersPool> _uniformBuffers;
 		std::unique_ptr<Mango::FramebuffersPool> _framebuffers;
@@ -84,9 +88,12 @@ namespace Mango
 		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
 
+		std::unique_ptr<Mango::ViewportCommandBufferRecorder> _viewportCommandBufferRecorder;
+		std::unique_ptr<Mango::UICommandBufferRecorder> _uiCommandBufferRecorder;
+
 		uint32_t _currentFrame = 0;
 
-		// Game objects (temporary)
+		// TODO: Game objects (temporary)
 		const std::vector<Mango::Vertex> _vertices =
 		{
 			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},

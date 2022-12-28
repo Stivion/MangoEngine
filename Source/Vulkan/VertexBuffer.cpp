@@ -12,9 +12,9 @@ Mango::VertexBuffer::VertexBuffer(
 	uint32_t vertexCount,
 	VkDeviceSize bufferSizeBytes,
 	const void* memory,
-	Mango::PhysicalDevice& physicalDevice,
-	Mango::LogicalDevice& logicalDevice,
-	Mango::CommandPool& commandPool
+	const Mango::PhysicalDevice& physicalDevice,
+	const Mango::LogicalDevice& logicalDevice,
+	const Mango::CommandPool& commandPool
 ) : _vertexCount(vertexCount), Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
 {
 	Mango::Buffer stagingBuffer(

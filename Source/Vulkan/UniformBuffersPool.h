@@ -23,7 +23,7 @@ namespace Mango
 	class UniformBuffersPool
 	{
 	public:
-		UniformBuffersPool(Mango::PhysicalDevice& physicalDevice, Mango::LogicalDevice& logicalDevice);
+		UniformBuffersPool(const Mango::PhysicalDevice& physicalDevice, const Mango::LogicalDevice& logicalDevice);
 		UniformBuffersPool() = delete;
 		UniformBuffersPool(const UniformBuffersPool&) = delete;
 		UniformBuffersPool operator=(const UniformBuffersPool&) = delete;
@@ -36,7 +36,7 @@ namespace Mango
 	private:
 		// Uniform buffers is owned by this class
 		std::unordered_map<uint64_t, std::unique_ptr<const Mango::UniformBuffer>> _uniformBuffers;
-		Mango::LogicalDevice& _logicalDevice;
-		Mango::PhysicalDevice& _physicalDevice;
+		const Mango::LogicalDevice& _logicalDevice;
+		const Mango::PhysicalDevice& _physicalDevice;
 	};
 }

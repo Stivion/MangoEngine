@@ -12,6 +12,6 @@ namespace Mango
         std::optional<std::uint32_t> GraphicsFamily;
         std::optional<std::uint32_t> PresentationFamily;
 
-        static Mango::QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface);
+        static Mango::QueueFamilyIndices FindQueueFamilies(const VkPhysicalDevice& device, const VkSurfaceKHR& renderSurface);
     };
 }

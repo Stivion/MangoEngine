@@ -7,7 +7,7 @@
 
 Mango::DescriptorPool::DescriptorPool(
 	const std::vector<VkDescriptorPoolSize>& descriptorPoolSizes,
-	Mango::LogicalDevice& logicalDevice
+	const Mango::LogicalDevice& logicalDevice
 ) : _logicalDevice(logicalDevice.GetDevice())
 {
 	uint32_t maxSets = 0;

@@ -7,14 +7,14 @@
 
 Mango::CommandBuffer::CommandBuffer(
     VkCommandBuffer commandBuffer,
-    Mango::RenderPass& renderPass,
-    Mango::SwapChain& swapChain,
-    Mango::GraphicsPipeline& graphicsPipeline
+    const Mango::RenderPass& renderPass,
+    const Mango::SwapChain& swapChain,
+    const Mango::GraphicsPipeline& graphicsPipeline
 ) : _renderPass(renderPass), _swapChain(swapChain), _commandBuffer(commandBuffer), _graphicsPipeline(graphicsPipeline)
 {
 }
 
-void Mango::CommandBuffer::BeginCommandBuffer()
+void Mango::CommandBuffer::BeginCommandBuffer() const
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -25,7 +25,7 @@ void Mango::CommandBuffer::BeginCommandBuffer()
     M_ASSERT(beginCommandBufferResult == VK_SUCCESS && "Failed to begin recording command buffer");
 }
 
-void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo)
+void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo) const
 {
     const auto& swapChainExtent = _swapChain.GetSwapChainExtent();
     VkRenderPassBeginInfo renderPassInfo{};
@@ -33,7 +33,7 @@ void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, con
     renderPassInfo.renderPass = _renderPass.GetRenderPass();
     renderPassInfo.framebuffer = framebuffer;
     renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = swapChainExtent;
+    renderPassInfo.renderArea.extent = swapChainExtent; // NOTE: Should this match viewport size?
 
     VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
     renderPassInfo.clearValueCount = 1;
@@ -53,11 +53,15 @@ void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, con
 
     VkRect2D scissor{};
     scissor.offset = { 0, 0 };
-    scissor.extent = swapChainExtent;
+    scissor.extent = swapChainExtent; // NOTE: Should this match viewport size?
     vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
 }
 
-void Mango::CommandBuffer::DrawIndexed(const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer, std::vector<VkDescriptorSet>& descriptors)
+void Mango::CommandBuffer::DrawIndexed(
+    const Mango::VertexBuffer& vertexBuffer,
+    const Mango::IndexBuffer& indexBuffer,
+    std::vector<VkDescriptorSet> descriptors
+) const
 {
     VkBuffer vertexBuffers[] = { vertexBuffer.GetBuffer() };
     VkDeviceSize offsets[] = { 0 };
@@ -80,18 +84,18 @@ void Mango::CommandBuffer::DrawIndexed(const Mango::VertexBuffer& vertexBuffer, 
     vkCmdDrawIndexed(_commandBuffer, indexBuffer.GetIndicesCount(), 1, 0, 0, 0);
 }
 
-void Mango::CommandBuffer::EndRenderPass()
+void Mango::CommandBuffer::EndRenderPass() const
 {
     vkCmdEndRenderPass(_commandBuffer);
 }
 
-void Mango::CommandBuffer::EndCommandBuffer()
+void Mango::CommandBuffer::EndCommandBuffer() const
 {
     auto endCommandBufferResult = vkEndCommandBuffer(_commandBuffer);
     M_ASSERT(endCommandBufferResult == VK_SUCCESS && "Failed to record command buffer");
 }
 
-void Mango::CommandBuffer::Reset()
+void Mango::CommandBuffer::Reset() const
 {
     vkResetCommandBuffer(_commandBuffer, 0);
 }

@@ -10,7 +10,7 @@ namespace Mango
     class CommandPool
     {
     public:
-        CommandPool(Mango::LogicalDevice& logicalDevice, Mango::QueueFamilyIndices& queueFamilyIndices);
+        CommandPool(const Mango::LogicalDevice& logicalDevice, const Mango::QueueFamilyIndices& queueFamilyIndices);
         CommandPool() = delete;
         CommandPool(const CommandPool&) = delete;
         CommandPool operator=(const CommandPool&) = delete;
@@ -20,6 +20,6 @@ namespace Mango
 
     private:
         VkCommandPool _commandPool;
-        VkDevice& _logicalDevice;
+        const VkDevice& _logicalDevice;
     };
 }

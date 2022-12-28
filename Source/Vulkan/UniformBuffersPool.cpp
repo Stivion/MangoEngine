@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::UniformBuffersPool::UniformBuffersPool(Mango::PhysicalDevice& physicalDevice, Mango::LogicalDevice& logicalDevice)
+Mango::UniformBuffersPool::UniformBuffersPool(const Mango::PhysicalDevice& physicalDevice, const Mango::LogicalDevice& logicalDevice)
 	: _logicalDevice(logicalDevice), _physicalDevice(physicalDevice)
 {
 }

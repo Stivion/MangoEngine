@@ -1,6 +1,6 @@
 #include "QueueFamilyIndices.h"
 
-Mango::QueueFamilyIndices Mango::QueueFamilyIndices::FindQueueFamilies(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface)
+Mango::QueueFamilyIndices Mango::QueueFamilyIndices::FindQueueFamilies(const VkPhysicalDevice& device, const VkSurfaceKHR& renderSurface)
 {
     QueueFamilyIndices indices{};
 

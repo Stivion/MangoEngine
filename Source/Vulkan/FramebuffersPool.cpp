@@ -1,9 +1,9 @@
 #include "FramebuffersPool.h"
 
 Mango::FramebuffersPool::FramebuffersPool(
-	Mango::LogicalDevice& logicalDevice,
-	Mango::RenderPass& renderPass,
-	Mango::SwapChain& swapChain
+	const Mango::LogicalDevice& logicalDevice,
+	const Mango::RenderPass& renderPass,
+	const Mango::SwapChain& swapChain
 ) : _framebuffersCount(static_cast<uint32_t>(swapChain.GetSwapChainImageViews().size()))
 {
 	const auto& extent = swapChain.GetSwapChainExtent();

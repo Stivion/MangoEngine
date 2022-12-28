@@ -16,9 +16,9 @@ namespace Mango
 			uint32_t vertexCount,
 			VkDeviceSize bufferSizeBytes,
 			const void* memory,
-			Mango::PhysicalDevice& physicalDevice,
-			Mango::LogicalDevice& logicalDevice,
-			Mango::CommandPool& commandPool
+			const Mango::PhysicalDevice& physicalDevice,
+			const Mango::LogicalDevice& logicalDevice,
+			const Mango::CommandPool& commandPool
 		);
 		VertexBuffer(const VertexBuffer&) = delete;
 		VertexBuffer operator=(const VertexBuffer&) = delete;

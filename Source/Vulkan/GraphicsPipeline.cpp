@@ -12,8 +12,8 @@ std::vector<VkDynamicState> dynamicStates = {
 };
 
 Mango::GraphicsPipeline::GraphicsPipeline(
-    Mango::LogicalDevice& logicalDevice,
-    Mango::RenderPass& renderPass,
+    const Mango::LogicalDevice& logicalDevice,
+    const Mango::RenderPass& renderPass,
     std::vector<const Mango::DescriptorSetLayout*>& descriptorSetLayouts,
     const std::string& vertexShaderPath,
     const std::string& fragmentShaderPath
@@ -155,7 +155,7 @@ Mango::GraphicsPipeline::~GraphicsPipeline()
     vkDestroyPipeline(_logicalDevice, _graphicsPipeline, nullptr);
 }
 
-VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(VkDevice& logicalDevice, const std::vector<char>& shaderCode)
+VkShaderModule Mango::GraphicsPipeline::CreateShaderModule(const VkDevice& logicalDevice, const std::vector<char>& shaderCode)
 {
     VkShaderModuleCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

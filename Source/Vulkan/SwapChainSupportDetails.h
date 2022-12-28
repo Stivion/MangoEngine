@@ -13,8 +13,6 @@ namespace Mango
         std::vector<VkPresentModeKHR> PresentModes;
 
         static Mango::SwapChainSupportDetails QuerySwapChainSupport(const VkPhysicalDevice& device, const VkSurfaceKHR& renderSurface);
-    private:
-        SwapChainSupportDetails() = default;
     };
 
 }

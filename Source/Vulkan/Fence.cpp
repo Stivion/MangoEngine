@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::Fence::Fence(bool startSignaled, Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice.GetDevice())
+Mango::Fence::Fence(bool startSignaled, const Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice.GetDevice())
 {
     VkFenceCreateInfo fenceInfo{};
     fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

@@ -10,8 +10,8 @@ const VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | 
 
 Mango::UniformBuffer::UniformBuffer(
 	VkDeviceSize bufferSizeBytes,
-	Mango::PhysicalDevice& physicalDevice,
-	Mango::LogicalDevice& logicalDevice
+	const Mango::PhysicalDevice& physicalDevice,
+	const Mango::LogicalDevice& logicalDevice
 ) : Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
 {
 }

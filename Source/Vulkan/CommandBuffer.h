@@ -23,28 +23,32 @@ namespace Mango
 	public:
 		CommandBuffer() = delete;
 
-		void BeginCommandBuffer();
-		void BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo);
-		void DrawIndexed(const Mango::VertexBuffer& vertexBuffer, const Mango::IndexBuffer& indexBuffer, std::vector<VkDescriptorSet>& descriptors);
-		void EndRenderPass();
-		void EndCommandBuffer();
-		void Reset();
+		void BeginCommandBuffer() const;
+		void BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo) const;
+		void DrawIndexed(
+			const Mango::VertexBuffer& vertexBuffer,
+			const Mango::IndexBuffer& indexBuffer,
+			std::vector<VkDescriptorSet> descriptors
+		) const;
+		void EndRenderPass() const;
+		void EndCommandBuffer() const;
+		void Reset() const;
 
 		const VkCommandBuffer& GetVkCommandBuffer() const { return _commandBuffer; }
 
 	private:
 		CommandBuffer(
 			VkCommandBuffer commandBuffer,
-			Mango::RenderPass& renderPass,
-			Mango::SwapChain& swapChain,
-			Mango::GraphicsPipeline& graphicsPipeline
+			const Mango::RenderPass& renderPass,
+			const Mango::SwapChain& swapChain,
+			const Mango::GraphicsPipeline& graphicsPipeline
 		);
 
 	private:
 		VkCommandBuffer _commandBuffer;
-		Mango::RenderPass& _renderPass;
-		Mango::SwapChain& _swapChain;
-		Mango::GraphicsPipeline& _graphicsPipeline;
+		const Mango::RenderPass& _renderPass;
+		const Mango::SwapChain& _swapChain;
+		const Mango::GraphicsPipeline& _graphicsPipeline;
 
 		friend class CommandBuffersPool;
 	};

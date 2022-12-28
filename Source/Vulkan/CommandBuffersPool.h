@@ -17,18 +17,18 @@ namespace Mango
 	public:
 		CommandBuffersPool(
 			uint32_t commandBuffersCount,
-			Mango::LogicalDevice& logicalDevice,
-			Mango::SwapChain& swapChain,
-			Mango::RenderPass& renderPass,
-			Mango::CommandPool& commandPool,
-			Mango::GraphicsPipeline& graphicsPipeline
+			const Mango::LogicalDevice& logicalDevice,
+			const Mango::SwapChain& swapChain,
+			const Mango::RenderPass& renderPass,
+			const Mango::CommandPool& commandPool,
+			const Mango::GraphicsPipeline& graphicsPipeline
 		);
 		CommandBuffersPool() = delete;
 		CommandBuffersPool(const CommandBuffersPool&) = delete;
 		CommandBuffersPool operator=(const CommandBuffersPool&) = delete;
 		~CommandBuffersPool();
 
-		Mango::CommandBuffer& GetCommandBuffer(uint32_t index) { return *_commandBuffers[index]; }
+		const Mango::CommandBuffer& GetCommandBuffer(uint32_t index) const { return *_commandBuffers[index]; }
 
 	private:
 		std::vector<Mango::CommandBuffer*> _commandBuffers;

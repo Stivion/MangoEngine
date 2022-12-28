@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::Semaphore::Semaphore(Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice.GetDevice())
+Mango::Semaphore::Semaphore(const Mango::LogicalDevice& logicalDevice) : _logicalDevice(logicalDevice.GetDevice())
 {
 	VkSemaphoreCreateInfo semaphoreInfo{};
 	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
