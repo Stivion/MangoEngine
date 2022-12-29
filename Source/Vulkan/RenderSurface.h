@@ -1,0 +1,28 @@
+﻿#pragma once
+
+#include "../Windowing/Window.h"
+#include "Instance.h"
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
+
+namespace Mango
+{
+    class RenderSurface
+    {
+    public:
+        RenderSurface(Mango::Window& window, const Mango::Instance& instance);
+        RenderSurface() = delete;
+        RenderSurface(const RenderSurface&) = delete;
+        RenderSurface operator=(const RenderSurface&) = delete;
+        ~RenderSurface();
+        
+        const VkSurfaceKHR& GetRenderSurface() const { return _renderSurface; }
+    private:
+        VkSurfaceKHR _renderSurface;
+
+        const VkInstance& _instance;
+        GLFWwindow* _window;
+    };
+}
