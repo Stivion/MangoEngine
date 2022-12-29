@@ -25,7 +25,11 @@
 #include "IndexBuffer.h"
 #include "ViewportCommandBufferRecorder.h"
 #include "UICommandBufferRecorder.h"
+#include "EditorViewport.h"
 
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
 
 #include <memory>
@@ -51,14 +55,24 @@ namespace Mango
 		VulkanRenderer() = delete;
 		VulkanRenderer(const VulkanRenderer&) = delete;
 		VulkanRenderer operator=(const VulkanRenderer&) = delete;
-		~VulkanRenderer() = default;
+		~VulkanRenderer();
 
 		void Draw() override;
 		void Draw(Mango::VertexBuffer& vertexBuffer, Mango::IndexBuffer& indexBuffer); // TODO: Temporary
+		void* GetViewportTextureId() override { return _editorViewport->GetViewportImageDescriptorSet(); };
 		void HandleFramebuffersResized() override;
 
 		// TODO: Temporary, remove this
 		void UpdateUniformBuffer(uint32_t currentFrame);
+
+	private:
+		void InitializeViewportMembers();
+		void InitializeUIMembers(
+			uint32_t windowFramebufferWidth,
+			uint32_t windowFramebufferHeight,
+			Mango::SwapChainSupportDetails swapChainSupportDetails
+		);
+		static void CheckImGuiVulkanResultFn(VkResult result);
 
 	private:
 		// This members is not owned by renderer
@@ -70,6 +84,7 @@ namespace Mango
 		const Mango::LogicalDevice* _logicalDevice;
 
 	private:
+		// Viewport
 		std::unique_ptr<Mango::SwapChain> _swapChain;
 		std::unique_ptr<Mango::RenderPass> _renderPass;
 		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
@@ -87,6 +102,28 @@ namespace Mango
 		std::vector<std::unique_ptr<Mango::Fence>> _fences;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
+		std::unique_ptr<Mango::EditorViewport> _editorViewport;
+
+		// ImGui
+		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
+		{
+		    { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
+		    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
+		    { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
+		    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
+		    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
+		    { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
+		};
+		std::unique_ptr<Mango::RenderPass> _imGuiRenderPass;
+		std::unique_ptr<Mango::FramebuffersPool> _imGuiFramebuffers;
+		std::unique_ptr<Mango::DescriptorPool> _imGuiDescriptorPool;
+		std::unique_ptr<Mango::CommandPool> _imGuiCommandPool;
+		std::unique_ptr<Mango::CommandBuffersPool> _imGuiCommandBuffers;
 
 		std::unique_ptr<Mango::ViewportCommandBufferRecorder> _viewportCommandBufferRecorder;
 		std::unique_ptr<Mango::UICommandBufferRecorder> _uiCommandBufferRecorder;

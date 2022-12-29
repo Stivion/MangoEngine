@@ -9,9 +9,6 @@
 
 #include <string>
 
-//_renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-//_renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-
 Mango::VulkanRenderer::VulkanRenderer(const VulkanRendererCreateInfo createInfo)
 	: Renderer()
 {
@@ -35,61 +32,8 @@ Mango::VulkanRenderer::VulkanRenderer(const VulkanRendererCreateInfo createInfo)
         *_queueFamilyIndices
     );
 
-    Mango::RenderPassCreateInfo renderPassCreateInfo{};
-    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	_renderPass = std::make_unique<Mango::RenderPass>(*createInfo.LogicalDevice, *_swapChain, renderPassCreateInfo);
-
-    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_logicalDevice);
-
-    // All descriptor set layouts is owned by renderer
-    {
-        Mango::DescriptorSetLayoutBuilder builder(*_logicalDevice);
-        _globalDescriptorSetLayout = builder
-            .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
-            .Build();
-    }
-    std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get() };
-    _descriptorPool->AllocateDescriptorSets(layouts);
-
-    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_logicalDevice, *_renderPass, layouts, "vert.spv", "frag.spv");
-
-    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_physicalDevice, *_logicalDevice);
-    for (uint32_t i = 0; i < _maxFramesInFlight; i++)
-    {
-        UniformBufferCreateInfo createInfo{};
-        createInfo.BufferId = i;
-        createInfo.Binding = 0;
-        createInfo.BufferSize = sizeof(UniformBufferObject);
-        createInfo.DestinationSet = _descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId());
-        uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
-    }
-
-    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_renderPass, *_swapChain);
-
-    _commandPool = std::make_unique<Mango::CommandPool>(*_logicalDevice, *_queueFamilyIndices);
-    _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(
-        _maxFramesInFlight,
-        *_logicalDevice,
-        *_swapChain,
-        *_renderPass,
-        *_commandPool,
-        *_graphicsPipeline
-    );
-
-	_fences.resize(_maxFramesInFlight);
-	for (size_t i = 0; i < _maxFramesInFlight; i++)
-	{
-		_fences[i] = std::make_unique<Mango::Fence>(true, *_logicalDevice);
-	}
-
-	_imageAvailableSemaphores.resize(_maxFramesInFlight);
-	_renderFinishedSemaphores.resize(_maxFramesInFlight);
-	for (size_t i = 0; i < _maxFramesInFlight; i++)
-	{
-		_imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
-		_renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
-	}
+    InitializeViewportMembers();
+    InitializeUIMembers(createInfo.WindowFramebufferWidth, createInfo.WindowFramebufferHeight, swapChainSupportDetails);
 
     // TODO: Prepare vertex and index buffers (temporary)
     const uint32_t vertexCount = static_cast<uint32_t>(_vertices.size());
@@ -120,20 +64,29 @@ Mango::VulkanRenderer::VulkanRenderer(const VulkanRendererCreateInfo createInfo)
         _viewportCommandBufferRecorder = std::make_unique<Mango::ViewportCommandBufferRecorder>(info);
     }
 
-    //{
-    //    Mango::ViewportInfo viewportInfo{};
-    //    viewportInfo.X = 0;
-    //    viewportInfo.Y = 0;
-    //    viewportInfo.Width = currentExtent.width;
-    //    viewportInfo.Height = currentExtent.height;
-    //    viewportInfo.MinDepth = 0;
-    //    viewportInfo.MaxDepth = 1;
+    {
+        Mango::ViewportInfo viewportInfo{};
+        viewportInfo.X = 0;
+        viewportInfo.Y = 0;
+        viewportInfo.Width = currentExtent.width;
+        viewportInfo.Height = currentExtent.height;
+        viewportInfo.MinDepth = 0;
+        viewportInfo.MaxDepth = 1;
 
-    //    UICommandBufferRecorderInfo info{};
-    //    info.GraphicsPipeline = _graphicsPipeline.get();
-    //    info.ViewportInfo = viewportInfo;
-    //    _uiCommandBufferRecorder = std::make_unique<Mango::UICommandBufferRecorder>(info);
-    //}
+        UICommandBufferRecorderInfo info{};
+        info.LogicalDevice = _logicalDevice;
+        info.PhysicalDevice = _physicalDevice;
+        info.GraphicsPipeline = _graphicsPipeline.get();
+        info.SwapChain = _swapChain.get();
+        info.ViewportImage = _editorViewport->GetViewportImage();
+        info.ViewportInfo = viewportInfo;
+        _uiCommandBufferRecorder = std::make_unique<Mango::UICommandBufferRecorder>(info);
+    }
+}
+
+Mango::VulkanRenderer::~VulkanRenderer()
+{
+    ImGui_ImplVulkan_Shutdown(); // TODO: This executes after application descturctor is called
 }
 
 void Mango::VulkanRenderer::Draw()
@@ -149,25 +102,19 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
     _fences[_currentFrame]->WaitForFence();
     
     // Acquire next image to render to
-    uint32_t imageIndex;
-    auto nextImageResult = vkAcquireNextImageKHR(
-        vkLogicalDevice,
-        vkSwapChain,
-        UINT64_MAX,
-        _imageAvailableSemaphores[_currentFrame]->GetSemaphore(),
-        VK_NULL_HANDLE,
-        &imageIndex
-    );
+    const auto nextImageResult = _swapChain->AcquireNextImage(*_imageAvailableSemaphores[_currentFrame]);
     if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR || nextImageResult == VK_SUBOPTIMAL_KHR)
     {
         // TODO: Handle minimized window
         HandleFramebuffersResized();
+        return;
     }
     else
     {
         M_ASSERT(nextImageResult == VK_SUCCESS && "Failed to acquire next swap chain image");
     }
 
+    const auto imageIndex = _swapChain->GetCurrentImageIndex();
     _fences[_currentFrame]->ResetFence();
 
     UpdateUniformBuffer(_currentFrame);
@@ -175,11 +122,14 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
     const auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
     const auto& currentFramebuffer = _framebuffers->GetFramebuffer(imageIndex);
 
+    const auto& currentImGuiCommandBuffer = _imGuiCommandBuffers->GetCommandBuffer(_currentFrame);
+    const auto& currentImGuiFramebuffer = _imGuiFramebuffers->GetFramebuffer(imageIndex);
+
     _viewportCommandBufferRecorder->RecordCommandBuffer(&currentCommandBuffer, &currentFramebuffer);
-    //_uiCommandBufferRecorder->RecordCommandBuffer(nullptr, nullptr);
+    _uiCommandBufferRecorder->RecordCommandBuffer(&currentImGuiCommandBuffer, &currentImGuiFramebuffer);
 
     // Submit command buffer to graphics queue
-    VkCommandBuffer commandBuffers[] = { currentCommandBuffer.GetVkCommandBuffer() };
+    VkCommandBuffer commandBuffers[] = { currentCommandBuffer.GetVkCommandBuffer(), currentImGuiCommandBuffer.GetVkCommandBuffer() };
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.pCommandBuffers = commandBuffers;
@@ -189,7 +139,7 @@ void Mango::VulkanRenderer::Draw(Mango::VertexBuffer& vertexBuffer, Mango::Index
     submitInfo.waitSemaphoreCount = 1;
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
-    submitInfo.commandBufferCount = 1;
+    submitInfo.commandBufferCount = 2;
 
     VkSemaphore signalSemaphores[] = { _renderFinishedSemaphores[_currentFrame]->GetSemaphore() };
     submitInfo.signalSemaphoreCount = 1;
@@ -270,4 +220,153 @@ void Mango::VulkanRenderer::UpdateUniformBuffer(uint32_t currentFrame)
     void* gpuMemory = uniformBuffer.MapMemory();
     memcpy(gpuMemory, &ubo, sizeof(ubo));
     uniformBuffer.UnmapMemory();
+}
+
+void Mango::VulkanRenderer::InitializeViewportMembers()
+{
+    Mango::RenderPassCreateInfo renderPassCreateInfo{};
+    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	_renderPass = std::make_unique<Mango::RenderPass>(*_logicalDevice, *_swapChain, renderPassCreateInfo);
+
+    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_logicalDevice);
+
+    // All descriptor set layouts is owned by renderer
+    {
+        Mango::DescriptorSetLayoutBuilder builder(*_logicalDevice);
+        _globalDescriptorSetLayout = builder
+            .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
+            .Build();
+    }
+    std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get() };
+    _descriptorPool->AllocateDescriptorSets(layouts);
+    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_logicalDevice, *_renderPass, layouts, "vert.spv", "frag.spv");
+
+    _commandPool = std::make_unique<Mango::CommandPool>(*_logicalDevice, *_queueFamilyIndices);
+    _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(
+        _maxFramesInFlight,
+        *_logicalDevice,
+        *_swapChain,
+        *_renderPass,
+        *_commandPool,
+        *_graphicsPipeline
+    );
+    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_renderPass, *_swapChain);
+    
+    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_physicalDevice, *_logicalDevice);
+    for (uint32_t i = 0; i < _maxFramesInFlight; i++)
+    {
+        UniformBufferCreateInfo createInfo{};
+        createInfo.BufferId = i;
+        createInfo.Binding = 0;
+        createInfo.BufferSize = sizeof(UniformBufferObject);
+        createInfo.DestinationSet = _descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId());
+        uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
+    }
+
+    _fences.resize(_maxFramesInFlight);
+    for (size_t i = 0; i < _maxFramesInFlight; i++)
+    {
+        _fences[i] = std::make_unique<Mango::Fence>(true, *_logicalDevice);
+    }
+
+    _imageAvailableSemaphores.resize(_maxFramesInFlight);
+    _renderFinishedSemaphores.resize(_maxFramesInFlight);
+    for (size_t i = 0; i < _maxFramesInFlight; i++)
+    {
+        _imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
+        _renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
+    }
+}
+
+void Mango::VulkanRenderer::InitializeUIMembers(
+    uint32_t windowFramebufferWidth,
+    uint32_t windowFramebufferHeight,
+    Mango::SwapChainSupportDetails swapChainSupportDetails
+)
+{
+    Mango::RenderPassCreateInfo renderPassCreateInfo{};
+    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    _imGuiRenderPass = std::make_unique<Mango::RenderPass>(*_logicalDevice, *_swapChain, renderPassCreateInfo);
+    _imGuiFramebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_imGuiRenderPass, *_swapChain);
+    _imGuiDescriptorPool = std::make_unique<Mango::DescriptorPool>(_imGuiPoolSizes, *_logicalDevice);
+    _imGuiCommandPool = std::make_unique<Mango::CommandPool>(*_logicalDevice, *_queueFamilyIndices);
+    _imGuiCommandBuffers = std::make_unique<Mango::CommandBuffersPool>(
+        _maxFramesInFlight,
+        *_logicalDevice,
+        *_swapChain,
+        *_imGuiRenderPass,
+        *_imGuiCommandPool,
+        *_graphicsPipeline
+    );
+
+    const auto& vkInstance = _instance->GetInstance();
+    const auto& vkPhysicalDevice = _physicalDevice->GetDevice();
+    const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+    const auto& vkGraphicsQueueFamily = _queueFamilyIndices->GraphicsFamily.value();
+    const auto& vkGraphicsQueue = _logicalDevice->GetGraphicsQueue();
+    const auto& vkDescriptorPool = _imGuiDescriptorPool->GetDescriptorPool();
+    const auto& vkMinImageCount = swapChainSupportDetails.SurfaceCapabilities.minImageCount;
+    const auto& vkImageCount = static_cast<uint32_t>(_swapChain->GetSwapChainImages().size());
+    const auto& vkRenderPass = _imGuiRenderPass->GetRenderPass();
+    const auto& vkCommandPool = _imGuiCommandPool->GetCommandPool();
+    const auto& vkCommandBuffer = _imGuiCommandBuffers->GetCommandBuffer(0).GetVkCommandBuffer();
+
+    ImGui_ImplVulkan_InitInfo initInfo{};
+    initInfo.Instance = vkInstance;
+    initInfo.PhysicalDevice = vkPhysicalDevice;
+    initInfo.Device = vkLogicalDevice;
+    initInfo.QueueFamily = vkGraphicsQueueFamily;
+    initInfo.Queue = vkGraphicsQueue;
+    initInfo.PipelineCache = nullptr;
+    initInfo.DescriptorPool = vkDescriptorPool;
+    initInfo.Subpass = 0;
+    initInfo.MinImageCount = vkMinImageCount;
+    initInfo.ImageCount = vkImageCount;
+    initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    initInfo.Allocator = nullptr;
+    initInfo.CheckVkResultFn = CheckImGuiVulkanResultFn;
+    ImGui_ImplVulkan_Init(&initInfo, vkRenderPass);
+
+    // Render fonts
+    auto resetCommandPoolResult = vkResetCommandPool(vkLogicalDevice, vkCommandPool, 0);
+    M_TRACE("Reset command pool result is: " + std::to_string(resetCommandPoolResult));
+    M_ASSERT(resetCommandPoolResult == VK_SUCCESS && "Failed to reset command pool");
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    auto beginCommandBufferResult = vkBeginCommandBuffer(vkCommandBuffer, &beginInfo);
+    M_TRACE("Begin command buffer result is: " + std::to_string(beginCommandBufferResult));
+    M_ASSERT(beginCommandBufferResult == VK_SUCCESS && "Failed to begin command buffer");
+
+    ImGui_ImplVulkan_CreateFontsTexture(vkCommandBuffer);
+
+    VkSubmitInfo endInfo = {};
+    endInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    endInfo.commandBufferCount = 1;
+    endInfo.pCommandBuffers = &vkCommandBuffer;
+    auto endCommandBufferResult = vkEndCommandBuffer(vkCommandBuffer);
+    M_TRACE("End commnad buffer result is: " + std::to_string(endCommandBufferResult));
+    M_ASSERT(endCommandBufferResult == VK_SUCCESS && "Failed to end command buffer");
+
+    auto queueSubmitResult = vkQueueSubmit(vkGraphicsQueue, 1, &endInfo, VK_NULL_HANDLE);
+    M_TRACE("Queue submit result is: " + std::to_string(queueSubmitResult));
+    M_ASSERT(queueSubmitResult == VK_SUCCESS && "Failed to submit fonts rendering to queue");
+
+    vkDeviceWaitIdle(vkLogicalDevice);
+    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    // End fonts rendering
+
+    Mango::EditorViewportCreateInfo editorViewportCreateInfo{};
+    editorViewportCreateInfo.PhysicalDevice = _physicalDevice;
+    editorViewportCreateInfo.LogicalDevice = _logicalDevice;
+    editorViewportCreateInfo.SwapChain = _swapChain.get();
+    _editorViewport = std::make_unique<Mango::EditorViewport>(editorViewportCreateInfo);
+}
+
+void Mango::VulkanRenderer::CheckImGuiVulkanResultFn(VkResult result)
+{
+    M_ASSERT(result == VK_SUCCESS && "Error inside ImGui");
 }

@@ -12,7 +12,7 @@ namespace Mango
     class RenderSurface
     {
     public:
-        RenderSurface(Mango::Window& window, Mango::Instance& instance);
+        RenderSurface(Mango::Window& window, const Mango::Instance& instance);
         RenderSurface() = delete;
         RenderSurface(const RenderSurface&) = delete;
         RenderSurface operator=(const RenderSurface&) = delete;
@@ -22,7 +22,7 @@ namespace Mango
     private:
         VkSurfaceKHR _renderSurface;
 
-        VkInstance& _instance;
+        const VkInstance& _instance;
         GLFWwindow* _window;
     };
 }

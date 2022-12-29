@@ -4,6 +4,7 @@
 #include "LogicalDevice.h"
 #include "SwapChainSupportDetails.h"
 #include "QueueFamilyIndices.h"
+#include "Semaphore.h"
 
 #include <vulkan/vulkan.h>
 
@@ -34,18 +35,22 @@ namespace Mango
             const Mango::QueueFamilyIndices& queueFamilyIndices
         );
 
+        const VkResult AcquireNextImage(Mango::Semaphore& imageAvailableSemaphore);
+        const uint32_t GetCurrentImageIndex() const { return _currentImageIndex; };
         const VkSwapchainKHR& GetSwapChain() const { return _swapChain; }
         const VkExtent2D& GetSwapChainExtent() const { return _swapChainExtent; }
         const VkSurfaceFormatKHR& GetSwapChainSurfaceFormat() const { return _swapChainSurfaceFormat; }
         const VkPresentModeKHR& GetSwapChainPresentMode() const { return _swapChainPresentMode; }
         const std::vector<VkImageView>& GetSwapChainImageViews() const { return _swapChainImageViews; }
         const std::vector<VkImage>& GetSwapChainImages() const { return _swapChainImages; }
+        const VkImage& GetCurrentSwapChainImage() const { return _swapChainImages[_currentImageIndex]; }
     private:
         // Keep reference to RenderSurface to recreate swap chain if we need to
         const VkSurfaceKHR& _renderSurface;
         const VkDevice& _logicalDevice;
 
         VkSwapchainKHR _swapChain;
+        uint32_t _currentImageIndex;
         VkExtent2D _swapChainExtent;
         VkSurfaceFormatKHR _swapChainSurfaceFormat;
         VkPresentModeKHR _swapChainPresentMode;

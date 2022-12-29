@@ -5,7 +5,7 @@
 
 #include <string>
 
-Mango::RenderSurface::RenderSurface(Mango::Window& window, Mango::Instance& instance) 
+Mango::RenderSurface::RenderSurface(Mango::Window& window, const Mango::Instance& instance) 
     : _window(window.GetWindow()), _instance(instance.GetInstance())
 {
     const auto createWindowSurfaceResult = glfwCreateWindowSurface(_instance, _window, nullptr, &_renderSurface);

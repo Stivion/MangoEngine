@@ -7,15 +7,13 @@
 #include "Vulkan/LogicalDevice.h"
 #include "Vulkan/RenderSurface.h"
 #include "Vulkan/VulkanRenderer.h"
+#include "GUI/Editor.h"
 
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 
-#include <cstdint>
 #include <vector>
-#include <array>
 #include <memory>
 
 namespace Mango
@@ -40,7 +38,6 @@ namespace Mango
         void DrawFrame(uint32_t currentFrame);
 
         static void FramebufferResizedCallback(GLFWwindow* window, int width, int height);
-        static void CheckImGuiVulkanResultFn(VkResult result);
         
     private:
         // Windowing
@@ -54,6 +51,7 @@ namespace Mango
         std::unique_ptr<Mango::QueueFamilyIndices> _queueFamilyIndices;
         std::unique_ptr<Mango::LogicalDevice> _logicalDevice;
         std::unique_ptr<Mango::Renderer> _renderer;
+        std::unique_ptr<Mango::Editor> _editor;
 
         //Mango::RenderPassCreateInfo _renderPassCreateInfo{ VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL };
         //Mango::RenderPass _renderPass{ _logicalDevice, _swapChain, _renderPassCreateInfo };

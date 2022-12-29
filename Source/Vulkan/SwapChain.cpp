@@ -49,6 +49,18 @@ void Mango::SwapChain::RecreateSwapChain(
     );
 }
 
+const VkResult Mango::SwapChain::AcquireNextImage(Mango::Semaphore& imageAvailableSemaphore)
+{
+    return vkAcquireNextImageKHR(
+        _logicalDevice,
+        _swapChain,
+        UINT64_MAX,
+        imageAvailableSemaphore.GetSemaphore(),
+        VK_NULL_HANDLE,
+        &_currentImageIndex
+    );
+}
+
 void Mango::SwapChain::CreateSwapChain(
     uint32_t windowFramebufferWidth,
     uint32_t windowFramebufferHeight,

@@ -12,7 +12,7 @@ namespace Mango
         Instance operator=(const Instance&) = delete;
         ~Instance();
 
-        VkInstance& GetInstance() { return _instance; }
+        const VkInstance& GetInstance() const { return _instance; }
     private:
         VkInstance _instance;
         
