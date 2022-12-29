@@ -9,9 +9,11 @@
 #include "Vulkan/VulkanRenderer.h"
 #include "GUI/Editor.h"
 
-#include <GLFW/glfw3.h>
+#include "Platform/Windowing/GLFWWindow.h"
+
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
+#include <imgui_impl_vulkan.h>
 
 #include <vector>
 #include <memory>
@@ -37,11 +39,11 @@ namespace Mango
         void RunMainLoop();
         void DrawFrame(uint32_t currentFrame);
 
-        static void FramebufferResizedCallback(GLFWwindow* window, int width, int height);
+        static void FramebufferResizedCallback(Window* window, uint32_t width, uint32_t height);
         
     private:
         // Windowing
-        Mango::Window _window{ 800, 600 };
+        std::unique_ptr<Mango::GLFWWindow> _window;
         bool _framebufferResized = false;
 
         // Vulkan
