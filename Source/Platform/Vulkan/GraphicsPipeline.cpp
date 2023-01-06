@@ -1,7 +1,7 @@
 ﻿#include "GraphicsPipeline.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 #include "Vertex.h"
 
 #include <vector>

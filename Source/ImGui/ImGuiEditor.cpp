@@ -17,25 +17,19 @@ Mango::ImGuiEditor::~ImGuiEditor()
 
 void Mango::ImGuiEditor::ConstructEditor()
 {
-    NewFrame();
-    
-    // Here goes all editor UI code
-    ImGui::ShowDemoWindow();
-    //ImGui::Begin("Viewport");
-    //ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
-    //const glm::vec2 viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
-    //ImGui::Image(_viewportTextureId, ImVec2{ viewportSize.x, viewportSize.y });
-    //_viewportTextureId - ImTextureId (VkDescriptorSet for Vulkan implementation)
-
-    EndFrame();
+    ImGui::Begin("Viewport");
+    ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+    _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
+    ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
+    ImGui::End();
 }
 
-void Mango::ImGuiEditor::NewFrame() const
+void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)
 {
     ImGui::NewFrame();
 }
 
-void Mango::ImGuiEditor::EndFrame() const
+void Mango::ImGuiEditor::EndFrame()
 {
     ImGui::EndFrame();
 }

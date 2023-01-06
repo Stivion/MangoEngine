@@ -1,7 +1,7 @@
 ﻿#include "Instance.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
 #include <GLFW/glfw3.h>
 

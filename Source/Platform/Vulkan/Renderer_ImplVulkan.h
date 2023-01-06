@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Render/Renderer.h"
+#include "../../Render/Renderer.h"
 
 #include "Instance.h"
 #include "PhysicalDevice.h"
@@ -23,20 +23,14 @@
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-#include "ViewportCommandBufferRecorder.h"
-#include "UICommandBufferRecorder.h"
-#include "EditorViewport.h"
 
-#include <imgui.h>
-#include <imgui_impl_glfw.h>
-#include <imgui_impl_vulkan.h>
 #include <vulkan/vulkan.h>
 
 #include <memory>
 
 namespace Mango
 {
-	struct VulkanRendererCreateInfo
+	struct Renderer_ImplVulkan_CreateInfo
 	{
 		uint32_t MaxFramesInFlight;
 		uint32_t WindowFramebufferWidth;
@@ -48,31 +42,39 @@ namespace Mango
 		Mango::LogicalDevice* LogicalDevice;
 	};
 
-	class VulkanRenderer : public Renderer
+	class Renderer_ImplVulkan : public Renderer
 	{
 	public:
-		VulkanRenderer(const VulkanRendererCreateInfo createInfo);
-		VulkanRenderer() = delete;
-		VulkanRenderer(const VulkanRenderer&) = delete;
-		VulkanRenderer operator=(const VulkanRenderer&) = delete;
-		~VulkanRenderer();
+		typedef void (*OnResizeCallback)();
 
+		Renderer_ImplVulkan(const Renderer_ImplVulkan_CreateInfo createInfo);
+		Renderer_ImplVulkan() = delete;
+		Renderer_ImplVulkan(const Renderer_ImplVulkan&) = delete;
+		Renderer_ImplVulkan operator=(const Renderer_ImplVulkan&) = delete;
+
+		// TODO: Old API, remove
 		void Draw() override;
-		void Draw(Mango::VertexBuffer& vertexBuffer, Mango::IndexBuffer& indexBuffer); // TODO: Temporary
-		void* GetViewportTextureId() override { return _editorViewport->GetViewportImageDescriptorSet(); };
-		void HandleFramebuffersResized() override;
+		// End TODO
+
+		void BeginFrame(uint32_t currentFrame);
+		void EndFrame() {};
+		void HandleResize();
+
+		void DrawRect(glm::mat4 transform, glm::vec4 color) const override;
+		void DrawTriangle(glm::mat4 transform, glm::vec4 color) const override;
+
+		const Mango::SwapChain* GetSwapChain() const { return _swapChain.get(); }
+		const Mango::GraphicsPipeline* GetGraphicsPipeline() const { return _graphicsPipeline.get(); }
+		void SubmitCommandBuffers(std::vector<Mango::CommandBuffer> commandBuffers);
+
+		void SetViewportInfo(Mango::ViewportInfo info);
+		void SetOnResizeCallback(OnResizeCallback callback);
+
+		const Mango::ViewportInfo& GetCurrentViewportInfo() const { return _viewportInfo; }
+		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _commandBuffers->GetCommandBuffer(_currentFrame); }
 
 		// TODO: Temporary, remove this
 		void UpdateUniformBuffer(uint32_t currentFrame);
-
-	private:
-		void InitializeViewportMembers();
-		void InitializeUIMembers(
-			uint32_t windowFramebufferWidth,
-			uint32_t windowFramebufferHeight,
-			Mango::SwapChainSupportDetails swapChainSupportDetails
-		);
-		static void CheckImGuiVulkanResultFn(VkResult result);
 
 	private:
 		// This members is not owned by renderer
@@ -84,7 +86,6 @@ namespace Mango
 		const Mango::LogicalDevice* _logicalDevice;
 
 	private:
-		// Viewport
 		std::unique_ptr<Mango::SwapChain> _swapChain;
 		std::unique_ptr<Mango::RenderPass> _renderPass;
 		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
@@ -102,33 +103,12 @@ namespace Mango
 		std::vector<std::unique_ptr<Mango::Fence>> _fences;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
-		std::unique_ptr<Mango::EditorViewport> _editorViewport;
-
-		// ImGui
-		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
-		{
-		    { VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000 },
-		    { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000 },
-		    { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000 },
-		    { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000 },
-		    { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000 },
-		    { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000 }
-		};
-		std::unique_ptr<Mango::RenderPass> _imGuiRenderPass;
-		std::unique_ptr<Mango::FramebuffersPool> _imGuiFramebuffers;
-		std::unique_ptr<Mango::DescriptorPool> _imGuiDescriptorPool;
-		std::unique_ptr<Mango::CommandPool> _imGuiCommandPool;
-		std::unique_ptr<Mango::CommandBuffersPool> _imGuiCommandBuffers;
-
-		std::unique_ptr<Mango::ViewportCommandBufferRecorder> _viewportCommandBufferRecorder;
-		std::unique_ptr<Mango::UICommandBufferRecorder> _uiCommandBufferRecorder;
-
+		
 		uint32_t _currentFrame = 0;
+		Mango::ViewportInfo _viewportInfo;
+		OnResizeCallback _onResizeCallback;
+
+		std::vector<VkDescriptorSet> _descriptorSets;
 
 		// TODO: Game objects (temporary)
 		const std::vector<Mango::Vertex> _vertices =
@@ -137,14 +117,14 @@ namespace Mango
 			{{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}},
 			{{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
 
-			{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-			{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
+			//{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+			//{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+			//{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+			//{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
 		};
 		const std::vector<uint16_t> _indices =
 		{
-			0, 1, 2, 3, 4, 5, 5, 6, 3
+			0, 1, 2//, 3, 4, 5, 5, 6, 3
 		};
 		std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
 		std::unique_ptr<Mango::IndexBuffer> _indexBuffer;

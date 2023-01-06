@@ -1,9 +1,9 @@
 #pragma once
 
 // TODO: Fix paths after Vulkan is moved
-#include "../../Vulkan/PhysicalDevice.h"
-#include "../../Vulkan/LogicalDevice.h"
-#include "../../Vulkan/SwapChain.h"
+#include "../Vulkan/PhysicalDevice.h"
+#include "../Vulkan/LogicalDevice.h"
+#include "../Vulkan/SwapChain.h"
 
 #include <vulkan/vulkan.h>
 #include <imgui_impl_vulkan.h>
@@ -25,6 +25,8 @@ namespace Mango
 		ImGuiEditorViewport_ImplVulkan operator=(const ImGuiEditorViewport_ImplVulkan&) = delete;
 		~ImGuiEditorViewport_ImplVulkan();
 
+		void RecreateEditorViewport();
+
 		const VkImage& GetViewportImage() const { return _viewportImage; }
 		const VkDescriptorSet& GetViewportImageDescriptorSet() const { return _viewportImageDescriptorSet; }
 
@@ -32,6 +34,7 @@ namespace Mango
 		void InitializeViewportImage();
 		void InitializeViewportImageView();
 		void InitializeImageSampler();
+		void DestroyEditorViewport();
 
 	private:
 		VkImage _viewportImage;

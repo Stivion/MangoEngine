@@ -2,7 +2,8 @@
 
 #include "../Windowing/Window.h"
 
-#include "imgui.h"
+#include <imgui.h>
+#include <glm/glm.hpp>
 
 namespace Mango
 {
@@ -13,13 +14,15 @@ namespace Mango
 		virtual ~ImGuiEditor();
 
 		void ConstructEditor();
+		const glm::vec2 GetViewportSize() const { return _viewportSize; };
 
-		virtual void NewFrame() const;
-		virtual void EndFrame() const;
+		virtual void NewFrame(uint32_t currentFrame);
+		virtual void EndFrame();
 		virtual void Draw() const = 0;
 
 	protected:
 		ImTextureID _viewportTextureId;
+		glm::vec2 _viewportSize;
 
 	};
 }

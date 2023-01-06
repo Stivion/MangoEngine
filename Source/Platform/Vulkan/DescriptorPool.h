@@ -15,7 +15,8 @@ namespace Mango
 	public:
 		DescriptorPool(
 			const std::vector<VkDescriptorPoolSize>& descriptorPoolSizes,
-			const Mango::LogicalDevice& logicalDevice
+			const Mango::LogicalDevice& logicalDevice,
+			const VkDescriptorPoolCreateFlags flags = 0
 		);
 		DescriptorPool() = delete;
 		DescriptorPool(const DescriptorPool&) = delete;

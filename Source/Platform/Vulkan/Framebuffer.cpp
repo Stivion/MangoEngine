@@ -1,7 +1,7 @@
 ﻿#include "Framebuffer.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
 #include <string>
 

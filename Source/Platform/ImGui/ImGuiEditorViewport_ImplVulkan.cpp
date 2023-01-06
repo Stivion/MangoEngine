@@ -16,10 +16,16 @@ Mango::ImGuiEditorViewport_ImplVulkan::ImGuiEditorViewport_ImplVulkan(ImGuiEdito
 
 Mango::ImGuiEditorViewport_ImplVulkan::~ImGuiEditorViewport_ImplVulkan()
 {
-    const auto& vkLogicalDevice = _logicalDevice->GetDevice();
-    vkDestroySampler(vkLogicalDevice, _viewportImageSampler, nullptr);
-    vkDestroyImageView(vkLogicalDevice, _viewportImageView, nullptr);
-    vkDestroyImage(vkLogicalDevice, _viewportImage, nullptr);
+    DestroyEditorViewport();
+}
+
+void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport()
+{
+    DestroyEditorViewport();
+    InitializeViewportImage();
+    InitializeViewportImageView();
+    InitializeImageSampler();
+    _viewportImageDescriptorSet = ImGui_ImplVulkan_AddTexture(_viewportImageSampler, _viewportImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
 
 void Mango::ImGuiEditorViewport_ImplVulkan::InitializeViewportImage()
@@ -92,4 +98,14 @@ void Mango::ImGuiEditorViewport_ImplVulkan::InitializeImageSampler()
     auto createImageSamplerResult = vkCreateSampler(_logicalDevice->GetDevice(), &samplerCreateInfo, nullptr, &_viewportImageSampler);
     M_TRACE("Create viewport image sampler result is: " + std::to_string(createImageSamplerResult));
     M_ASSERT(createImageSamplerResult == VK_SUCCESS && "Failed to create viewport image sampler");
+}
+
+void Mango::ImGuiEditorViewport_ImplVulkan::DestroyEditorViewport()
+{
+    ImGui_ImplVulkan_RemoveTexture(_viewportImageDescriptorSet);
+    const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+    vkDestroySampler(vkLogicalDevice, _viewportImageSampler, nullptr);
+    vkDestroyImageView(vkLogicalDevice, _viewportImageView, nullptr);
+    vkFreeMemory(vkLogicalDevice, _viewportImageMemory, nullptr);
+    vkDestroyImage(vkLogicalDevice, _viewportImage, nullptr);
 }

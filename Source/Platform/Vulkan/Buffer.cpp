@@ -1,7 +1,7 @@
 #include "Buffer.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
 #include <string>
 
@@ -46,7 +46,6 @@ void* Mango::Buffer::MapMemory(uint32_t memorySizeBytes) const
 {
 	void* gpuMemoryBuffer;
 	auto mapResult = vkMapMemory(_logicalDevice, _bufferMemory, 0, memorySizeBytes, 0, &gpuMemoryBuffer);
-	M_TRACE("Map memory result is: " + std::to_string(mapResult));
 	M_ASSERT(mapResult == VK_SUCCESS && "Failed to map memory for buffer");
 	return gpuMemoryBuffer;
 }

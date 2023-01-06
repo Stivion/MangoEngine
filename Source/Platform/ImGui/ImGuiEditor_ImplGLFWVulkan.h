@@ -2,20 +2,19 @@
 
 #include "../../ImGui/ImGuiEditor.h"
 
-// TODO: Fix paths after vulkan impl is moved
-#include "../../Vulkan/Instance.h"
-#include "../../Vulkan/PhysicalDevice.h"
-#include "../../Vulkan/RenderSurface.h"
-#include "../../Vulkan/LogicalDevice.h"
-#include "../../Vulkan/QueueFamilyIndices.h"
-#include "../../Vulkan/SwapChain.h"
-#include "../../Vulkan/SwapChainSupportDetails.h"
-#include "../../Vulkan/GraphicsPipeline.h"
-#include "../../Vulkan/RenderPass.h"
-#include "../../Vulkan/FramebuffersPool.h"
-#include "../../Vulkan/DescriptorPool.h"
-#include "../../Vulkan/CommandPool.h"
-#include "../../Vulkan/CommandBuffersPool.h"
+#include "../Vulkan/Instance.h"
+#include "../Vulkan/PhysicalDevice.h"
+#include "../Vulkan/RenderSurface.h"
+#include "../Vulkan/LogicalDevice.h"
+#include "../Vulkan/QueueFamilyIndices.h"
+#include "../Vulkan/SwapChain.h"
+#include "../Vulkan/SwapChainSupportDetails.h"
+#include "../Vulkan/GraphicsPipeline.h"
+#include "../Vulkan/RenderPass.h"
+#include "../Vulkan/FramebuffersPool.h"
+#include "../Vulkan/DescriptorPool.h"
+#include "../Vulkan/CommandPool.h"
+#include "../Vulkan/CommandBuffersPool.h"
 
 #include "../Windowing/GLFWWindow.h"
 #include "ImGuiEditorViewport_ImplVulkan.h"
@@ -32,7 +31,7 @@ namespace Mango
 	struct ImGuiEditor_ImplGLFWVulkan_CreateInfo
 	{
 		const Mango::GLFWWindow* Window;
-		const uint32_t MaxFramesInFlight;
+		uint32_t MaxFramesInFlight;
 		const Mango::Instance* Instance;
 		const Mango::PhysicalDevice* PhysicalDevice;
 		const Mango::RenderSurface* RenderSurface;
@@ -40,6 +39,7 @@ namespace Mango
 		const Mango::QueueFamilyIndices* QueueFamilyIndices;
 		const Mango::SwapChain* SwapChain;
 		const Mango::GraphicsPipeline* GraphicsPipeline;
+		Mango::ViewportInfo ViewportInfo;
 	};
 
 	class ImGuiEditor_ImplGLFWVulkan : public ImGuiEditor
@@ -50,14 +50,30 @@ namespace Mango
 		ImGuiEditor_ImplGLFWVulkan operator=(const ImGuiEditor_ImplGLFWVulkan&) = delete;
 		~ImGuiEditor_ImplGLFWVulkan();
 
-		void NewFrame() const override;
-		void EndFrame() const override;
+		void NewFrame(uint32_t currentFrame) override;
+		void EndFrame() override;
 		void Draw() const override;
+
+		void HandleResize();
+
+		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _imGuiCommandBuffers->GetCommandBuffer(_currentFrame); }
 
 	private:
 		static void CheckImGuiVulkanResultFn(VkResult result);
+		VkImageMemoryBarrier CreateImageMemoryBarrier(
+			VkImageLayout oldLayout,
+			VkImageLayout newLayout,
+			VkAccessFlags srcAccessMask,
+			VkAccessFlags dstAccessMask
+		);
 
 	private:
+		const Mango::LogicalDevice& _logicalDevice;
+		const Mango::SwapChain& _swapChain;
+		const Mango::GraphicsPipeline& _graphicsPipeline;
+		const Mango::ViewportInfo _viewportInfo;
+		const uint32_t _maxFramesInFlight;
+
 		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
 		{
 			{ VK_DESCRIPTOR_TYPE_SAMPLER, 1000 },
@@ -78,5 +94,11 @@ namespace Mango
 		std::unique_ptr<Mango::CommandPool> _imGuiCommandPool;
 		std::unique_ptr<Mango::CommandBuffersPool> _imGuiCommandBuffers;
 		std::unique_ptr<Mango::ImGuiEditorViewport_ImplVulkan> _imGuiEditorViewport;
+		uint32_t _currentFrame;
+
+		VkImageMemoryBarrier _toDestinationTransitionBarrier;
+		VkImageMemoryBarrier _toShaderReadTransitionBarrier;
+		VkImageSubresourceLayers _imageSubresourceLayers;
+		VkImageCopy _copyRegion;
 	};
 }

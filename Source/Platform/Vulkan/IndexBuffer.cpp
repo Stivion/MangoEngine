@@ -1,21 +1,21 @@
-#include "VertexBuffer.h"
+#include "IndexBuffer.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
 #include <string>
 
-const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+const VkBufferUsageFlags bufferUsageFlags = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 const VkMemoryPropertyFlags memoryFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
-Mango::VertexBuffer::VertexBuffer(
-	uint32_t vertexCount,
+Mango::IndexBuffer::IndexBuffer(
+	uint32_t indicesCount,
 	VkDeviceSize bufferSizeBytes,
 	const void* memory,
 	const Mango::PhysicalDevice& physicalDevice,
 	const Mango::LogicalDevice& logicalDevice,
 	const Mango::CommandPool& commandPool
-) : _vertexCount(vertexCount), Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
+) : _indicesCount(indicesCount), Buffer(bufferUsageFlags, memoryFlags, bufferSizeBytes, physicalDevice, logicalDevice)
 {
 	Mango::Buffer stagingBuffer(
 		VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -26,10 +26,10 @@ Mango::VertexBuffer::VertexBuffer(
 	);
 
 	stagingBuffer.CopyToBuffer(bufferSizeBytes, memory);
-	CopyToVertexBuffer(stagingBuffer.GetBuffer(), commandPool.GetCommandPool(), logicalDevice.GetGraphicsQueue(), bufferSizeBytes);
+	CopyToIndexBuffer(stagingBuffer.GetBuffer(), commandPool.GetCommandPool(), logicalDevice.GetGraphicsQueue(), bufferSizeBytes);
 }
 
-void Mango::VertexBuffer::CopyToVertexBuffer(
+void Mango::IndexBuffer::CopyToIndexBuffer(
 	const VkBuffer& sourceBuffer,
 	const VkCommandPool& commandPool,
 	const VkQueue& graphicsQueue,

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Vulkan/RenderSurface.h" // TODO: Fix path after moving Vulkan under Platform
+#include "../Vulkan/RenderSurface.h"
 #include "../Windowing/GLFWWindow.h"
 
 #define GLFW_INCLUDE_VULKAN

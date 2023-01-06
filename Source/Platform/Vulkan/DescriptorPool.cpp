@@ -1,13 +1,14 @@
 #include "DescriptorPool.h"
 
-#include "../Infrastructure/Assert/Assert.h"
-#include "../Infrastructure/Logging/Logging.h"
+#include "../../Infrastructure/Assert/Assert.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
 #include <string>
 
 Mango::DescriptorPool::DescriptorPool(
 	const std::vector<VkDescriptorPoolSize>& descriptorPoolSizes,
-	const Mango::LogicalDevice& logicalDevice
+	const Mango::LogicalDevice& logicalDevice,
+	const VkDescriptorPoolCreateFlags flags
 ) : _logicalDevice(logicalDevice.GetDevice())
 {
 	uint32_t maxSets = 0;
@@ -21,6 +22,7 @@ Mango::DescriptorPool::DescriptorPool(
 	poolInfo.poolSizeCount = static_cast<uint32_t>(descriptorPoolSizes.size());
 	poolInfo.pPoolSizes = descriptorPoolSizes.data();
 	poolInfo.maxSets = maxSets; // NOTE: Maybe we need some sophisticateg logic here
+	poolInfo.flags = flags;
 
 	auto createDescriptorPoolResult = vkCreateDescriptorPool(_logicalDevice, &poolInfo, nullptr, &_descriptorPool);
 	M_TRACE("Create descriptor pool resuls is: " + std::to_string(createDescriptorPoolResult));
