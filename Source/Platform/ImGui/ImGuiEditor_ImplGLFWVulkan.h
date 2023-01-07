@@ -71,8 +71,8 @@ namespace Mango
 		const Mango::LogicalDevice& _logicalDevice;
 		const Mango::SwapChain& _swapChain;
 		const Mango::GraphicsPipeline& _graphicsPipeline;
-		const Mango::ViewportInfo _viewportInfo;
 		const uint32_t _maxFramesInFlight;
+		Mango::ViewportInfo _viewportInfo;
 
 		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
 		{

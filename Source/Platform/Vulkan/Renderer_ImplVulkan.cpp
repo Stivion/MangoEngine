@@ -3,10 +3,6 @@
 #include "../../Infrastructure/Assert/Assert.h"
 #include "../../Infrastructure/Logging/Logging.h"
 
-#define GLM_FORCE_RADIANS
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 #include <string>
 
 Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_CreateInfo createInfo)
@@ -58,7 +54,7 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
         *_renderPass,
         *_commandPool,
         *_graphicsPipeline
-        );
+    );
     _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_renderPass, *_swapChain);
 
     _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_physicalDevice, *_logicalDevice);
@@ -69,7 +65,7 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
         createInfo.Binding = 0;
         createInfo.BufferSize = sizeof(UniformBufferObject);
         createInfo.DestinationSet = _descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId());
-        uint64_t bufferId = _uniformBuffers->CreateBuffer(createInfo);
+        _uniformBuffers->CreateBuffer(createInfo);
     }
 
     _fences.resize(_maxFramesInFlight);
@@ -97,35 +93,6 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
     _viewportInfo.Height = currentExtent.height;
     _viewportInfo.MinDepth = 0;
     _viewportInfo.MaxDepth = 1;
-
-    // TODO: Prepare vertex and index buffers (temporary)
-    const uint32_t vertexCount = static_cast<uint32_t>(_vertices.size());
-    const uint32_t indicesCount = static_cast<uint32_t>(_indices.size());
-    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _vertices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
-    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _indices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
-}
-
-void Mango::Renderer_ImplVulkan::Draw()
-{
-    UpdateUniformBuffer(_currentFrame);
-
-    const auto imageIndex = _swapChain->GetCurrentImageIndex();
-
-    const auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
-    const auto& currentFramebuffer = _framebuffers->GetFramebuffer(imageIndex);
-
-    currentCommandBuffer.Reset();
-    currentCommandBuffer.BeginCommandBuffer();
-    currentCommandBuffer.BeginRenderPass(
-        currentFramebuffer.GetSwapChainFramebuffer(),
-        _graphicsPipeline->GetGraphicsPipeline(),
-        _viewportInfo
-    );
-
-    currentCommandBuffer.DrawIndexed(*_vertexBuffer, *_indexBuffer, _descriptorSets);
-
-    currentCommandBuffer.EndRenderPass();
-    currentCommandBuffer.EndCommandBuffer();
 }
 
 void Mango::Renderer_ImplVulkan::BeginFrame(uint32_t currentFrame)
@@ -146,6 +113,36 @@ void Mango::Renderer_ImplVulkan::BeginFrame(uint32_t currentFrame)
     }
 
     _fences[_currentFrame]->ResetFence();
+
+    const auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
+    const auto& currentFramebuffer = _framebuffers->GetFramebuffer(_swapChain->GetCurrentImageIndex());
+
+    currentCommandBuffer.Reset();
+    currentCommandBuffer.BeginCommandBuffer();
+    currentCommandBuffer.BeginRenderPass(
+        currentFramebuffer.GetSwapChainFramebuffer(),
+        _graphicsPipeline->GetGraphicsPipeline(),
+        _viewportInfo
+    );
+}
+
+void Mango::Renderer_ImplVulkan::EndFrame()
+{
+    const auto& currentCommandBuffer = _commandBuffers->GetCommandBuffer(_currentFrame);
+
+    // Group all verices into buffers
+    const uint32_t vertexCount = static_cast<uint32_t>(_renderData.Vertices.size());
+    const uint32_t indicesCount = static_cast<uint32_t>(_renderData.Indices.size());
+    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _renderData.Vertices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
+    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _renderData.Indices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
+    _renderData.Reset();
+
+    // Draw call
+    currentCommandBuffer.DrawIndexed(*_vertexBuffer, *_indexBuffer, _descriptorSets);
+    
+    // End frame
+    currentCommandBuffer.EndRenderPass();
+    currentCommandBuffer.EndCommandBuffer();
 }
 
 void Mango::Renderer_ImplVulkan::HandleResize()
@@ -183,14 +180,23 @@ void Mango::Renderer_ImplVulkan::HandleResize()
     _onResizeCallback();
 }
 
-void Mango::Renderer_ImplVulkan::DrawRect(glm::mat4 transform, glm::vec4 color) const
+void Mango::Renderer_ImplVulkan::DrawRect(glm::mat4 transform, glm::vec4 color)
 {
     // TODO: Write implmentation
 }
 
-void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 color) const
+void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 color)
 {
-    // TODO: Write implmentation
+    const uint32_t vertexCount = static_cast<uint32_t>(_renderData.TriangleVertices.size());
+
+    const uint32_t lastVertexCount = _renderData.Vertices.size();
+    for (size_t i = 0; i < vertexCount; i++)
+    {
+        Mango::Vertex vertex{ _renderData.TriangleVertices[i], color };
+        _renderData.Vertices.push_back(vertex);
+        _renderData.Indices.push_back(lastVertexCount + i); // 0, 1, 2 ... 3, 4, 5 ... 6, 7, 8 ...
+    }
+    UpdateUniformBuffer(transform);
 }
 
 void Mango::Renderer_ImplVulkan::SubmitCommandBuffers(std::vector<Mango::CommandBuffer> commandBuffers)
@@ -254,22 +260,18 @@ void Mango::Renderer_ImplVulkan::SetOnResizeCallback(OnResizeCallback callback)
     _onResizeCallback = callback;
 }
 
-void Mango::Renderer_ImplVulkan::UpdateUniformBuffer(uint32_t currentFrame)
+void Mango::Renderer_ImplVulkan::UpdateUniformBuffer(glm::mat4 modelMatrix)
 {
     const auto& currentExtent = _swapChain->GetSwapChainExtent();
 
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
     Mango::UniformBufferObject ubo{};
-    ubo.Model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.View = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.Model = modelMatrix; // TODO: We need separate buffer for Model matrix, because it will be updated every frame
+    // And this matrices may not be updated every frame
+    ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.Projection = glm::perspective(glm::radians(45.0f), _viewportInfo.Width / static_cast<float>(_viewportInfo.Height), 0.1f, 10.0f);
     ubo.Projection[1][1] *= -1;
 
-    const auto& uniformBuffer = _uniformBuffers->GetUniformBuffer(currentFrame);
+    const auto& uniformBuffer = _uniformBuffers->GetUniformBuffer(_currentFrame);
     void* gpuMemory = uniformBuffer.MapMemory();
     memcpy(gpuMemory, &ubo, sizeof(ubo));
     uniformBuffer.UnmapMemory();

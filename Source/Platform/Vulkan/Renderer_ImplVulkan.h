@@ -26,6 +26,10 @@
 
 #include <vulkan/vulkan.h>
 
+#define GLM_FORCE_RADIANS
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <memory>
 
 namespace Mango
@@ -35,11 +39,11 @@ namespace Mango
 		uint32_t MaxFramesInFlight;
 		uint32_t WindowFramebufferWidth;
 		uint32_t WindowFramebufferHeight;
-		Mango::Instance* Instance;
-		Mango::RenderSurface* RenderSurface;
-		Mango::PhysicalDevice* PhysicalDevice;
-		Mango::QueueFamilyIndices* QueueFamilyIndices;
-		Mango::LogicalDevice* LogicalDevice;
+		const Mango::Instance* Instance;
+		const Mango::RenderSurface* RenderSurface;
+		const Mango::PhysicalDevice* PhysicalDevice;
+		const Mango::QueueFamilyIndices* QueueFamilyIndices;
+		const Mango::LogicalDevice* LogicalDevice;
 	};
 
 	class Renderer_ImplVulkan : public Renderer
@@ -52,16 +56,12 @@ namespace Mango
 		Renderer_ImplVulkan(const Renderer_ImplVulkan&) = delete;
 		Renderer_ImplVulkan operator=(const Renderer_ImplVulkan&) = delete;
 
-		// TODO: Old API, remove
-		void Draw() override;
-		// End TODO
-
 		void BeginFrame(uint32_t currentFrame);
-		void EndFrame() {};
+		void EndFrame();
 		void HandleResize();
 
-		void DrawRect(glm::mat4 transform, glm::vec4 color) const override;
-		void DrawTriangle(glm::mat4 transform, glm::vec4 color) const override;
+		void DrawRect(glm::mat4 transform, glm::vec4 color) override;
+		void DrawTriangle(glm::mat4 transform, glm::vec4 color) override;
 
 		const Mango::SwapChain* GetSwapChain() const { return _swapChain.get(); }
 		const Mango::GraphicsPipeline* GetGraphicsPipeline() const { return _graphicsPipeline.get(); }
@@ -73,8 +73,8 @@ namespace Mango
 		const Mango::ViewportInfo& GetCurrentViewportInfo() const { return _viewportInfo; }
 		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _commandBuffers->GetCommandBuffer(_currentFrame); }
 
-		// TODO: Temporary, remove this
-		void UpdateUniformBuffer(uint32_t currentFrame);
+	private:
+		void UpdateUniformBuffer(glm::mat4 modelMatrix);
 
 	private:
 		// This members is not owned by renderer
@@ -103,30 +103,47 @@ namespace Mango
 		std::vector<std::unique_ptr<Mango::Fence>> _fences;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
 		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
-		
+		std::vector<VkDescriptorSet> _descriptorSets;
+
 		uint32_t _currentFrame = 0;
 		Mango::ViewportInfo _viewportInfo;
 		OnResizeCallback _onResizeCallback;
 
-		std::vector<VkDescriptorSet> _descriptorSets;
-
-		// TODO: Game objects (temporary)
-		const std::vector<Mango::Vertex> _vertices =
+		struct RenderData
 		{
-			{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			{{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-			{{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+			std::vector<Mango::Vertex> Vertices;
+			std::vector<uint16_t> Indices;
 
-			//{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-			//{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-			//{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-			//{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
+			const std::vector<glm::vec3> TriangleVertices{ {-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 0.0f} };
+			const std::vector<uint16_t> TriangleIndices{ 0, 1, 2 };
+
+			void Reset()
+			{
+				Vertices.clear();
+				Indices.clear();
+			}
 		};
-		const std::vector<uint16_t> _indices =
-		{
-			0, 1, 2//, 3, 4, 5, 5, 6, 3
-		};
+		RenderData _renderData{};
 		std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
 		std::unique_ptr<Mango::IndexBuffer> _indexBuffer;
+
+		// TODO: Game objects (temporary)
+		//const std::vector<Mango::Vertex> _vertices =
+		//{
+		//	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}},
+		//	{{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}},
+		//	{{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}},
+
+		//	//{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+		//	//{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+		//	//{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+		//	//{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
+		//};
+		//const std::vector<uint16_t> _indices =
+		//{
+		//	0, 1, 2, 3, 4, 5, 5, 6, 3
+		//};
+		//std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
+		//std::unique_ptr<Mango::IndexBuffer> _indexBuffer;
 	};
 }

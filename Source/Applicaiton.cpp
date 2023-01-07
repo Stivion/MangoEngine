@@ -5,6 +5,9 @@
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <chrono>
 
 bool Mango::Application::FramebufferResized = false;
@@ -118,7 +121,10 @@ void Mango::Application::DrawFrame(uint32_t currentFrame)
         FramebufferResized = false;
     }
 
-    _renderer->Draw();
+    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+        * glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+        * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    _renderer->DrawTriangle(transform, { 1.0f, 1.0f, 0.0f, 1.0f });
     _editor->Draw();
 
     _renderer->EndFrame();
