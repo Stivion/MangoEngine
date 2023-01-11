@@ -6,7 +6,7 @@
 #include <string>
 
 Mango::ImGuiEditorViewport_ImplVulkan::ImGuiEditorViewport_ImplVulkan(ImGuiEditorViewport_ImplVulkan_CreateInfo createInfo)
-	: _physicalDevice(createInfo.PhysicalDevice), _logicalDevice(createInfo.LogicalDevice), _swapChain(createInfo.SwapChain)
+	: _physicalDevice(createInfo.PhysicalDevice), _logicalDevice(createInfo.LogicalDevice), _renderArea(createInfo.RenderArea)
 {
     InitializeViewportImage();
     InitializeViewportImageView();
@@ -19,9 +19,10 @@ Mango::ImGuiEditorViewport_ImplVulkan::~ImGuiEditorViewport_ImplVulkan()
     DestroyEditorViewport();
 }
 
-void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport()
+void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport(const Mango::RenderArea* renderArea)
 {
     DestroyEditorViewport();
+    _renderArea = renderArea;
     InitializeViewportImage();
     InitializeViewportImageView();
     InitializeImageSampler();
@@ -31,12 +32,14 @@ void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport()
 void Mango::ImGuiEditorViewport_ImplVulkan::InitializeViewportImage()
 {
     const auto& vkLogicalDevice = _logicalDevice->GetDevice();
-    const auto& currentExtent = _swapChain->GetSwapChainExtent();
+    VkExtent2D currentExtent{};
+    currentExtent.width = _renderArea->Width;
+    currentExtent.height = _renderArea->Height;
 
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     info.imageType = VK_IMAGE_TYPE_2D;
-    info.format = VK_FORMAT_R8G8B8A8_UNORM;
+    info.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
     info.extent.width = currentExtent.width;
     info.extent.height = currentExtent.height;
     info.extent.depth = 1;
@@ -73,7 +76,7 @@ void Mango::ImGuiEditorViewport_ImplVulkan::InitializeViewportImageView()
     imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     imageViewCreateInfo.image = _viewportImage;
     imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    imageViewCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
+    imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
     imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     imageViewCreateInfo.subresourceRange.levelCount = 1;
     imageViewCreateInfo.subresourceRange.layerCount = 1;

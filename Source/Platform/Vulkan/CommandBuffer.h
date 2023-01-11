@@ -1,11 +1,11 @@
 #pragma once
 
-#include "SwapChain.h"
 #include "RenderPass.h"
 #include "GraphicsPipeline.h"
 #include "Framebuffer.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "RenderArea.h"
 
 #include <vulkan/vulkan.h>
 
@@ -24,31 +24,26 @@ namespace Mango
 		CommandBuffer() = delete;
 
 		void BeginCommandBuffer() const;
-		void BeginRenderPass(const VkFramebuffer& framebuffer, const VkPipeline& graphicsPipeline, const ViewportInfo viewportInfo) const;
+		void BeginRenderPass(const VkFramebuffer& framebuffer, const Mango::RenderArea renderArea) const;
 		void DrawIndexed(
 			const Mango::VertexBuffer& vertexBuffer,
 			const Mango::IndexBuffer& indexBuffer,
-			std::vector<VkDescriptorSet> descriptors
+			std::vector<VkDescriptorSet> descriptors,
+			const VkPipelineLayout& pipelineLayout
 		) const;
 		void EndRenderPass() const;
 		void EndCommandBuffer() const;
 		void Reset() const;
+		void BindPipeline(const Mango::GraphicsPipeline& pipeline) const;
 
 		const VkCommandBuffer& GetVkCommandBuffer() const { return _commandBuffer; }
 
 	private:
-		CommandBuffer(
-			VkCommandBuffer commandBuffer,
-			const Mango::RenderPass& renderPass,
-			const Mango::SwapChain& swapChain,
-			const Mango::GraphicsPipeline& graphicsPipeline
-		);
+		CommandBuffer(VkCommandBuffer commandBuffer, const Mango::RenderPass& renderPass);
 
 	private:
 		VkCommandBuffer _commandBuffer;
 		const Mango::RenderPass& _renderPass;
-		const Mango::SwapChain& _swapChain;
-		const Mango::GraphicsPipeline& _graphicsPipeline;
 
 		friend class CommandBuffersPool;
 	};

@@ -32,3 +32,9 @@ void Mango::Fence::ResetFence()
 {
     vkResetFences(_logicalDevice, 1, &_fence);
 }
+
+bool Mango::Fence::IsFenceSignaled()
+{
+    const auto& fenceStatus = vkGetFenceStatus(_logicalDevice, _fence);
+    return fenceStatus == VK_SUCCESS;
+}

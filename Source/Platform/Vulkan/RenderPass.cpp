@@ -5,10 +5,10 @@
 
 #include <string>
 
-Mango::RenderPass::RenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain, const RenderPassCreateInfo& createInfo)
+Mango::RenderPass::RenderPass(const Mango::LogicalDevice& logicalDevice, const RenderPassCreateInfo& createInfo)
     : _logicalDevice(logicalDevice.GetDevice()), _createInfo(createInfo)
 {
-    CreateRenderPass(logicalDevice, swapChain);
+    CreateRenderPass(logicalDevice, createInfo.ImageFormat);
 }
 
 Mango::RenderPass::~RenderPass()
@@ -16,10 +16,10 @@ Mango::RenderPass::~RenderPass()
     DisposeVulkanObjects();
 }
 
-void Mango::RenderPass::RecreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain)
+void Mango::RenderPass::RecreateRenderPass(const Mango::LogicalDevice& logicalDevice, VkFormat imageFormat)
 {
     DisposeVulkanObjects();
-    CreateRenderPass(logicalDevice, swapChain);
+    CreateRenderPass(logicalDevice, imageFormat);
 }
 
 void Mango::RenderPass::DisposeVulkanObjects()
@@ -27,11 +27,10 @@ void Mango::RenderPass::DisposeVulkanObjects()
     vkDestroyRenderPass(_logicalDevice, _renderPass, nullptr);
 }
 
-void Mango::RenderPass::CreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain)
+void Mango::RenderPass::CreateRenderPass(const Mango::LogicalDevice& logicalDevice, VkFormat imageFormat)
 {
-    const auto swapChainImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = swapChainImageFormat;
+    colorAttachment.format = imageFormat;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;

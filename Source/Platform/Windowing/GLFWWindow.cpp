@@ -28,6 +28,20 @@ void Mango::GLFWWindow::SetFramebufferResizedCallback(FramebufferResizedCallback
     glfwSetFramebufferSizeCallback(_window, GLFWWindowFramebufferResizedCallback);
 }
 
+const uint32_t Mango::GLFWWindow::GetWindowWidth() const
+{
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    return static_cast<uint32_t>(width);
+}
+
+const uint32_t Mango::GLFWWindow::GetWindowHeight() const
+{
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    return static_cast<uint32_t>(height);
+}
+
 void Mango::GLFWWindow::GLFWWindowFramebufferResizedCallback(GLFWwindow* window, int width, int height)
 {
     const auto& windowWrapper = reinterpret_cast<GLFWWindow*>(glfwGetWindowUserPointer(window));

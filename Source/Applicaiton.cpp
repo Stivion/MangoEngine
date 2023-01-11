@@ -10,8 +10,6 @@
 
 #include <chrono>
 
-bool Mango::Application::FramebufferResized = false;
-
 Mango::Application::Application()
 {
     InitializeWindow();
@@ -26,8 +24,6 @@ void Mango::Application::Run()
 void Mango::Application::InitializeWindow()
 {
     _window = std::make_unique<Mango::GLFWWindow>(1200, 800);
-    _window->SetFramebufferResizedCallback(FramebufferResizedCallback);
-    _window->SetWindowUserPointer(this);
 }
 
 void Mango::Application::InitializeVulkan()
@@ -38,125 +34,343 @@ void Mango::Application::InitializeVulkan()
     _queueFamilyIndices = std::make_unique<Mango::QueueFamilyIndices>(QueueFamilyIndices::FindQueueFamilies(_physicalDevice->GetDevice(), _renderSurface->GetRenderSurface()));
     _logicalDevice = std::make_unique<Mango::LogicalDevice>(*_physicalDevice, *_queueFamilyIndices);
 
-    uint32_t width = _window->GetWindowWidth();
-    uint32_t height = _window->GetWindowHeight();
+    Mango::RenderingLayer_ImplVulkan_CreateInfo renderingLayerCreateInfo{};
+    renderingLayerCreateInfo.Window = _window.get();
+    renderingLayerCreateInfo.PhysicalDevice = _physicalDevice.get();
+    renderingLayerCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
+    renderingLayerCreateInfo.RenderSurface = _renderSurface.get();
+    renderingLayerCreateInfo.LogicalDevice = _logicalDevice.get();
+    _renderingLayer = std::make_unique<Mango::RenderingLayer_ImplVulkan>(renderingLayerCreateInfo);
+
+    // Initialize with default values. It will change after rendering started
+    const auto& swapChain = _renderingLayer->GetSwapChain();
+    const auto& currentExtent = swapChain.GetSwapChainExtent();
+    _windowRenderArea.X = 0;
+    _windowRenderArea.Y = 0;
+    _windowRenderArea.Width = currentExtent.width;
+    _windowRenderArea.Height = currentExtent.height;
+    _viewportRenderArea.X = 0;
+    _viewportRenderArea.Y = 0;
+    _viewportRenderArea.Width = currentExtent.width;
+    _viewportRenderArea.Height = currentExtent.height;
+
+    const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(_physicalDevice->GetDevice(), _renderSurface->GetRenderSurface());
+    _renderAreaInfo.ImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
+    _renderAreaInfo.Images = swapChain.GetSwapChainImages();
+    _renderAreaInfo.ImageViews = swapChain.GetSwapChainImageViews();
+    _renderAreaInfo.SurfaceCapabilities = swapChainDetails.SurfaceCapabilities;
+
+    InitializeViewportImage(_viewportRenderArea.Width, _viewportRenderArea.Height);
+    InitializeViewportImageView();
+    _viewportRenderAreaInfo.ImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
+    _viewportRenderAreaInfo.SurfaceCapabilities = swapChainDetails.SurfaceCapabilities;
 
     Mango::Renderer_ImplVulkan_CreateInfo rendererCreateInfo{};
-    rendererCreateInfo.MaxFramesInFlight = MaxFramesInFlight;
-    rendererCreateInfo.WindowFramebufferWidth = width;
-    rendererCreateInfo.WindowFramebufferHeight = height;
+    rendererCreateInfo.MaxFramesInFlight = _renderingLayer->GetMaxFramesInFlight();
     rendererCreateInfo.Instance = _instance.get();
     rendererCreateInfo.RenderSurface = _renderSurface.get();
     rendererCreateInfo.PhysicalDevice = _physicalDevice.get();
     rendererCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
     rendererCreateInfo.LogicalDevice = _logicalDevice.get();
+    rendererCreateInfo.RenderArea = &_windowRenderArea;
+    rendererCreateInfo.RenderAreaInfo = &_viewportRenderAreaInfo;
     _renderer = std::make_unique<Mango::Renderer_ImplVulkan>(rendererCreateInfo);
-    _renderer->SetOnResizeCallback(FramebufferResizedCallback);
-
-    const auto& currentExtent = _renderer->GetSwapChain()->GetSwapChainExtent();
-    Mango::ViewportInfo viewportInfo{};
-    viewportInfo.X = 0;
-    viewportInfo.Y = 0;
-    viewportInfo.Width = currentExtent.width;
-    viewportInfo.Height = currentExtent.height;
-    viewportInfo.MinDepth = 0;
-    viewportInfo.MaxDepth = 1;
 
     Mango::ImGuiEditor_ImplGLFWVulkan_CreateInfo editorCreateInfo{};
-    editorCreateInfo.MaxFramesInFlight = MaxFramesInFlight;
+    editorCreateInfo.MaxFramesInFlight = _renderingLayer->GetMaxFramesInFlight();
     editorCreateInfo.Window = _window.get();
     editorCreateInfo.Instance = _instance.get();
     editorCreateInfo.RenderSurface = _renderSurface.get();
     editorCreateInfo.PhysicalDevice = _physicalDevice.get();
     editorCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
     editorCreateInfo.LogicalDevice = _logicalDevice.get();
-    editorCreateInfo.SwapChain = _renderer->GetSwapChain();
-    editorCreateInfo.GraphicsPipeline = _renderer->GetGraphicsPipeline();
-    editorCreateInfo.ViewportInfo = viewportInfo;
+    editorCreateInfo.RenderArea = &_windowRenderArea;
+    editorCreateInfo.RenderAreaInfo = &_renderAreaInfo;
+    editorCreateInfo.ViewportRenderArea = &_viewportRenderArea;
+    editorCreateInfo.ViewportAreaInfo = &_viewportRenderAreaInfo;
     _editor = std::make_unique<Mango::ImGuiEditor_ImplGLFWVulkan>(editorCreateInfo);
+    
+    std::vector<Mango::ICommandBufferRecorder*> commandBufferRecorders = { _renderer.get(), _editor.get() };
+    _renderingLayer->SetCommandBufferRecorders(commandBufferRecorders);
+    _renderingLayer->SetUserDefinedCallbackPointer(this);
+    _renderingLayer->SetFramebufferResizedCallback(FramebufferResizedCallback);
 }
+
 void Mango::Application::RunMainLoop()
 {
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
-    uint32_t currentFrame = 0;
 
     while (!_window->ShouldClose())
     {
         glfwPollEvents(); // TODO: WAT
-        DrawFrame(currentFrame);
-        currentFrame = (currentFrame + 1) % MaxFramesInFlight;
+        DrawFrame();
     }
 
     vkDeviceWaitIdle(_logicalDevice->GetDevice()); // TODO: Remove
 }
 
-/*
-class Scene 
+void Mango::Application::DrawFrame()
 {
-
-    void OnUpdate()
-    {
-        _renderer->DrawRect(transform, color);
-        _renderer->DrawRect(transform, color);
-        _renderer->DrawRect(transform, color);
-        _renderer->DrawRect(transform, color);
-        _renderer->DrawRect(transform, color);
-        _renderer->DrawRect(transform, color);
-    }
-
-}
-*/
-
-void Mango::Application::DrawFrame(uint32_t currentFrame)
-{
-    _editor->NewFrame(currentFrame);
+    _editor->NewFrame(_renderingLayer->GetCurrentFrame());
     _editor->ConstructEditor();
     const auto viewportSize = _editor->GetViewportSize();
+    if (viewportSize.x != _viewportRenderArea.Width || viewportSize.y != _viewportRenderArea.Height)
+    {
+        const auto& currentExtent = _renderingLayer->GetSwapChain().GetSwapChainExtent();
+        _viewportRenderArea.Width = static_cast<uint32_t>(viewportSize.x);
+        _viewportRenderArea.Height = static_cast<uint32_t>(viewportSize.y);
+        InitializeViewportImage(_viewportRenderArea.Width, _viewportRenderArea.Height);
+        InitializeViewportImageView();
+
+        // Viewport resize will dispose old viewport image, so we must wait for rendering to complete
+        _renderingLayer->WaitRenderingIdle();
+        _renderer->HandleResize(_viewportRenderArea, _viewportRenderAreaInfo);
+        _editor->HandleViewportResize(&_viewportRenderArea);
+        _editor->EndFrame();
+        return;
+    }
     _editor->EndFrame();
 
-    _renderer->BeginFrame(currentFrame);
-    if (FramebufferResized)
-    {
-        _editor->HandleResize();
-        FramebufferResized = false;
-    }
+    // ImGuiEditor expects that Renderer image is avalilable
+    // So we must BeginFrame before recording command buffers
+    _renderingLayer->BeginFrame();
+    _renderer->BeginFrame(_renderingLayer->GetCurrentFrame());
 
     glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
         * glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
         * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     _renderer->DrawTriangle(transform, { 1.0f, 1.0f, 0.0f, 1.0f });
-    _editor->Draw();
+    //transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.0f))
+    //    * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f))
+    //    * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+    //_renderer->DrawTriangle(transform, { 0.0f, 1.0f, 1.0f, 1.0f });
 
     _renderer->EndFrame();
-    
-    _renderer->SubmitCommandBuffers({ _renderer->GetCurrentCommandBuffer(), _editor->GetCurrentCommandBuffer() });
-    if (FramebufferResized)
-    {
-        _editor->HandleResize();
-        FramebufferResized = false;
-    }
+
+    _renderingLayer->EndFrame();
 }
 
-void Mango::Application::FramebufferResizedCallback(Window* window, uint32_t width, uint32_t height)
+void Mango::Application::FramebufferResizedCallback(void* applicationPtr)
 {
-    const auto& applicationPointer = reinterpret_cast<Application*>(window->GetWindowUserPointer());
-    uint32_t currentWidth = window->GetWindowWidth();
-    uint32_t currentHeight = window->GetWindowHeight();
-    if (currentWidth == 0 || currentHeight == 0)
-    {
-        M_TRACE("Window is minimized.");
-    }
-    while (currentWidth == 0 || currentHeight == 0)
-    {
-        currentWidth = window->GetWindowWidth();
-        currentHeight = window->GetWindowHeight();
-    }
-    applicationPointer->_renderer->HandleResize();
-    applicationPointer->_editor->HandleResize();
-    FramebufferResized = false;
+    const auto& applicationPointer = reinterpret_cast<Application*>(applicationPtr);
+
+    const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(
+        applicationPointer->_physicalDevice->GetDevice(),
+        applicationPointer->_renderSurface->GetRenderSurface()
+    );
+
+    const auto& swapChain = applicationPointer->_renderingLayer->GetSwapChain();
+    const auto& currentExtent = swapChain.GetSwapChainExtent();
+
+    applicationPointer->_windowRenderArea.X = 0;
+    applicationPointer->_windowRenderArea.Y = 0;
+    applicationPointer->_windowRenderArea.Width = currentExtent.width;
+    applicationPointer->_windowRenderArea.Height = currentExtent.height;
+
+    const glm::vec2 viewportSize = applicationPointer->_editor->GetViewportSize();
+    applicationPointer->_viewportRenderArea.X = 0;
+    applicationPointer->_viewportRenderArea.Y = 0;
+    applicationPointer->_viewportRenderArea.Width = std::min(static_cast<uint32_t>(viewportSize.x), currentExtent.width);
+    applicationPointer->_viewportRenderArea.Height = std::min(static_cast<uint32_t>(viewportSize.y), currentExtent.height);
+
+    applicationPointer->_renderAreaInfo.ImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
+    applicationPointer->_renderAreaInfo.Images = swapChain.GetSwapChainImages();
+    applicationPointer->_renderAreaInfo.ImageViews = swapChain.GetSwapChainImageViews();
+    applicationPointer->_renderAreaInfo.SurfaceCapabilities = swapChainDetails.SurfaceCapabilities;
+
+    // Same _renderAreaInfo for both _renderer and _editor
+    // It is incorrect because they should have different images
+    applicationPointer->_renderer->HandleResize(applicationPointer->_viewportRenderArea, applicationPointer->_viewportRenderAreaInfo);
+    applicationPointer->_editor->HandleResize(applicationPointer->_windowRenderArea, applicationPointer->_renderAreaInfo);
+    applicationPointer->_editor->HandleViewportResize(&applicationPointer->_viewportRenderArea);
 }
 
-void Mango::Application::FramebufferResizedCallback()
+void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height)
 {
-    FramebufferResized = true;
+    std::vector<VkImage> images(3);
+    {
+        VkImage image;
+        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        VkExtent2D currentExtent{};
+        currentExtent.width = width;
+        currentExtent.height = height;
+
+        VkImageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        info.extent.width = currentExtent.width;
+        info.extent.height = currentExtent.height;
+        info.extent.depth = 1;
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        auto createImageResult = vkCreateImage(vkLogicalDevice, &info, nullptr, &image);
+        M_TRACE("Create viewport image result is: " + std::to_string(createImageResult));
+        M_ASSERT(createImageResult == VK_SUCCESS && "Failed to create viewport image");
+
+        VkMemoryRequirements memoryRequirements;
+        vkGetImageMemoryRequirements(vkLogicalDevice, image, &memoryRequirements);
+
+        VkDeviceMemory imageMemory;
+        VkMemoryAllocateInfo memoryAllocateInfo = {};
+        memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memoryAllocateInfo.allocationSize = memoryRequirements.size;
+        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
+        M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
+        M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
+
+        auto bindImageMemoryResult = vkBindImageMemory(vkLogicalDevice, image, imageMemory, 0);
+        M_TRACE("Bind viewport image memory result is: " + std::to_string(bindImageMemoryResult));
+        M_ASSERT(bindImageMemoryResult == VK_SUCCESS && "Failed to bind viewport image memory");
+        images[0] = image;
+    }
+
+    {
+        VkImage image;
+        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        VkExtent2D currentExtent{};
+        currentExtent.width = width;
+        currentExtent.height = height;
+
+        VkImageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        info.extent.width = currentExtent.width;
+        info.extent.height = currentExtent.height;
+        info.extent.depth = 1;
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        auto createImageResult = vkCreateImage(vkLogicalDevice, &info, nullptr, &image);
+        M_TRACE("Create viewport image result is: " + std::to_string(createImageResult));
+        M_ASSERT(createImageResult == VK_SUCCESS && "Failed to create viewport image");
+
+        VkMemoryRequirements memoryRequirements;
+        vkGetImageMemoryRequirements(vkLogicalDevice, image, &memoryRequirements);
+
+        VkDeviceMemory imageMemory;
+        VkMemoryAllocateInfo memoryAllocateInfo = {};
+        memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memoryAllocateInfo.allocationSize = memoryRequirements.size;
+        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
+        M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
+        M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
+
+        auto bindImageMemoryResult = vkBindImageMemory(vkLogicalDevice, image, imageMemory, 0);
+        M_TRACE("Bind viewport image memory result is: " + std::to_string(bindImageMemoryResult));
+        M_ASSERT(bindImageMemoryResult == VK_SUCCESS && "Failed to bind viewport image memory");
+        images[1] = image;
+    }
+
+    {
+        VkImage image;
+        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        VkExtent2D currentExtent{};
+        currentExtent.width = width;
+        currentExtent.height = height;
+
+        VkImageCreateInfo info = {};
+        info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        info.imageType = VK_IMAGE_TYPE_2D;
+        info.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        info.extent.width = currentExtent.width;
+        info.extent.height = currentExtent.height;
+        info.extent.depth = 1;
+        info.mipLevels = 1;
+        info.arrayLayers = 1;
+        info.samples = VK_SAMPLE_COUNT_1_BIT;
+        info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        auto createImageResult = vkCreateImage(vkLogicalDevice, &info, nullptr, &image);
+        M_TRACE("Create viewport image result is: " + std::to_string(createImageResult));
+        M_ASSERT(createImageResult == VK_SUCCESS && "Failed to create viewport image");
+
+        VkMemoryRequirements memoryRequirements;
+        vkGetImageMemoryRequirements(vkLogicalDevice, image, &memoryRequirements);
+
+        VkDeviceMemory imageMemory;
+        VkMemoryAllocateInfo memoryAllocateInfo = {};
+        memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        memoryAllocateInfo.allocationSize = memoryRequirements.size;
+        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
+        M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
+        M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
+
+        auto bindImageMemoryResult = vkBindImageMemory(vkLogicalDevice, image, imageMemory, 0);
+        M_TRACE("Bind viewport image memory result is: " + std::to_string(bindImageMemoryResult));
+        M_ASSERT(bindImageMemoryResult == VK_SUCCESS && "Failed to bind viewport image memory");
+        images[2] = image;
+    }
+
+    _viewportRenderAreaInfo.Images = images;
+}
+
+void Mango::Application::InitializeViewportImageView()
+{
+    std::vector<VkImageView> imageViews(3);
+
+    {
+        VkImageView imageView;
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = _viewportRenderAreaInfo.Images[0];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
+        M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
+        imageViews[0] = imageView;
+    }
+
+    {
+        VkImageView imageView;
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = _viewportRenderAreaInfo.Images[1];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
+        M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
+        imageViews[1] = imageView;
+    }
+
+    {
+        VkImageView imageView;
+        VkImageViewCreateInfo imageViewCreateInfo{};
+        imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        imageViewCreateInfo.image = _viewportRenderAreaInfo.Images[2];
+        imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        imageViewCreateInfo.format = VK_FORMAT_B8G8R8A8_UNORM; // TODO: This is format from swap chain
+        imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        imageViewCreateInfo.subresourceRange.levelCount = 1;
+        imageViewCreateInfo.subresourceRange.layerCount = 1;
+        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
+        M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
+        imageViews[2] = imageView;
+    }
+
+    _viewportRenderAreaInfo.ImageViews = imageViews;
 }

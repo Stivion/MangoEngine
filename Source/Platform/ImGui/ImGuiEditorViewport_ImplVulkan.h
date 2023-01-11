@@ -1,9 +1,8 @@
 #pragma once
 
-// TODO: Fix paths after Vulkan is moved
 #include "../Vulkan/PhysicalDevice.h"
 #include "../Vulkan/LogicalDevice.h"
-#include "../Vulkan/SwapChain.h"
+#include "../Vulkan/RenderArea.h"
 
 #include <vulkan/vulkan.h>
 #include <imgui_impl_vulkan.h>
@@ -14,7 +13,7 @@ namespace Mango
 	{
 		const Mango::PhysicalDevice* PhysicalDevice;
 		const Mango::LogicalDevice* LogicalDevice;
-		const Mango::SwapChain* SwapChain;
+		const Mango::RenderArea* RenderArea; // TODO: Passing this as pointer is incorrect
 	};
 
 	class ImGuiEditorViewport_ImplVulkan
@@ -25,7 +24,7 @@ namespace Mango
 		ImGuiEditorViewport_ImplVulkan operator=(const ImGuiEditorViewport_ImplVulkan&) = delete;
 		~ImGuiEditorViewport_ImplVulkan();
 
-		void RecreateEditorViewport();
+		void RecreateEditorViewport(const Mango::RenderArea* renderArea);
 
 		const VkImage& GetViewportImage() const { return _viewportImage; }
 		const VkDescriptorSet& GetViewportImageDescriptorSet() const { return _viewportImageDescriptorSet; }
@@ -45,6 +44,6 @@ namespace Mango
 
 		const Mango::PhysicalDevice* _physicalDevice;
 		const Mango::LogicalDevice* _logicalDevice;
-		const Mango::SwapChain* _swapChain;
+		const Mango::RenderArea* _renderArea;
 	};
 }
