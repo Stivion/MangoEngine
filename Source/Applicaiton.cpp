@@ -1,7 +1,5 @@
 ﻿#include "Application.h"
 
-#include "Platform/Vulkan/RenderSurafce_ImplGLFW.h"
-
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
@@ -28,19 +26,8 @@ void Mango::Application::InitializeWindow()
 
 void Mango::Application::InitializeVulkan()
 {
-    _instance = std::make_unique<Mango::Instance>();
-    _renderSurface = std::make_unique<Mango::RenderSurface_ImplGLFW>(*_window, *_instance);
-    _physicalDevice = std::make_unique<Mango::PhysicalDevice>(*_instance, *_renderSurface);
-    _queueFamilyIndices = std::make_unique<Mango::QueueFamilyIndices>(QueueFamilyIndices::FindQueueFamilies(_physicalDevice->GetDevice(), _renderSurface->GetRenderSurface()));
-    _logicalDevice = std::make_unique<Mango::LogicalDevice>(*_physicalDevice, *_queueFamilyIndices);
-
-    Mango::RenderingLayer_ImplVulkan_CreateInfo renderingLayerCreateInfo{};
-    renderingLayerCreateInfo.Window = _window.get();
-    renderingLayerCreateInfo.PhysicalDevice = _physicalDevice.get();
-    renderingLayerCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
-    renderingLayerCreateInfo.RenderSurface = _renderSurface.get();
-    renderingLayerCreateInfo.LogicalDevice = _logicalDevice.get();
-    _renderingLayer = std::make_unique<Mango::RenderingLayer_ImplVulkan>(renderingLayerCreateInfo);
+    _vulkanContext = std::make_unique<const Mango::Context>(_window.get());
+    _renderingLayer = std::make_unique<Mango::RenderingLayer_ImplVulkan>(_vulkanContext.get());
 
     // Initialize with default values. It will change after rendering started
     const auto& swapChain = _renderingLayer->GetSwapChain();
@@ -54,7 +41,7 @@ void Mango::Application::InitializeVulkan()
     _viewportRenderArea.Width = currentExtent.width;
     _viewportRenderArea.Height = currentExtent.height;
 
-    const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(_physicalDevice->GetDevice(), _renderSurface->GetRenderSurface());
+    const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(_vulkanContext->GetPhysicalDevice()->GetDevice(), _vulkanContext->GetRenderSurface()->GetRenderSurface());
     _renderAreaInfo.ImageFormat = swapChain.GetSwapChainSurfaceFormat().format;
     _renderAreaInfo.Images = swapChain.GetSwapChainImages();
     _renderAreaInfo.ImageViews = swapChain.GetSwapChainImageViews();
@@ -67,23 +54,14 @@ void Mango::Application::InitializeVulkan()
 
     Mango::Renderer_ImplVulkan_CreateInfo rendererCreateInfo{};
     rendererCreateInfo.MaxFramesInFlight = _renderingLayer->GetMaxFramesInFlight();
-    rendererCreateInfo.Instance = _instance.get();
-    rendererCreateInfo.RenderSurface = _renderSurface.get();
-    rendererCreateInfo.PhysicalDevice = _physicalDevice.get();
-    rendererCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
-    rendererCreateInfo.LogicalDevice = _logicalDevice.get();
+    rendererCreateInfo.VulkanContext = _vulkanContext.get();
     rendererCreateInfo.RenderArea = &_windowRenderArea;
     rendererCreateInfo.RenderAreaInfo = &_viewportRenderAreaInfo;
     _renderer = std::make_unique<Mango::Renderer_ImplVulkan>(rendererCreateInfo);
 
     Mango::ImGuiEditor_ImplGLFWVulkan_CreateInfo editorCreateInfo{};
     editorCreateInfo.MaxFramesInFlight = _renderingLayer->GetMaxFramesInFlight();
-    editorCreateInfo.Window = _window.get();
-    editorCreateInfo.Instance = _instance.get();
-    editorCreateInfo.RenderSurface = _renderSurface.get();
-    editorCreateInfo.PhysicalDevice = _physicalDevice.get();
-    editorCreateInfo.QueueFamilyIndices = _queueFamilyIndices.get();
-    editorCreateInfo.LogicalDevice = _logicalDevice.get();
+    editorCreateInfo.VulkanContext = _vulkanContext.get();
     editorCreateInfo.RenderArea = &_windowRenderArea;
     editorCreateInfo.RenderAreaInfo = &_renderAreaInfo;
     editorCreateInfo.ViewportRenderArea = &_viewportRenderArea;
@@ -106,7 +84,7 @@ void Mango::Application::RunMainLoop()
         DrawFrame();
     }
 
-    vkDeviceWaitIdle(_logicalDevice->GetDevice()); // TODO: Remove
+    vkDeviceWaitIdle(_vulkanContext->GetLogicalDevice()->GetDevice()); // TODO: Remove
 }
 
 void Mango::Application::DrawFrame()
@@ -155,8 +133,8 @@ void Mango::Application::FramebufferResizedCallback(void* applicationPtr)
     const auto& applicationPointer = reinterpret_cast<Application*>(applicationPtr);
 
     const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(
-        applicationPointer->_physicalDevice->GetDevice(),
-        applicationPointer->_renderSurface->GetRenderSurface()
+        applicationPointer->_vulkanContext->GetPhysicalDevice()->GetDevice(),
+        applicationPointer->_vulkanContext->GetRenderSurface()->GetRenderSurface()
     );
 
     const auto& swapChain = applicationPointer->_renderingLayer->GetSwapChain();
@@ -190,7 +168,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
     std::vector<VkImage> images(3);
     {
         VkImage image;
-        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        const auto& vkLogicalDevice = _vulkanContext->GetLogicalDevice()->GetDevice();
         VkExtent2D currentExtent{};
         currentExtent.width = width;
         currentExtent.height = height;
@@ -220,7 +198,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
         VkMemoryAllocateInfo memoryAllocateInfo = {};
         memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         memoryAllocateInfo.allocationSize = memoryRequirements.size;
-        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        memoryAllocateInfo.memoryTypeIndex = _vulkanContext->GetPhysicalDevice()->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
         M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
         M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
@@ -233,7 +211,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
 
     {
         VkImage image;
-        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        const auto& vkLogicalDevice = _vulkanContext->GetLogicalDevice()->GetDevice();
         VkExtent2D currentExtent{};
         currentExtent.width = width;
         currentExtent.height = height;
@@ -263,7 +241,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
         VkMemoryAllocateInfo memoryAllocateInfo = {};
         memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         memoryAllocateInfo.allocationSize = memoryRequirements.size;
-        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        memoryAllocateInfo.memoryTypeIndex = _vulkanContext->GetPhysicalDevice()->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
         M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
         M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
@@ -276,7 +254,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
 
     {
         VkImage image;
-        const auto& vkLogicalDevice = _logicalDevice->GetDevice();
+        const auto& vkLogicalDevice = _vulkanContext->GetLogicalDevice()->GetDevice();
         VkExtent2D currentExtent{};
         currentExtent.width = width;
         currentExtent.height = height;
@@ -306,7 +284,7 @@ void Mango::Application::InitializeViewportImage(uint32_t width, uint32_t height
         VkMemoryAllocateInfo memoryAllocateInfo = {};
         memoryAllocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         memoryAllocateInfo.allocationSize = memoryRequirements.size;
-        memoryAllocateInfo.memoryTypeIndex = _physicalDevice->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        memoryAllocateInfo.memoryTypeIndex = _vulkanContext->GetPhysicalDevice()->FindSuitableMemoryType(memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
         auto allocateImageMemoryResult = vkAllocateMemory(vkLogicalDevice, &memoryAllocateInfo, nullptr, &imageMemory);
         M_TRACE("Allocate viewport image memory result is: " + std::to_string(allocateImageMemoryResult));
         M_ASSERT(allocateImageMemoryResult == VK_SUCCESS && "Failed to allocate viewport image memory");
@@ -334,7 +312,7 @@ void Mango::Application::InitializeViewportImageView()
         imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageViewCreateInfo.subresourceRange.levelCount = 1;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
-        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        auto createImageViewResult = vkCreateImageView(_vulkanContext->GetLogicalDevice()->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
         M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
         M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
         imageViews[0] = imageView;
@@ -350,7 +328,7 @@ void Mango::Application::InitializeViewportImageView()
         imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageViewCreateInfo.subresourceRange.levelCount = 1;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
-        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        auto createImageViewResult = vkCreateImageView(_vulkanContext->GetLogicalDevice()->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
         M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
         M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
         imageViews[1] = imageView;
@@ -366,7 +344,7 @@ void Mango::Application::InitializeViewportImageView()
         imageViewCreateInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         imageViewCreateInfo.subresourceRange.levelCount = 1;
         imageViewCreateInfo.subresourceRange.layerCount = 1;
-        auto createImageViewResult = vkCreateImageView(_logicalDevice->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
+        auto createImageViewResult = vkCreateImageView(_vulkanContext->GetLogicalDevice()->GetDevice(), &imageViewCreateInfo, nullptr, &imageView);
         M_TRACE("Create viewport image view result is: " + std::to_string(createImageViewResult));
         M_ASSERT(createImageViewResult == VK_SUCCESS && "Failed to create viewport image view result");
         imageViews[2] = imageView;

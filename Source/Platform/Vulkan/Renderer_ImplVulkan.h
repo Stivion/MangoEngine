@@ -2,11 +2,7 @@
 
 #include "../../Render/Renderer.h"
 
-#include "Instance.h"
-#include "PhysicalDevice.h"
-#include "QueueFamilyIndices.h"
-#include "RenderSurface.h"
-#include "LogicalDevice.h"
+#include "Context.h"
 #include "RenderPass.h"
 #include "FramebuffersPool.h"
 #include "CommandPool.h"
@@ -42,11 +38,7 @@ namespace Mango
 		const Mango::RenderArea* RenderArea;
 		const Mango::RenderAreaInfo* RenderAreaInfo;
 
-		const Mango::Instance* Instance;
-		const Mango::RenderSurface* RenderSurface;
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::QueueFamilyIndices* QueueFamilyIndices;
-		const Mango::LogicalDevice* LogicalDevice;
+		const Mango::Context* VulkanContext;
 	};
 
 	class Renderer_ImplVulkan : public Renderer, public ICommandBufferRecorder
@@ -74,11 +66,7 @@ namespace Mango
 	private:
 		// This members is not owned by renderer
 		uint32_t _maxFramesInFlight;
-		const Mango::Instance* _instance;
-		const Mango::PhysicalDevice* _physicalDevice;
-		const Mango::QueueFamilyIndices* _queueFamilyIndices;
-		const Mango::RenderSurface* _renderSurface;
-		const Mango::LogicalDevice* _logicalDevice;
+		const Mango::Context* _vulkanContext;
 
 	private:
 		std::unique_ptr<Mango::RenderPass> _renderPass;

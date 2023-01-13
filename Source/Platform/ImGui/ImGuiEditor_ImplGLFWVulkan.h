@@ -2,11 +2,7 @@
 
 #include "../../ImGui/ImGuiEditor.h"
 
-#include "../Vulkan/Instance.h"
-#include "../Vulkan/PhysicalDevice.h"
-#include "../Vulkan/RenderSurface.h"
-#include "../Vulkan/LogicalDevice.h"
-#include "../Vulkan/QueueFamilyIndices.h"
+#include "../Vulkan/Context.h"
 #include "../Vulkan/SwapChain.h"
 #include "../Vulkan/SwapChainSupportDetails.h"
 #include "../Vulkan/RenderPass.h"
@@ -30,13 +26,8 @@ namespace Mango
 {
 	struct ImGuiEditor_ImplGLFWVulkan_CreateInfo
 	{
-		const Mango::GLFWWindow* Window;
 		uint32_t MaxFramesInFlight;
-		const Mango::Instance* Instance;
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::RenderSurface* RenderSurface;
-		const Mango::LogicalDevice* LogicalDevice;
-		const Mango::QueueFamilyIndices* QueueFamilyIndices;
+		const Mango::Context* VulkanContext;
 
 		// TODO: Passing this as pointer is incorrect
 		const Mango::RenderArea* RenderArea;
@@ -72,8 +63,8 @@ namespace Mango
 		);
 
 	private:
-		const Mango::LogicalDevice& _logicalDevice;
 		const uint32_t _maxFramesInFlight;
+		const Mango::Context* _vulkanContext;
 		const Mango::RenderArea* _renderArea;
 		const Mango::RenderArea* _viewportRenderArea;
 		const Mango::RenderAreaInfo* _renderAreaInfo;

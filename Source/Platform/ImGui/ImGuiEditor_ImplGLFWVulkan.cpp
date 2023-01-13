@@ -6,37 +6,35 @@
 #include <string>
 
 Mango::ImGuiEditor_ImplGLFWVulkan::ImGuiEditor_ImplGLFWVulkan(ImGuiEditor_ImplGLFWVulkan_CreateInfo createInfo)
-    : ImGuiEditor(createInfo.Window), _logicalDevice(*createInfo.LogicalDevice), _maxFramesInFlight(createInfo.MaxFramesInFlight),
+    : ImGuiEditor(createInfo.VulkanContext->GetWindow()), _maxFramesInFlight(createInfo.MaxFramesInFlight),
     _renderArea(createInfo.RenderArea), _renderAreaInfo(createInfo.RenderAreaInfo), _viewportRenderArea(createInfo.ViewportRenderArea),
     _viewportRenderAreaInfo(createInfo.ViewportAreaInfo)
 {
-    const auto& instance = *createInfo.Instance;
-    const auto& physicalDevice = *createInfo.PhysicalDevice;
-    const auto& renderSurface = *createInfo.RenderSurface;
-    const auto& logicalDevice = *createInfo.LogicalDevice;
-    const auto& queueFamilyIndices = *createInfo.QueueFamilyIndices;
+    _vulkanContext = createInfo.VulkanContext;
+    const Mango::GLFWWindow* glfwWindow = dynamic_cast<const Mango::GLFWWindow*>(_vulkanContext->GetWindow());
+    M_ASSERT(glfwWindow != nullptr && "Only GLFW window implementations supported");
     
     Mango::RenderPassCreateInfo renderPassCreateInfo{};
     renderPassCreateInfo.ImageFormat = _renderAreaInfo->ImageFormat;
     renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    _imGuiRenderPass = std::make_unique<Mango::RenderPass>(logicalDevice, renderPassCreateInfo);
-    _imGuiFramebuffers = std::make_unique<Mango::FramebuffersPool>(logicalDevice, *_imGuiRenderPass, *_renderArea, *_renderAreaInfo);
-    _imGuiDescriptorPool = std::make_unique<Mango::DescriptorPool>(_imGuiPoolSizes, logicalDevice, VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-    _imGuiCommandPool = std::make_unique<Mango::CommandPool>(logicalDevice, queueFamilyIndices);
+    _imGuiRenderPass = std::make_unique<Mango::RenderPass>(*_vulkanContext->GetLogicalDevice(), renderPassCreateInfo);
+    _imGuiFramebuffers = std::make_unique<Mango::FramebuffersPool>(*_vulkanContext->GetLogicalDevice(), *_imGuiRenderPass, *_renderArea, *_renderAreaInfo);
+    _imGuiDescriptorPool = std::make_unique<Mango::DescriptorPool>(_imGuiPoolSizes, *_vulkanContext->GetLogicalDevice(), VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+    _imGuiCommandPool = std::make_unique<Mango::CommandPool>(*_vulkanContext->GetLogicalDevice(), *_vulkanContext->GetQueueFamilyIndices());
     _imGuiCommandBuffers = std::make_unique<Mango::CommandBuffersPool>(
         _maxFramesInFlight,
-        logicalDevice,
+        *_vulkanContext->GetLogicalDevice(),
         *_imGuiRenderPass,
         *_imGuiCommandPool,
         *_renderArea
     );
 
-    const auto& vkInstance = instance.GetInstance();
-    const auto& vkPhysicalDevice = physicalDevice.GetDevice();
-    const auto& vkLogicalDevice = logicalDevice.GetDevice();
-    const auto& vkGraphicsQueueFamily = queueFamilyIndices.GraphicsFamily.value();
-    const auto& vkGraphicsQueue = logicalDevice.GetGraphicsQueue();
+    const auto& vkInstance = _vulkanContext->GetInstance()->GetInstance();
+    const auto& vkPhysicalDevice = _vulkanContext->GetPhysicalDevice()->GetDevice();
+    const auto& vkLogicalDevice = _vulkanContext->GetLogicalDevice()->GetDevice();
+    const auto& vkGraphicsQueueFamily = _vulkanContext->GetQueueFamilyIndices()->GraphicsFamily.value();
+    const auto& vkGraphicsQueue = _vulkanContext->GetLogicalDevice()->GetGraphicsQueue();
     const auto& vkDescriptorPool = _imGuiDescriptorPool->GetDescriptorPool();
     const auto& vkMinImageCount = _renderAreaInfo->SurfaceCapabilities.minImageCount;
     const auto& vkImageCount = static_cast<uint32_t>(_renderAreaInfo->ImageViews.size());
@@ -44,7 +42,7 @@ Mango::ImGuiEditor_ImplGLFWVulkan::ImGuiEditor_ImplGLFWVulkan(ImGuiEditor_ImplGL
     const auto& vkCommandPool = _imGuiCommandPool->GetCommandPool();
     const auto& vkCommandBuffer = _imGuiCommandBuffers->GetCommandBuffer(0).GetVkCommandBuffer();
 
-    ImGui_ImplGlfw_InitForVulkan(createInfo.Window->GetGLFWWindow(), true);
+    ImGui_ImplGlfw_InitForVulkan(glfwWindow->GetGLFWWindow(), true);
     ImGui_ImplVulkan_InitInfo initInfo{};
     initInfo.Instance = vkInstance;
     initInfo.PhysicalDevice = vkPhysicalDevice;
@@ -93,8 +91,8 @@ Mango::ImGuiEditor_ImplGLFWVulkan::ImGuiEditor_ImplGLFWVulkan(ImGuiEditor_ImplGL
 
     // Initialize editor viewport texture
     Mango::ImGuiEditorViewport_ImplVulkan_CreateInfo editorViewportCreateInfo{};
-    editorViewportCreateInfo.PhysicalDevice = createInfo.PhysicalDevice;
-    editorViewportCreateInfo.LogicalDevice = createInfo.LogicalDevice;
+    editorViewportCreateInfo.PhysicalDevice = _vulkanContext->GetPhysicalDevice();
+    editorViewportCreateInfo.LogicalDevice = _vulkanContext->GetLogicalDevice();
     editorViewportCreateInfo.RenderArea = _renderArea;
     _imGuiEditorViewport = std::make_unique<Mango::ImGuiEditorViewport_ImplVulkan>(editorViewportCreateInfo);
     _viewportTextureId = _imGuiEditorViewport->GetViewportImageDescriptorSet();
@@ -209,7 +207,7 @@ void Mango::ImGuiEditor_ImplGLFWVulkan::HandleResize(Mango::RenderArea& renderAr
     io.DisplaySize.x = static_cast<float>(_renderArea->Width);
     io.DisplaySize.y = static_cast<float>(_renderArea->Height);
 
-    _imGuiRenderPass->RecreateRenderPass(_logicalDevice, _renderAreaInfo->ImageFormat);
+    _imGuiRenderPass->RecreateRenderPass(*_vulkanContext->GetLogicalDevice(), _renderAreaInfo->ImageFormat);
     const auto& imageViews = _renderAreaInfo->ImageViews;
     M_ASSERT(imageViews.size() == _imGuiFramebuffers->GetFramebuffersCount() && "Framebuffers count and image views count doesn't match");
     VkExtent2D extent{};

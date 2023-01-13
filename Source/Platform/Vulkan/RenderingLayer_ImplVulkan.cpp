@@ -5,46 +5,43 @@
 
 #include <string>
 
-Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const RenderingLayer_ImplVulkan_CreateInfo& createInfo)
+Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const Mango::Context* vulkanContext)
+    : _vulkanContext(vulkanContext)
 {
     _currentFrame = 0;
     _maxFramesInFlight = 2;
-    _window = createInfo.Window;
-    _physicalDevice = createInfo.PhysicalDevice;
-    _queueFamilyIndices = createInfo.QueueFamilyIndices;
-    _renderSurface = createInfo.RenderSurface;
-    _logicalDevice = createInfo.LogicalDevice;
+    _vulkanContext = vulkanContext;
 
-    _window->SetWindowUserPointer(this);
-    _window->SetFramebufferResizedCallback(WindowResizedCallback);
+    _vulkanContext->GetWindow()->SetWindowUserPointer(this);
+    _vulkanContext->GetWindow()->SetFramebufferResizedCallback(WindowResizedCallback);
 
     Mango::SwapChainSupportDetails swapChainSupportDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(
-        _physicalDevice->GetDevice(),
-        _renderSurface->GetRenderSurface()
+        _vulkanContext->GetPhysicalDevice()->GetDevice(),
+        _vulkanContext->GetRenderSurface()->GetRenderSurface()
     );
 
     // Swap chain must always match window framebuffer size
     _swapChain = std::make_unique<Mango::SwapChain>(
         swapChainSupportDetails.SurfaceCapabilities.currentExtent.width,
         swapChainSupportDetails.SurfaceCapabilities.currentExtent.height,
-        *_renderSurface,
-        *_logicalDevice,
+        *_vulkanContext->GetRenderSurface(),
+        *_vulkanContext->GetLogicalDevice(),
         swapChainSupportDetails,
-        *_queueFamilyIndices
+        *_vulkanContext->GetQueueFamilyIndices()
     );
 
     _fences.resize(_maxFramesInFlight);
     for (size_t i = 0; i < _maxFramesInFlight; i++)
     {
-        _fences[i] = std::make_unique<Mango::Fence>(true, *_logicalDevice);
+        _fences[i] = std::make_unique<Mango::Fence>(true, *_vulkanContext->GetLogicalDevice());
     }
 
     _imageAvailableSemaphores.resize(_maxFramesInFlight);
     _renderFinishedSemaphores.resize(_maxFramesInFlight);
     for (size_t i = 0; i < _maxFramesInFlight; i++)
     {
-        _imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
-        _renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_logicalDevice);
+        _imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_vulkanContext->GetLogicalDevice());
+        _renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_vulkanContext->GetLogicalDevice());
     }
 }
 
@@ -92,7 +89,7 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
     submitInfo.signalSemaphoreCount = 1;
     submitInfo.pSignalSemaphores = signalSemaphores;
 
-    auto queueSubmitResult = vkQueueSubmit(_logicalDevice->GetGraphicsQueue(), 1, &submitInfo, _fences[_currentFrame]->GetFence());
+    auto queueSubmitResult = vkQueueSubmit(_vulkanContext->GetLogicalDevice()->GetGraphicsQueue(), 1, &submitInfo, _fences[_currentFrame]->GetFence());
     M_ASSERT(queueSubmitResult == VK_SUCCESS && "Failed to submit command buffers to queue");
 
     // Submit rendered image to presentation queue
@@ -108,7 +105,7 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
     presentInfo.pImageIndices = &imageIndex;
     presentInfo.pResults = nullptr; // Optional
 
-    auto presentImageResult = vkQueuePresentKHR(_logicalDevice->GetPresentationQueue(), &presentInfo);
+    auto presentImageResult = vkQueuePresentKHR(_vulkanContext->GetLogicalDevice()->GetPresentationQueue(), &presentInfo);
     if (presentImageResult == VK_ERROR_OUT_OF_DATE_KHR || presentImageResult == VK_SUBOPTIMAL_KHR)
     {
         FramebufferResized();
@@ -148,15 +145,15 @@ void Mango::RenderingLayer_ImplVulkan::FramebufferResized()
         fence->WaitForFence();
     }
 
-    auto vkPhysicalDevice = _physicalDevice->GetDevice();
-    auto vkRenderSurface = _renderSurface->GetRenderSurface();
+    auto vkPhysicalDevice = _vulkanContext->GetPhysicalDevice()->GetDevice();
+    auto vkRenderSurface = _vulkanContext->GetRenderSurface()->GetRenderSurface();
     auto swapChainSupportDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(vkPhysicalDevice, vkRenderSurface);
     
     // SwapChain must always match window framebuffer size
     auto width = swapChainSupportDetails.SurfaceCapabilities.currentExtent.width;
     auto height = swapChainSupportDetails.SurfaceCapabilities.currentExtent.height;
 
-    _swapChain->RecreateSwapChain(width, height, swapChainSupportDetails, *_queueFamilyIndices);
+    _swapChain->RecreateSwapChain(width, height, swapChainSupportDetails, *_vulkanContext->GetQueueFamilyIndices());
     
     // After swap chain recreation we want to call all registered callback to handle consumer code for resizing
     if (_framebufferResizedCallback != nullptr)

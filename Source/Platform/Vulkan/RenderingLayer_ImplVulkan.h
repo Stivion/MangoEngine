@@ -1,13 +1,8 @@
 #pragma once
 
 #include "../../Render/RenderingLayer.h"
-#include "../../Windowing/Window.h"
 
-#include "Instance.h"
-#include "RenderSurface.h"
-#include "PhysicalDevice.h"
-#include "QueueFamilyIndices.h"
-#include "LogicalDevice.h"
+#include "Context.h"
 #include "SwapChain.h"
 #include "Fence.h"
 #include "Semaphore.h"
@@ -20,19 +15,10 @@
 
 namespace Mango
 {
-	struct RenderingLayer_ImplVulkan_CreateInfo
-	{
-		Mango::Window* Window;
-		const Mango::RenderSurface* RenderSurface;
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::QueueFamilyIndices* QueueFamilyIndices;
-		const Mango::LogicalDevice* LogicalDevice;
-	};
-
 	class RenderingLayer_ImplVulkan : public RenderingLayer
 	{
 	public:
-		RenderingLayer_ImplVulkan(const RenderingLayer_ImplVulkan_CreateInfo& createInfo);
+		RenderingLayer_ImplVulkan(const Mango::Context* vulkanContext);
 		RenderingLayer_ImplVulkan() = delete;
 		RenderingLayer_ImplVulkan(const RenderingLayer_ImplVulkan&) = delete;
 		RenderingLayer_ImplVulkan operator=(const RenderingLayer_ImplVulkan&) = delete;
@@ -48,11 +34,7 @@ namespace Mango
 		void SetCommandBufferRecorders(std::vector<Mango::ICommandBufferRecorder*> commandBufferRecorders);
 
 	private:
-		Mango::Window* _window;
-		const Mango::RenderSurface* _renderSurface;
-		const Mango::PhysicalDevice* _physicalDevice;
-		const Mango::QueueFamilyIndices* _queueFamilyIndices;
-		const Mango::LogicalDevice* _logicalDevice;
+		const Mango::Context* _vulkanContext;
 		std::vector<Mango::ICommandBufferRecorder*> _commandBufferRecorders;
 
 	private:

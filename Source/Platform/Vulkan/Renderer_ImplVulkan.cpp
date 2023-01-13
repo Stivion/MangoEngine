@@ -9,11 +9,7 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
 	: Renderer()
 {
     _maxFramesInFlight = createInfo.MaxFramesInFlight;
-    _instance = createInfo.Instance;
-    _physicalDevice = createInfo.PhysicalDevice;
-    _queueFamilyIndices = createInfo.QueueFamilyIndices;
-    _renderSurface = createInfo.RenderSurface;
-    _logicalDevice = createInfo.LogicalDevice;
+    _vulkanContext = createInfo.VulkanContext;
     _renderArea = createInfo.RenderArea;
     _renderAreaInfo = createInfo.RenderAreaInfo;
 
@@ -21,32 +17,32 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
     renderPassCreateInfo.ImageFormat = _renderAreaInfo->ImageFormat;
     renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    _renderPass = std::make_unique<Mango::RenderPass>(*_logicalDevice, renderPassCreateInfo);
+    _renderPass = std::make_unique<Mango::RenderPass>(*_vulkanContext->GetLogicalDevice(), renderPassCreateInfo);
 
-    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_logicalDevice);
+    _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_vulkanContext->GetLogicalDevice());
 
     // All descriptor set layouts is owned by renderer
     {
-        Mango::DescriptorSetLayoutBuilder builder(*_logicalDevice);
+        Mango::DescriptorSetLayoutBuilder builder(*_vulkanContext->GetLogicalDevice());
         _globalDescriptorSetLayout = builder
             .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
             .Build();
     }
     std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get() };
     _descriptorPool->AllocateDescriptorSets(layouts);
-    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_logicalDevice, *_renderPass, layouts, "vert.spv", "frag.spv");
+    _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_vulkanContext->GetLogicalDevice(), *_renderPass, layouts, "vert.spv", "frag.spv");
 
-    _commandPool = std::make_unique<Mango::CommandPool>(*_logicalDevice, *_queueFamilyIndices);
+    _commandPool = std::make_unique<Mango::CommandPool>(*_vulkanContext->GetLogicalDevice(), *_vulkanContext->GetQueueFamilyIndices());
     _commandBuffers = std::make_unique<Mango::CommandBuffersPool>(
         _maxFramesInFlight,
-        *_logicalDevice,
+        *_vulkanContext->GetLogicalDevice(),
         *_renderPass,
         *_commandPool,
         *_renderArea
     );
-    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_logicalDevice, *_renderPass, *_renderArea, *_renderAreaInfo);
+    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_vulkanContext->GetLogicalDevice(), *_renderPass, *_renderArea, *_renderAreaInfo);
 
-    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_physicalDevice, *_logicalDevice);
+    _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice());
     for (uint32_t i = 0; i < _maxFramesInFlight; i++)
     {
         UniformBufferCreateInfo createInfo{};
@@ -79,7 +75,7 @@ void Mango::Renderer_ImplVulkan::HandleResize(Mango::RenderArea& renderArea, Man
     VkExtent2D extent{};
     extent.width = _renderArea->Width;
     extent.height = _renderArea->Height;
-    _renderPass->RecreateRenderPass(*_logicalDevice, _renderAreaInfo->ImageFormat);
+    _renderPass->RecreateRenderPass(*_vulkanContext->GetLogicalDevice(), _renderAreaInfo->ImageFormat);
     const auto& imageViews = _renderAreaInfo->ImageViews;
     M_ASSERT(imageViews.size() == _framebuffers->GetFramebuffersCount() && "Framebuffers count and image views count doesn't match");
     for (size_t i = 0; i < imageViews.size(); i++)
@@ -125,8 +121,8 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
     // Group all verices into buffers
     const uint32_t vertexCount = static_cast<uint32_t>(_renderData.Vertices.size());
     const uint32_t indicesCount = static_cast<uint32_t>(_renderData.Indices.size());
-    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _renderData.Vertices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
-    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _renderData.Indices.data(), *_physicalDevice, *_logicalDevice, *_commandPool);
+    _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _renderData.Vertices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
+    _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _renderData.Indices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
     _renderData.Reset();
 
     // Draw call

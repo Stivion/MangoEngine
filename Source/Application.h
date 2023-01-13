@@ -7,10 +7,7 @@
 
 #include "Platform/Windowing/GLFWWindow.h"
 #include "Platform/ImGui/ImGuiEditor_ImplGLFWVulkan.h"
-#include "Platform/Vulkan/Instance.h"
-#include "Platform/Vulkan/PhysicalDevice.h"
-#include "Platform/Vulkan/LogicalDevice.h"
-#include "Platform/Vulkan/RenderSurface.h"
+#include "Platform/Vulkan/Context.h"
 #include "Platform/Vulkan/Renderer_ImplVulkan.h"
 #include "Platform/Vulkan/RenderingLayer_ImplVulkan.h"
 
@@ -45,11 +42,7 @@ namespace Mango
         std::unique_ptr<Mango::GLFWWindow> _window;
 
         // Vulkan
-        std::unique_ptr<Mango::Instance> _instance;
-        std::unique_ptr<Mango::RenderSurface> _renderSurface;
-        std::unique_ptr<Mango::PhysicalDevice> _physicalDevice;
-        std::unique_ptr<Mango::QueueFamilyIndices> _queueFamilyIndices;
-        std::unique_ptr<Mango::LogicalDevice> _logicalDevice;
+        std::unique_ptr<const Mango::Context> _vulkanContext;
         std::unique_ptr<Mango::Renderer_ImplVulkan> _renderer;
         std::unique_ptr<Mango::RenderingLayer_ImplVulkan> _renderingLayer;
         Mango::RenderArea _windowRenderArea;
