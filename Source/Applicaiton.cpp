@@ -6,8 +6,6 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-#include <chrono>
-
 Mango::Application::Application()
 {
     InitializeWindow();
@@ -34,11 +32,11 @@ void Mango::Application::RunMainLoop()
 {
     while (!_window->ShouldClose())
     {
-        glfwPollEvents(); // TODO: WAT
+        _window->PollEvents();
         DrawFrame();
     }
 
-    vkDeviceWaitIdle(_vulkanContext->GetLogicalDevice()->GetDevice()); // TODO: Remove
+    _renderingLayer->WaitRenderingIdle();
 }
 
 void Mango::Application::DrawFrame()

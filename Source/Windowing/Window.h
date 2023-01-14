@@ -15,6 +15,7 @@ namespace Mango
 		virtual ~Window() = default;
 
 		virtual bool ShouldClose() = 0;
+		virtual void PollEvents() = 0;
 
 		virtual void SetFramebufferResizedCallback(FramebufferResizedCallback callback) = 0;
 		virtual void SetWindowUserPointer(void* userData) { _userData = userData; };

@@ -13,6 +13,7 @@ namespace Mango
 		~GLFWWindow();
 
 		bool ShouldClose() override;
+		void PollEvents() override;
 		void SetFramebufferResizedCallback(FramebufferResizedCallback callback) override;
 
 		GLFWwindow* GetGLFWWindow() const { return _window; }

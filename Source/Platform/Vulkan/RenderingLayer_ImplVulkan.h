@@ -32,9 +32,6 @@ namespace Mango
 		void WaitRenderingIdle();
 
 		Mango::Renderer& GetRenderer() const { return *_renderer; }
-		const uint32_t GetMaxFramesInFlight() const { return _maxFramesInFlight; }
-		const uint32_t GetCurrentFrame() const { return _currentFrame; }
-		Mango::SwapChain& GetSwapChain() const { return *_swapChain; }
 
 	private:
 		const Mango::Context* _vulkanContext;
@@ -54,6 +51,7 @@ namespace Mango
 		Mango::RenderAreaInfo _viewportRenderAreaInfo{};
 
 		bool _imageAcquired = false;
+		bool _pauseRendering = false;
 
 	private:
 		static void WindowResizedCallback(Mango::Window*, uint32_t width, uint32_t height);

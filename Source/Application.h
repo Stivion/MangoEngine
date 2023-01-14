@@ -1,19 +1,13 @@
 ﻿#pragma once
 
 #include "Windowing/Window.h"
-#include "Render/Renderer.h"
 #include "Render/RenderingLayer.h"
-#include "ImGui/ImGuiEditor.h"
 
 #include "Platform/Windowing/GLFWWindow.h"
-#include "Platform/ImGui/ImGuiEditor_ImplGLFWVulkan.h"
 #include "Platform/Vulkan/Context.h"
-#include "Platform/Vulkan/Renderer_ImplVulkan.h"
 #include "Platform/Vulkan/RenderingLayer_ImplVulkan.h"
 
-#include <vector>
 #include <memory>
-#include <vulkan/vulkan.h>
 
 namespace Mango
 {

@@ -22,6 +22,11 @@ bool Mango::GLFWWindow::ShouldClose()
     return glfwWindowShouldClose(_window);
 }
 
+void Mango::GLFWWindow::PollEvents()
+{
+    glfwPollEvents();
+}
+
 void Mango::GLFWWindow::SetFramebufferResizedCallback(FramebufferResizedCallback callback)
 {
     _framebufferResizedCallback = callback;

@@ -91,6 +91,11 @@ Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const Mango::Context
 
 void Mango::RenderingLayer_ImplVulkan::BeginFrame()
 {
+    if (_pauseRendering)
+    {
+        return;
+    }
+
     _editor->NewFrame(_currentFrame);
     _editor->ConstructEditor();
     const auto viewportSize = _editor->GetViewportSize();
@@ -144,7 +149,7 @@ void Mango::RenderingLayer_ImplVulkan::BeginFrame()
 
 void Mango::RenderingLayer_ImplVulkan::EndFrame()
 {
-    if (!_imageAcquired)
+    if (!_imageAcquired || _pauseRendering)
     {
         return;
     }
@@ -203,7 +208,6 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
 
 void Mango::RenderingLayer_ImplVulkan::WaitRenderingIdle()
 {
-    //vkDeviceWaitIdle(_logicalDevice->GetDevice());
     for (const auto& fence : _fences)
     {
         if (fence->IsFenceSignaled())
@@ -295,5 +299,11 @@ std::vector<VkImageView> Mango::RenderingLayer_ImplVulkan::GetImageViews(std::ve
 void Mango::RenderingLayer_ImplVulkan::WindowResizedCallback(Mango::Window* window, uint32_t width, uint32_t height)
 {
     auto* renderingLayer = reinterpret_cast<RenderingLayer_ImplVulkan*>(window->GetWindowUserPointer());
+    if (width == 0 || height == 0)
+    {
+        renderingLayer->_pauseRendering = true;
+        return;
+    }
+    renderingLayer->_pauseRendering = false;
     renderingLayer->FramebufferResized();
 }
