@@ -91,9 +91,9 @@ Mango::ImGuiEditor_ImplGLFWVulkan::ImGuiEditor_ImplGLFWVulkan(ImGuiEditor_ImplGL
 
     // Initialize editor viewport texture
     Mango::ImGuiEditorViewport_ImplVulkan_CreateInfo editorViewportCreateInfo{};
-    editorViewportCreateInfo.PhysicalDevice = _vulkanContext->GetPhysicalDevice();
-    editorViewportCreateInfo.LogicalDevice = _vulkanContext->GetLogicalDevice();
-    editorViewportCreateInfo.RenderArea = _renderArea;
+    editorViewportCreateInfo.VulkanContext = _vulkanContext;
+    editorViewportCreateInfo.RenderArea = _viewportRenderArea;
+    editorViewportCreateInfo.RenderAreaInfo = _viewportRenderAreaInfo;
     _imGuiEditorViewport = std::make_unique<Mango::ImGuiEditorViewport_ImplVulkan>(editorViewportCreateInfo);
     _viewportTextureId = _imGuiEditorViewport->GetViewportImageDescriptorSet();
     // End initialize editor viewport texture
@@ -172,7 +172,6 @@ const Mango::CommandBuffer& Mango::ImGuiEditor_ImplGLFWVulkan::RecordCommandBuff
     vkCmdCopyImage(
         currentVkCommandBuffer,
         _viewportRenderAreaInfo.Images.at(imageIndex),
-        //_renderAreaInfo->Images.at(imageIndex),
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         _imGuiEditorViewport->GetViewportImage(),
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
@@ -225,7 +224,7 @@ void Mango::ImGuiEditor_ImplGLFWVulkan::HandleViewportResize(const Mango::Render
     // It is a calling code responsibility to ensure that viewport render pass is updated before this call
     _viewportRenderArea = viewportRenderArea;
     _viewportRenderAreaInfo = viewportRenderAreaInfo;
-    _imGuiEditorViewport->RecreateEditorViewport(_viewportRenderArea);
+    _imGuiEditorViewport->RecreateEditorViewport(_viewportRenderArea, _viewportRenderAreaInfo);
     _viewportTextureId = _imGuiEditorViewport->GetViewportImageDescriptorSet();
 
     _toDestinationTransitionBarrier = CreateImageMemoryBarrier(

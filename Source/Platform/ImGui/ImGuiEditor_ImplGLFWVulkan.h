@@ -28,8 +28,8 @@ namespace Mango
 		uint32_t MaxFramesInFlight;
 		const Mango::Context* VulkanContext;
 		Mango::RenderArea RenderArea;
-		Mango::RenderArea ViewportRenderArea;
 		Mango::RenderAreaInfo RenderAreaInfo;
+		Mango::RenderArea ViewportRenderArea;
 		Mango::RenderAreaInfo ViewportAreaInfo;
 	};
 
