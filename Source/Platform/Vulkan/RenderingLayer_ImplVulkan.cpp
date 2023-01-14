@@ -29,6 +29,17 @@ Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const Mango::Context
         swapChainSupportDetails,
         *_vulkanContext->GetQueueFamilyIndices()
     );
+    const uint32_t imageCount = _swapChain->GetSwapChainImages().size();
+    for (size_t i = 0; i < imageCount; i++)
+    {
+        Mango::ImageCreateInfo createInfo{};
+        createInfo.VulkanContext = _vulkanContext;
+        createInfo.ImageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+        createInfo.UsageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        createInfo.Width = _swapChain->GetSwapChainExtent().width;
+        createInfo.Height = _swapChain->GetSwapChainExtent().height;
+        _images.push_back(std::make_unique<Mango::Image>(createInfo));
+    }
 
     _fences.resize(_maxFramesInFlight);
     for (size_t i = 0; i < _maxFramesInFlight; i++)
@@ -43,10 +54,75 @@ Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const Mango::Context
         _imageAvailableSemaphores[i] = std::make_unique<Mango::Semaphore>(*_vulkanContext->GetLogicalDevice());
         _renderFinishedSemaphores[i] = std::make_unique<Mango::Semaphore>(*_vulkanContext->GetLogicalDevice());
     }
+
+    _screenRenderArea.X = 0;
+    _screenRenderArea.Y = 0;
+    _screenRenderArea.Width = _swapChain->GetSwapChainExtent().width;
+    _screenRenderArea.Height = _swapChain->GetSwapChainExtent().height;
+    _screenRenderAreaInfo.ImageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+    _screenRenderAreaInfo.SurfaceCapabilities = swapChainSupportDetails.SurfaceCapabilities;
+    _screenRenderAreaInfo.Images = _swapChain->GetSwapChainImages();
+    _screenRenderAreaInfo.ImageViews = _swapChain->GetSwapChainImageViews();
+    _viewportRenderArea.X = 0;
+    _viewportRenderArea.Y = 0;
+    _viewportRenderArea.Width = _swapChain->GetSwapChainExtent().width;
+    _viewportRenderArea.Height = _swapChain->GetSwapChainExtent().height;
+    _viewportRenderAreaInfo.ImageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+    _viewportRenderAreaInfo.SurfaceCapabilities = swapChainSupportDetails.SurfaceCapabilities;
+    _viewportRenderAreaInfo.Images = GetImages(_images);
+    _viewportRenderAreaInfo.ImageViews = GetImageViews(_images);
+
+    Mango::Renderer_ImplVulkan_CreateInfo rendererCreateInfo{};
+    rendererCreateInfo.MaxFramesInFlight = _maxFramesInFlight;
+    rendererCreateInfo.VulkanContext = _vulkanContext;
+    rendererCreateInfo.RenderArea = _viewportRenderArea;
+    rendererCreateInfo.RenderAreaInfo = _viewportRenderAreaInfo;
+    _renderer = std::make_unique<Mango::Renderer_ImplVulkan>(rendererCreateInfo);
+
+    Mango::ImGuiEditor_ImplGLFWVulkan_CreateInfo editorCreateInfo{};
+    editorCreateInfo.MaxFramesInFlight = _maxFramesInFlight;
+    editorCreateInfo.VulkanContext = _vulkanContext;
+    editorCreateInfo.RenderArea = _screenRenderArea;
+    editorCreateInfo.RenderAreaInfo = _screenRenderAreaInfo;
+    editorCreateInfo.ViewportRenderArea = _viewportRenderArea;
+    editorCreateInfo.ViewportAreaInfo = _viewportRenderAreaInfo;
+    _editor = std::make_unique<Mango::ImGuiEditor_ImplGLFWVulkan>(editorCreateInfo);
 }
 
 void Mango::RenderingLayer_ImplVulkan::BeginFrame()
 {
+    _editor->NewFrame(_currentFrame);
+    _editor->ConstructEditor();
+    const auto viewportSize = _editor->GetViewportSize();
+    if (viewportSize.x != _viewportRenderArea.Width || viewportSize.y != _viewportRenderArea.Height)
+    {
+        // Viewport resize will dispose old viewport image, so we must wait for rendering to complete
+        WaitRenderingIdle();
+
+        const auto& currentExtent = _swapChain->GetSwapChainExtent();
+        _viewportRenderArea.X = 0;
+        _viewportRenderArea.Y = 0;
+        _viewportRenderArea.Width = static_cast<uint32_t>(std::max(viewportSize.x, 1.0f));
+        _viewportRenderArea.Height = static_cast<uint32_t>(std::max(viewportSize.y, 1.0f));
+
+        for (const auto& image : _images)
+        {
+            const auto imageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+            const auto usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            image->RecreateImage(_viewportRenderArea.Width, _viewportRenderArea.Height, imageFormat, usageFlags);
+        }
+
+        _viewportRenderAreaInfo.Images = GetImages(_images);
+        _viewportRenderAreaInfo.ImageViews = GetImageViews(_images);
+
+        _renderer->HandleResize(_viewportRenderArea, _viewportRenderAreaInfo);
+        _renderer->EndFrame();
+        _editor->HandleViewportResize(_viewportRenderArea, _viewportRenderAreaInfo);
+        _editor->EndFrame();
+        return;
+    }
+    _editor->EndFrame();
+
     _fences[_currentFrame]->WaitForFence();
 
     const auto nextImageResult = _swapChain->AcquireNextImage(*_imageAvailableSemaphores[_currentFrame]);
@@ -59,20 +135,28 @@ void Mango::RenderingLayer_ImplVulkan::BeginFrame()
     {
         M_ASSERT(nextImageResult == VK_SUCCESS && "Failed to acquire next swap chain image");
     }
+    _imageAcquired = true;
 
     _fences[_currentFrame]->ResetFence();
+
+    _renderer->BeginFrame(_currentFrame);
 }
 
 void Mango::RenderingLayer_ImplVulkan::EndFrame()
 {
-    // Is is a callers responsibility to set command buffers before calling EndFrame
-    M_ASSERT(_commandBufferRecorders.size() > 0 && "Command buffer recorders is empty");
-
-    std::vector<VkCommandBuffer> vkCommandBuffers;
-    for (ICommandBufferRecorder* recorder : _commandBufferRecorders)
+    if (!_imageAcquired)
     {
-        vkCommandBuffers.push_back(recorder->RecordCommandBuffer(_swapChain->GetCurrentImageIndex()).GetVkCommandBuffer());
+        return;
     }
+
+    _renderer->EndFrame();
+
+    const uint32_t imageIndex = _swapChain->GetCurrentImageIndex();
+    std::vector<VkCommandBuffer> vkCommandBuffers = 
+    { 
+        _renderer->RecordCommandBuffer(imageIndex).GetVkCommandBuffer(),
+        _editor->RecordCommandBuffer(imageIndex).GetVkCommandBuffer()
+    };
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -98,7 +182,6 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores = signalSemaphores;
 
-    const uint32_t imageIndex = _swapChain->GetCurrentImageIndex();
     VkSwapchainKHR swapChains[] = { _swapChain->GetSwapChain() };
     presentInfo.swapchainCount = 1;
     presentInfo.pSwapchains = swapChains;
@@ -115,6 +198,7 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
         M_ASSERT(presentImageResult == VK_SUCCESS && "Failed to acquire present swap chain image");
     }
     _currentFrame = (_currentFrame + 1) % _maxFramesInFlight;
+    _imageAcquired = false;
 }
 
 void Mango::RenderingLayer_ImplVulkan::WaitRenderingIdle()
@@ -127,11 +211,6 @@ void Mango::RenderingLayer_ImplVulkan::WaitRenderingIdle()
             fence->WaitForFence();
         }
     }
-}
-
-void Mango::RenderingLayer_ImplVulkan::SetCommandBufferRecorders(std::vector<Mango::ICommandBufferRecorder*> commandBufferRecorders)
-{
-    _commandBufferRecorders = commandBufferRecorders;
 }
 
 void Mango::RenderingLayer_ImplVulkan::FramebufferResized()
@@ -155,11 +234,62 @@ void Mango::RenderingLayer_ImplVulkan::FramebufferResized()
 
     _swapChain->RecreateSwapChain(width, height, swapChainSupportDetails, *_vulkanContext->GetQueueFamilyIndices());
     
-    // After swap chain recreation we want to call all registered callback to handle consumer code for resizing
-    if (_framebufferResizedCallback != nullptr)
+    const auto& swapChainDetails = Mango::SwapChainSupportDetails::QuerySwapChainSupport(
+        _vulkanContext->GetPhysicalDevice()->GetDevice(),
+        _vulkanContext->GetRenderSurface()->GetRenderSurface()
+    );
+
+    const auto& currentExtent = _swapChain->GetSwapChainExtent();
+    _screenRenderArea.X = 0;
+    _screenRenderArea.Y = 0;
+    _screenRenderArea.Width = currentExtent.width;
+    _screenRenderArea.Height = currentExtent.height;
+    _screenRenderAreaInfo.ImageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+    _screenRenderAreaInfo.Images = _swapChain->GetSwapChainImages();
+    _screenRenderAreaInfo.ImageViews = _swapChain->GetSwapChainImageViews();
+    _screenRenderAreaInfo.SurfaceCapabilities = swapChainDetails.SurfaceCapabilities;
+
+    const glm::vec2 viewportSize = _editor->GetViewportSize();
+    _viewportRenderArea.X = 0;
+    _viewportRenderArea.Y = 0;
+    _viewportRenderArea.Width = static_cast<uint32_t>(std::max(viewportSize.x, 1.0f));
+    _viewportRenderArea.Height = static_cast<uint32_t>(std::max(viewportSize.y, 1.0f));
+    
+    for (const auto& image : _images)
     {
-        _framebufferResizedCallback(_userPointer);
+        const auto imageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+        const auto usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        image->RecreateImage(_viewportRenderArea.Width, _viewportRenderArea.Height, imageFormat, usageFlags);
     }
+
+    _viewportRenderAreaInfo.ImageFormat = _swapChain->GetSwapChainSurfaceFormat().format;
+    _viewportRenderAreaInfo.SurfaceCapabilities = swapChainDetails.SurfaceCapabilities;
+    _viewportRenderAreaInfo.Images = GetImages(_images);
+    _viewportRenderAreaInfo.ImageViews = GetImageViews(_images);
+
+    _renderer->HandleResize(_viewportRenderArea, _viewportRenderAreaInfo);
+    _editor->HandleResize(_screenRenderArea, _screenRenderAreaInfo);
+    _editor->HandleViewportResize(_viewportRenderArea, _viewportRenderAreaInfo);
+}
+
+std::vector<VkImage> Mango::RenderingLayer_ImplVulkan::GetImages(std::vector<std::unique_ptr<Mango::Image>>& images)
+{
+    std::vector<VkImage> vkImages(images.size());
+    for (size_t i = 0; i < images.size(); i++)
+    {
+        vkImages[i] = images[i]->Get();
+    }
+    return vkImages;
+}
+
+std::vector<VkImageView> Mango::RenderingLayer_ImplVulkan::GetImageViews(std::vector<std::unique_ptr<Mango::Image>>& images)
+{
+    std::vector<VkImageView> vkImageViews(images.size());
+    for (size_t i = 0; i < images.size(); i++)
+    {
+        vkImageViews[i] = images[i]->GetImageView();
+    }
+    return vkImageViews;
 }
 
 void Mango::RenderingLayer_ImplVulkan::WindowResizedCallback(Mango::Window* window, uint32_t width, uint32_t height)

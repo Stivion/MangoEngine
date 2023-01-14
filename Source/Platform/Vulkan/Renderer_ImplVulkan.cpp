@@ -14,7 +14,7 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
     _renderAreaInfo = createInfo.RenderAreaInfo;
 
     Mango::RenderPassCreateInfo renderPassCreateInfo{};
-    renderPassCreateInfo.ImageFormat = _renderAreaInfo->ImageFormat;
+    renderPassCreateInfo.ImageFormat = _renderAreaInfo.ImageFormat;
     renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     _renderPass = std::make_unique<Mango::RenderPass>(*_vulkanContext->GetLogicalDevice(), renderPassCreateInfo);
@@ -38,9 +38,9 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
         *_vulkanContext->GetLogicalDevice(),
         *_renderPass,
         *_commandPool,
-        *_renderArea
+        _renderArea
     );
-    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_vulkanContext->GetLogicalDevice(), *_renderPass, *_renderArea, *_renderAreaInfo);
+    _framebuffers = std::make_unique<Mango::FramebuffersPool>(*_vulkanContext->GetLogicalDevice(), *_renderPass, _renderArea, _renderAreaInfo);
 
     _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice());
     for (uint32_t i = 0; i < _maxFramesInFlight; i++)
@@ -66,17 +66,17 @@ void Mango::Renderer_ImplVulkan::EndFrame()
 {
 }
 
-void Mango::Renderer_ImplVulkan::HandleResize(Mango::RenderArea& renderArea, Mango::RenderAreaInfo& renderAreaInfo)
+void Mango::Renderer_ImplVulkan::HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo)
 {
     // On resize we must update _renderArea and _renderAreaInfo and recreate render pass and framebuffers
-    _renderArea = &renderArea;
-    _renderAreaInfo = &renderAreaInfo;
+    _renderArea = renderArea;
+    _renderAreaInfo = renderAreaInfo;
 
     VkExtent2D extent{};
-    extent.width = _renderArea->Width;
-    extent.height = _renderArea->Height;
-    _renderPass->RecreateRenderPass(*_vulkanContext->GetLogicalDevice(), _renderAreaInfo->ImageFormat);
-    const auto& imageViews = _renderAreaInfo->ImageViews;
+    extent.width = _renderArea.Width;
+    extent.height = _renderArea.Height;
+    _renderPass->RecreateRenderPass(*_vulkanContext->GetLogicalDevice(), _renderAreaInfo.ImageFormat);
+    const auto& imageViews = _renderAreaInfo.ImageViews;
     M_ASSERT(imageViews.size() == _framebuffers->GetFramebuffersCount() && "Framebuffers count and image views count doesn't match");
     for (size_t i = 0; i < imageViews.size(); i++)
     {
@@ -96,7 +96,7 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
     memoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     memoryBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     memoryBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-    memoryBarrier.image = _renderAreaInfo->Images[0];
+    memoryBarrier.image = _renderAreaInfo.Images[0];
     memoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     memoryBarrier.subresourceRange.baseMipLevel = 0;
     memoryBarrier.subresourceRange.levelCount = 1;
@@ -114,7 +114,7 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
 
     currentCommandBuffer.BeginRenderPass(
         currentFramebuffer.GetSwapChainFramebuffer(),
-        *_renderArea
+        _renderArea
     );
     currentCommandBuffer.BindPipeline(*_graphicsPipeline);
 
@@ -159,7 +159,7 @@ void Mango::Renderer_ImplVulkan::UpdateUniformBuffer(glm::mat4 modelMatrix)
     ubo.Model = modelMatrix; // TODO: We need separate buffer for Model matrix, because it will be updated every frame
     // And this matrices may not be updated every frame
     ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    ubo.Projection = glm::perspective(glm::radians(45.0f), _renderArea->Width / static_cast<float>(_renderArea->Height), 0.1f, 10.0f);
+    ubo.Projection = glm::perspective(glm::radians(45.0f), _renderArea.Width / static_cast<float>(_renderArea.Height), 0.1f, 10.0f);
     ubo.Projection[1][1] *= -1;
 
     const auto& uniformBuffer = _uniformBuffers->GetUniformBuffer(_currentFrame);

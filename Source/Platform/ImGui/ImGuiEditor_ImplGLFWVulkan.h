@@ -10,7 +10,6 @@
 #include "../Vulkan/DescriptorPool.h"
 #include "../Vulkan/CommandPool.h"
 #include "../Vulkan/CommandBuffersPool.h"
-#include "../Vulkan/ICommandBufferRecorder.h"
 
 #include "../Windowing/GLFWWindow.h"
 #include "ImGuiEditorViewport_ImplVulkan.h"
@@ -28,15 +27,13 @@ namespace Mango
 	{
 		uint32_t MaxFramesInFlight;
 		const Mango::Context* VulkanContext;
-
-		// TODO: Passing this as pointer is incorrect
-		const Mango::RenderArea* RenderArea;
-		const Mango::RenderArea* ViewportRenderArea;
-		const Mango::RenderAreaInfo* RenderAreaInfo;
-		const Mango::RenderAreaInfo* ViewportAreaInfo;
+		Mango::RenderArea RenderArea;
+		Mango::RenderArea ViewportRenderArea;
+		Mango::RenderAreaInfo RenderAreaInfo;
+		Mango::RenderAreaInfo ViewportAreaInfo;
 	};
 
-	class ImGuiEditor_ImplGLFWVulkan : public ImGuiEditor, public ICommandBufferRecorder
+	class ImGuiEditor_ImplGLFWVulkan : public ImGuiEditor
 	{
 	public:
 		ImGuiEditor_ImplGLFWVulkan(ImGuiEditor_ImplGLFWVulkan_CreateInfo createInfo);
@@ -46,10 +43,10 @@ namespace Mango
 
 		void NewFrame(uint32_t currentFrame) override;
 		void EndFrame() override;
-		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex) override;
+		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex);
 
-		void HandleResize(Mango::RenderArea& renderArea, Mango::RenderAreaInfo& renderAreaInfo);
-		void HandleViewportResize(const Mango::RenderArea* viewportRenderArea);
+		void HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo);
+		void HandleViewportResize(const Mango::RenderArea viewportRenderArea, const Mango::RenderAreaInfo viewportRenderAreaInfo);
 
 		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _imGuiCommandBuffers->GetCommandBuffer(_currentFrame); }
 
@@ -65,10 +62,10 @@ namespace Mango
 	private:
 		const uint32_t _maxFramesInFlight;
 		const Mango::Context* _vulkanContext;
-		const Mango::RenderArea* _renderArea;
-		const Mango::RenderArea* _viewportRenderArea;
-		const Mango::RenderAreaInfo* _renderAreaInfo;
-		const Mango::RenderAreaInfo* _viewportRenderAreaInfo;
+		Mango::RenderArea _renderArea;
+		Mango::RenderArea _viewportRenderArea;
+		Mango::RenderAreaInfo _renderAreaInfo;
+		Mango::RenderAreaInfo _viewportRenderAreaInfo;
 
 		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
 		{

@@ -23,7 +23,6 @@ void Mango::CommandBuffer::BeginCommandBuffer() const
 
 void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, const Mango::RenderArea renderArea) const
 {
-    // TODO: Main refactor here
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassInfo.renderPass = _renderPass.GetRenderPass();

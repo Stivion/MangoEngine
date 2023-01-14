@@ -19,7 +19,7 @@ Mango::ImGuiEditorViewport_ImplVulkan::~ImGuiEditorViewport_ImplVulkan()
     DestroyEditorViewport();
 }
 
-void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport(const Mango::RenderArea* renderArea)
+void Mango::ImGuiEditorViewport_ImplVulkan::RecreateEditorViewport(const Mango::RenderArea renderArea)
 {
     DestroyEditorViewport();
     _renderArea = renderArea;
@@ -33,8 +33,8 @@ void Mango::ImGuiEditorViewport_ImplVulkan::InitializeViewportImage()
 {
     const auto& vkLogicalDevice = _logicalDevice->GetDevice();
     VkExtent2D currentExtent{};
-    currentExtent.width = _renderArea->Width;
-    currentExtent.height = _renderArea->Height;
+    currentExtent.width = _renderArea.Width;
+    currentExtent.height = _renderArea.Height;
 
     VkImageCreateInfo info = {};
     info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;

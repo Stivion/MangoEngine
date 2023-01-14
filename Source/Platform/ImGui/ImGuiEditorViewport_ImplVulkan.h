@@ -13,7 +13,7 @@ namespace Mango
 	{
 		const Mango::PhysicalDevice* PhysicalDevice;
 		const Mango::LogicalDevice* LogicalDevice;
-		const Mango::RenderArea* RenderArea; // TODO: Passing this as pointer is incorrect
+		Mango::RenderArea RenderArea;
 	};
 
 	class ImGuiEditorViewport_ImplVulkan
@@ -24,7 +24,7 @@ namespace Mango
 		ImGuiEditorViewport_ImplVulkan operator=(const ImGuiEditorViewport_ImplVulkan&) = delete;
 		~ImGuiEditorViewport_ImplVulkan();
 
-		void RecreateEditorViewport(const Mango::RenderArea* renderArea);
+		void RecreateEditorViewport(const Mango::RenderArea renderArea);
 
 		const VkImage& GetViewportImage() const { return _viewportImage; }
 		const VkDescriptorSet& GetViewportImageDescriptorSet() const { return _viewportImageDescriptorSet; }
@@ -44,6 +44,6 @@ namespace Mango
 
 		const Mango::PhysicalDevice* _physicalDevice;
 		const Mango::LogicalDevice* _logicalDevice;
-		const Mango::RenderArea* _renderArea;
+		Mango::RenderArea _renderArea;
 	};
 }

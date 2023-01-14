@@ -17,7 +17,6 @@
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-#include "ICommandBufferRecorder.h"
 #include "RenderArea.h"
 
 #include <vulkan/vulkan.h>
@@ -33,15 +32,12 @@ namespace Mango
 	struct Renderer_ImplVulkan_CreateInfo
 	{
 		uint32_t MaxFramesInFlight;
-
-		// TODO: Passing both of them as pointers is incorrect
-		const Mango::RenderArea* RenderArea;
-		const Mango::RenderAreaInfo* RenderAreaInfo;
-
+		Mango::RenderArea RenderArea;
+		Mango::RenderAreaInfo RenderAreaInfo;
 		const Mango::Context* VulkanContext;
 	};
 
-	class Renderer_ImplVulkan : public Renderer, public ICommandBufferRecorder
+	class Renderer_ImplVulkan : public Renderer
 	{
 	public:
 		typedef void (*OnResizeCallback)();
@@ -53,9 +49,9 @@ namespace Mango
 
 		void BeginFrame(uint32_t currentFrame);
 		void EndFrame();
-		void HandleResize(Mango::RenderArea& renderArea, Mango::RenderAreaInfo& renderAreaInfo);
+		void HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo);
 
-		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex) override;
+		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex);
 
 		void DrawRect(glm::mat4 transform, glm::vec4 color) override;
 		void DrawTriangle(glm::mat4 transform, glm::vec4 color) override;
@@ -85,8 +81,8 @@ namespace Mango
 		std::vector<VkDescriptorSet> _descriptorSets;
 
 		uint32_t _currentFrame = 0;
-		const Mango::RenderArea* _renderArea;
-		const Mango::RenderAreaInfo* _renderAreaInfo;
+		Mango::RenderArea _renderArea;
+		Mango::RenderAreaInfo _renderAreaInfo;
 
 		struct RenderData
 		{
