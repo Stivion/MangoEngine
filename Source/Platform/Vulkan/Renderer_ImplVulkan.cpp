@@ -15,8 +15,8 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
 
     Mango::RenderPassCreateInfo renderPassCreateInfo{};
     renderPassCreateInfo.ImageFormat = _renderAreaInfo.ImageFormat;
-    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL; //VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    renderPassCreateInfo.ColorAttachmentFinalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    renderPassCreateInfo.ColorAttachmentReferenceLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     _renderPass = std::make_unique<Mango::RenderPass>(*_vulkanContext->GetLogicalDevice(), renderPassCreateInfo);
 
     _descriptorPool = std::make_unique<Mango::DescriptorPool>(_poolSizes, *_vulkanContext->GetLogicalDevice());
@@ -28,7 +28,13 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
             .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT)
             .Build();
     }
-    std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get() };
+    {
+        Mango::DescriptorSetLayoutBuilder builder(*_vulkanContext->GetLogicalDevice());
+        _perModelDescriptorSetLayout = builder
+            .AddBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, VK_SHADER_STAGE_VERTEX_BIT)
+            .Build();
+    }
+    std::vector<const Mango::DescriptorSetLayout*> layouts{ _globalDescriptorSetLayout.get(), _perModelDescriptorSetLayout.get() };
     _descriptorPool->AllocateDescriptorSets(layouts);
     _graphicsPipeline = std::make_unique<Mango::GraphicsPipeline>(*_vulkanContext->GetLogicalDevice(), *_renderPass, layouts, "vert.spv", "frag.spv");
 
@@ -45,16 +51,27 @@ Mango::Renderer_ImplVulkan::Renderer_ImplVulkan(const Renderer_ImplVulkan_Create
     _uniformBuffers = std::make_unique<Mango::UniformBuffersPool>(*_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice());
     for (uint32_t i = 0; i < _maxFramesInFlight; i++)
     {
-        UniformBufferCreateInfo createInfo{};
+        Mango::UniformBufferCreateInfo createInfo{};
         createInfo.BufferId = i;
         createInfo.Binding = 0;
         createInfo.BufferSize = sizeof(UniformBufferObject);
         createInfo.DestinationSet = _descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId());
+        createInfo.DescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
         _uniformBuffers->CreateBuffer(createInfo);
+
+        // NOTE: This could be reallocated during rendering which could slow performance
+        Mango::UniformBufferCreateInfo dynamicBufferCreateInfo{};
+        dynamicBufferCreateInfo.BufferId = static_cast<uint64_t>(i) + _maxFramesInFlight;
+        dynamicBufferCreateInfo.Binding = 0;
+        dynamicBufferCreateInfo.BufferSize = sizeof(DynamicUniformBufferObject);
+        dynamicBufferCreateInfo.DestinationSet = _descriptorPool->GetDescriptorSet(_perModelDescriptorSetLayout->GetId());
+        dynamicBufferCreateInfo.DescriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+        _uniformBuffers->CreateBuffer(dynamicBufferCreateInfo);
     }
 
     _descriptorSets.clear();
     _descriptorSets.push_back(_descriptorPool->GetDescriptorSet(_globalDescriptorSetLayout->GetId()));
+    _descriptorSets.push_back(_descriptorPool->GetDescriptorSet(_perModelDescriptorSetLayout->GetId()));
 }
 
 void Mango::Renderer_ImplVulkan::BeginFrame(uint32_t currentFrame)
@@ -64,6 +81,7 @@ void Mango::Renderer_ImplVulkan::BeginFrame(uint32_t currentFrame)
 
 void Mango::Renderer_ImplVulkan::EndFrame()
 {
+    _renderData.Reset();
 }
 
 void Mango::Renderer_ImplVulkan::HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo)
@@ -123,10 +141,19 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
     const uint32_t indicesCount = static_cast<uint32_t>(_renderData.Indices.size());
     _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _renderData.Vertices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
     _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _renderData.Indices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
-    _renderData.Reset();
+    
+    UpdateGlobalDescriptorSets();
+    UpdatePerModelDescriptorSets();
 
     // Draw call
-    currentCommandBuffer.DrawIndexed(*_vertexBuffer, *_indexBuffer, _descriptorSets, _graphicsPipeline->GetPipelineLayout());
+    currentCommandBuffer.DrawIndexed(
+        *_vertexBuffer,
+        *_indexBuffer,
+        _renderData.IndicesPerDraw,
+        _renderData.DynamicOffsets,
+        _descriptorSets,
+        _graphicsPipeline->GetPipelineLayout()
+    );
 
     // End frame
     currentCommandBuffer.EndRenderPass();
@@ -150,14 +177,13 @@ void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 col
         _renderData.Vertices.push_back(vertex);
         _renderData.Indices.push_back(lastVertexCount + i); // 0, 1, 2 ... 3, 4, 5 ... 6, 7, 8 ...
     }
-    UpdateUniformBuffer(transform);
+    _renderData.IndicesPerDraw.push_back(static_cast<uint32_t>(_renderData.TriangleVertices.size()));
+    _renderData.Transforms.push_back(transform);
 }
 
-void Mango::Renderer_ImplVulkan::UpdateUniformBuffer(glm::mat4 modelMatrix)
+void Mango::Renderer_ImplVulkan::UpdateGlobalDescriptorSets()
 {
     Mango::UniformBufferObject ubo{};
-    ubo.Model = modelMatrix; // TODO: We need separate buffer for Model matrix, because it will be updated every frame
-    // And this matrices may not be updated every frame
     ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.Projection = glm::perspective(glm::radians(45.0f), _renderArea.Width / static_cast<float>(_renderArea.Height), 0.1f, 10.0f);
     ubo.Projection[1][1] *= -1;
@@ -166,4 +192,30 @@ void Mango::Renderer_ImplVulkan::UpdateUniformBuffer(glm::mat4 modelMatrix)
     void* gpuMemory = uniformBuffer.MapMemory();
     memcpy(gpuMemory, &ubo, sizeof(ubo));
     uniformBuffer.UnmapMemory();
+}
+
+void Mango::Renderer_ImplVulkan::UpdatePerModelDescriptorSets()
+{
+    const uint32_t objectsCount = static_cast<uint64_t>(_renderData.Transforms.size());
+    Mango::UniformBuffer& buffer = _uniformBuffers->GetUniformBuffer(static_cast<uint64_t>(_currentFrame) + _maxFramesInFlight);
+    const VkDeviceSize objectSize = static_cast<VkDeviceSize>(sizeof(glm::mat4));
+    const auto requiredCapacity = buffer.GetAlignedSize(objectsCount * objectSize);
+    const bool bufferResized = buffer.EnsureCapacity(requiredCapacity);
+    if (bufferResized)
+    {
+        const auto descriptorSet = _descriptorPool->GetDescriptorSet(_perModelDescriptorSetLayout->GetId());
+        _uniformBuffers->UpdateDescriptorSet(buffer, descriptorSet, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+    }
+
+    char* dynamicGpuMemory = static_cast<char*>(buffer.MapMemory());
+    const auto memoryOffset = buffer.GetAlignedSize(objectSize);
+    for (uint32_t i = 0; i < objectsCount; i++)
+    {
+        Mango::DynamicUniformBufferObject dUbo{};
+        dUbo.Model = _renderData.Transforms[i];
+        memcpy(dynamicGpuMemory, &dUbo, sizeof(dUbo));
+        dynamicGpuMemory += memoryOffset;
+        _renderData.DynamicOffsets.push_back(memoryOffset * i);
+    }
+    buffer.UnmapMemory();
 }

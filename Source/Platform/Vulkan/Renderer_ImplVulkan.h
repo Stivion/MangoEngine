@@ -40,8 +40,6 @@ namespace Mango
 	class Renderer_ImplVulkan : public Renderer
 	{
 	public:
-		typedef void (*OnResizeCallback)();
-
 		Renderer_ImplVulkan(const Renderer_ImplVulkan_CreateInfo createInfo);
 		Renderer_ImplVulkan() = delete;
 		Renderer_ImplVulkan(const Renderer_ImplVulkan&) = delete;
@@ -57,19 +55,21 @@ namespace Mango
 		void DrawTriangle(glm::mat4 transform, glm::vec4 color) override;
 
 	private:
-		void UpdateUniformBuffer(glm::mat4 modelMatrix);
+		void UpdateGlobalDescriptorSets();
+		void UpdatePerModelDescriptorSets();
 
 	private:
-		// This members is not owned by renderer
 		uint32_t _maxFramesInFlight;
 		const Mango::Context* _vulkanContext;
 
 	private:
 		std::unique_ptr<Mango::RenderPass> _renderPass;
 		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
+		std::unique_ptr<Mango::DescriptorSetLayout> _perModelDescriptorSetLayout;
 		const std::vector<VkDescriptorPoolSize> _poolSizes = // TODO: Figure out how to allocate correct pool sizes
 		{
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
 			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2 }
 		};
 		std::unique_ptr<Mango::DescriptorPool> _descriptorPool;
@@ -86,8 +86,11 @@ namespace Mango
 
 		struct RenderData
 		{
+			std::vector<glm::mat4> Transforms;
 			std::vector<Mango::Vertex> Vertices;
 			std::vector<uint16_t> Indices;
+			std::vector<uint32_t> DynamicOffsets;
+			std::vector<uint32_t> IndicesPerDraw;
 
 			const std::vector<glm::vec3> TriangleVertices{ {-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 0.0f} };
 			const std::vector<uint16_t> TriangleIndices{ 0, 1, 2 };
@@ -96,6 +99,9 @@ namespace Mango
 			{
 				Vertices.clear();
 				Indices.clear();
+				Transforms.clear();
+				DynamicOffsets.clear();
+				IndicesPerDraw.clear();
 			}
 		};
 		RenderData _renderData{};

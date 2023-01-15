@@ -89,11 +89,11 @@ Mango::RenderingLayer_ImplVulkan::RenderingLayer_ImplVulkan(const Mango::Context
     _editor = std::make_unique<Mango::ImGuiEditor_ImplGLFWVulkan>(editorCreateInfo);
 }
 
-void Mango::RenderingLayer_ImplVulkan::BeginFrame()
+bool Mango::RenderingLayer_ImplVulkan::BeginFrame()
 {
     if (_pauseRendering)
     {
-        return;
+        return false;
     }
 
     _editor->NewFrame(_currentFrame);
@@ -124,7 +124,7 @@ void Mango::RenderingLayer_ImplVulkan::BeginFrame()
         _renderer->EndFrame();
         _editor->HandleViewportResize(_viewportRenderArea, _viewportRenderAreaInfo);
         _editor->EndFrame();
-        return;
+        return false;
     }
     _editor->EndFrame();
 
@@ -134,7 +134,7 @@ void Mango::RenderingLayer_ImplVulkan::BeginFrame()
     if (nextImageResult == VK_ERROR_OUT_OF_DATE_KHR || nextImageResult == VK_SUBOPTIMAL_KHR)
     {
         FramebufferResized();
-        return;
+        return false;
     }
     else
     {
@@ -145,16 +145,15 @@ void Mango::RenderingLayer_ImplVulkan::BeginFrame()
     _fences[_currentFrame]->ResetFence();
 
     _renderer->BeginFrame(_currentFrame);
+    return true;
 }
 
-void Mango::RenderingLayer_ImplVulkan::EndFrame()
+bool Mango::RenderingLayer_ImplVulkan::EndFrame()
 {
     if (!_imageAcquired || _pauseRendering)
     {
-        return;
+        return false;
     }
-
-    _renderer->EndFrame();
 
     const uint32_t imageIndex = _swapChain->GetCurrentImageIndex();
     std::vector<VkCommandBuffer> vkCommandBuffers = 
@@ -162,6 +161,8 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
         _renderer->RecordCommandBuffer(imageIndex).GetVkCommandBuffer(),
         _editor->RecordCommandBuffer(imageIndex).GetVkCommandBuffer()
     };
+
+    _renderer->EndFrame();
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -204,17 +205,21 @@ void Mango::RenderingLayer_ImplVulkan::EndFrame()
     }
     _currentFrame = (_currentFrame + 1) % _maxFramesInFlight;
     _imageAcquired = false;
+    return true;
 }
 
 void Mango::RenderingLayer_ImplVulkan::WaitRenderingIdle()
 {
-    for (const auto& fence : _fences)
-    {
-        if (fence->IsFenceSignaled())
-        {
-            fence->WaitForFence();
-        }
-    }
+    vkDeviceWaitIdle(_vulkanContext->GetLogicalDevice()->GetDevice());
+
+    // Fences produce validation errors somehow
+    //for (const auto& fence : _fences)
+    //{
+    //    if (fence->IsFenceSignaled())
+    //    {
+    //        fence->WaitForFence();
+    //    }
+    //}
 }
 
 void Mango::RenderingLayer_ImplVulkan::FramebufferResized()

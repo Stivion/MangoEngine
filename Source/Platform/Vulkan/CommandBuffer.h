@@ -28,6 +28,8 @@ namespace Mango
 		void DrawIndexed(
 			const Mango::VertexBuffer& vertexBuffer,
 			const Mango::IndexBuffer& indexBuffer,
+			std::vector<uint32_t>& indicesPerDraw,
+			std::vector<uint32_t>& dynamicOffsets,
 			std::vector<VkDescriptorSet> descriptors,
 			const VkPipelineLayout& pipelineLayout
 		) const;

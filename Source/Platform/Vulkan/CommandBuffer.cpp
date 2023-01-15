@@ -55,10 +55,14 @@ void Mango::CommandBuffer::BeginRenderPass(const VkFramebuffer& framebuffer, con
 void Mango::CommandBuffer::DrawIndexed(
     const Mango::VertexBuffer& vertexBuffer,
     const Mango::IndexBuffer& indexBuffer,
+    std::vector<uint32_t>& indicesPerDraw,
+    std::vector<uint32_t>& dynamicOffsets,
     std::vector<VkDescriptorSet> descriptors,
     const VkPipelineLayout& pipelineLayout
 ) const
 {
+    M_ASSERT(indicesPerDraw.size() == dynamicOffsets.size() && "Indices per draw and dynamic offset arrays should have matching size");
+
     VkBuffer vertexBuffers[] = { vertexBuffer.GetBuffer() };
     VkDeviceSize offsets[] = { 0 };
     auto descriptorSets = descriptors.data();
@@ -66,18 +70,25 @@ void Mango::CommandBuffer::DrawIndexed(
 
     vkCmdBindVertexBuffers(_commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(_commandBuffer, indexBuffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT16);
-    vkCmdBindDescriptorSets(
-        _commandBuffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipelineLayout,
-        0,
-        descriptorSetsCount,
-        descriptorSets,
-        0,
-        nullptr
-    );
 
-    vkCmdDrawIndexed(_commandBuffer, indexBuffer.GetIndicesCount(), 1, 0, 0, 0);
+    uint32_t firstIndex = 0;
+    const uint32_t drawCalls = static_cast<uint32_t>(indicesPerDraw.size());
+    for (uint32_t i = 0; i < drawCalls; i++)
+    {
+        vkCmdBindDescriptorSets(
+            _commandBuffer,
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipelineLayout,
+            0,
+            descriptorSetsCount,
+            descriptorSets,
+            1,
+            &dynamicOffsets[i]
+        );
+
+        vkCmdDrawIndexed(_commandBuffer, indicesPerDraw[i], 1, firstIndex, 0, 0);
+        firstIndex += indicesPerDraw[i];
+    }
 }
 
 void Mango::CommandBuffer::EndRenderPass() const

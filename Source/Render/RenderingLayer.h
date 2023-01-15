@@ -10,10 +10,10 @@ namespace Mango
 		typedef void (*FramebufferResizedCallback)(void* userPointer);
 
 		// Begin new frame. Keeps frame count internally
-		virtual void BeginFrame() = 0;
+		virtual bool BeginFrame() = 0;
 
 		// End frame and present to screen
-		virtual void EndFrame() = 0;
+		virtual bool EndFrame() = 0;
 
 	protected:
 		uint32_t _currentFrame;

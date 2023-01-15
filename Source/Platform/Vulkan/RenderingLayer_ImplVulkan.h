@@ -27,8 +27,8 @@ namespace Mango
 		RenderingLayer_ImplVulkan(const RenderingLayer_ImplVulkan&) = delete;
 		RenderingLayer_ImplVulkan operator=(const RenderingLayer_ImplVulkan&) = delete;
 
-		void BeginFrame() override;
-		void EndFrame() override;
+		bool BeginFrame() override;
+		bool EndFrame() override;
 		void WaitRenderingIdle();
 
 		Mango::Renderer& GetRenderer() const { return *_renderer; }

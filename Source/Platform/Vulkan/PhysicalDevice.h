@@ -21,9 +21,11 @@ namespace Mango
 
         uint32_t FindSuitableMemoryType(uint32_t memoryType, VkMemoryPropertyFlags requiredProperties) const;
         
-        const VkPhysicalDevice& GetDevice() const { return _physicalDevice; }
+        inline const VkPhysicalDevice& GetDevice() const { return _physicalDevice; }
+        inline const VkPhysicalDeviceLimits& GetLimits() const { return _deviceLimits; }
     private:
         VkPhysicalDevice _physicalDevice;
+        VkPhysicalDeviceLimits _deviceLimits;
 
     private:
         static bool IsDeviceSuitable(VkPhysicalDevice& device, VkSurfaceKHR& renderSurface);
