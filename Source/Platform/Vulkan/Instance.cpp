@@ -30,14 +30,24 @@ Mango::Instance::Instance()
 
     uint32_t glfwExtensionsCount = 0;
     auto glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionsCount);
+    std::vector<const char*> requiredExtensions;
+    for (size_t i = 0; i < glfwExtensionsCount; i++)
+    {
+        requiredExtensions.push_back(glfwExtensions[i]);
+    }
+    if (enableValidationLayers)
+    {
+        requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+
     M_TRACE("GLFW required extensions count: " + std::to_string(glfwExtensionsCount));
-    M_ASSERT(CheckRequiredExtensions(glfwExtensions, glfwExtensionsCount) && "One or more required extension layers is missing");
+    M_ASSERT(CheckRequiredExtensions(requiredExtensions.data(), static_cast<uint32_t>(requiredExtensions.size())) && "One or more required extension layers is missing");
 
     VkInstanceCreateInfo instanceCreateInfo{};
     instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.pApplicationInfo = &applicationInfo;
-    instanceCreateInfo.enabledExtensionCount = glfwExtensionsCount;
-    instanceCreateInfo.ppEnabledExtensionNames = glfwExtensions;
+    instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+    instanceCreateInfo.ppEnabledExtensionNames = requiredExtensions.data();
     if (enableValidationLayers)
     {
         instanceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());

@@ -22,10 +22,29 @@ bool Mango::GLFWWindow::ShouldClose()
     return glfwWindowShouldClose(_window);
 }
 
+void Mango::GLFWWindow::PollEvents()
+{
+    glfwPollEvents();
+}
+
 void Mango::GLFWWindow::SetFramebufferResizedCallback(FramebufferResizedCallback callback)
 {
     _framebufferResizedCallback = callback;
     glfwSetFramebufferSizeCallback(_window, GLFWWindowFramebufferResizedCallback);
+}
+
+const uint32_t Mango::GLFWWindow::GetWindowWidth() const
+{
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    return static_cast<uint32_t>(width);
+}
+
+const uint32_t Mango::GLFWWindow::GetWindowHeight() const
+{
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    return static_cast<uint32_t>(height);
 }
 
 void Mango::GLFWWindow::GLFWWindowFramebufferResizedCallback(GLFWwindow* window, int width, int height)

@@ -43,7 +43,7 @@ void Mango::VertexBuffer::CopyToVertexBuffer(
 	allocateInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
-	auto allocateCommandBufferResult = vkAllocateCommandBuffers(_logicalDevice, &allocateInfo, &commandBuffer);
+	auto allocateCommandBufferResult = vkAllocateCommandBuffers(_logicalDevice.GetDevice(), &allocateInfo, &commandBuffer);
 	M_TRACE("Allocate command buffer result is: " + std::to_string(allocateCommandBufferResult));
 	M_ASSERT(allocateCommandBufferResult == VK_SUCCESS && "Failed to allocate command buffer");
 
@@ -71,6 +71,6 @@ void Mango::VertexBuffer::CopyToVertexBuffer(
 	auto submitResult = vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	M_TRACE("Copy buffer submit result is: " + std::to_string(submitResult));
 	M_ASSERT(submitResult == VK_SUCCESS && "Failed to submit buffer copy command");
-	vkQueueWaitIdle(graphicsQueue);
-	vkFreeCommandBuffers(_logicalDevice, commandPool, 1, &commandBuffer);
+	vkQueueWaitIdle(graphicsQueue); // NOTE: Slows performance?
+	vkFreeCommandBuffers(_logicalDevice.GetDevice(), commandPool, 1, &commandBuffer);
 }

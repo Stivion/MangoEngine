@@ -3,11 +3,14 @@
 Mango::FramebuffersPool::FramebuffersPool(
 	const Mango::LogicalDevice& logicalDevice,
 	const Mango::RenderPass& renderPass,
-	const Mango::SwapChain& swapChain
-) : _framebuffersCount(static_cast<uint32_t>(swapChain.GetSwapChainImageViews().size()))
+	const Mango::RenderArea& renderArea,
+	const Mango::RenderAreaInfo& renderAreaInfo
+) : _framebuffersCount(static_cast<uint32_t>(renderAreaInfo.ImageViews.size()))
 {
-	const auto& extent = swapChain.GetSwapChainExtent();
-	const auto& imageViews = swapChain.GetSwapChainImageViews();
+	VkExtent2D extent{};
+	extent.width = renderArea.Width;
+	extent.height = renderArea.Height;
+	const auto& imageViews = renderAreaInfo.ImageViews;
 	_framebuffers.resize(_framebuffersCount);
 
 	for (size_t i = 0; i < imageViews.size(); i++)

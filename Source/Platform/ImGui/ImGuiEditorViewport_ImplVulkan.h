@@ -1,20 +1,22 @@
 #pragma once
 
-// TODO: Fix paths after Vulkan is moved
 #include "../Vulkan/PhysicalDevice.h"
 #include "../Vulkan/LogicalDevice.h"
-#include "../Vulkan/SwapChain.h"
+#include "../Vulkan/RenderArea.h"
+#include "../Vulkan/Image.h"
 
 #include <vulkan/vulkan.h>
 #include <imgui_impl_vulkan.h>
+
+#include <memory>
 
 namespace Mango
 {
 	struct ImGuiEditorViewport_ImplVulkan_CreateInfo
 	{
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::LogicalDevice* LogicalDevice;
-		const Mango::SwapChain* SwapChain;
+		const Mango::Context* VulkanContext;
+		Mango::RenderArea RenderArea;
+		Mango::RenderAreaInfo RenderAreaInfo;
 	};
 
 	class ImGuiEditorViewport_ImplVulkan
@@ -25,26 +27,22 @@ namespace Mango
 		ImGuiEditorViewport_ImplVulkan operator=(const ImGuiEditorViewport_ImplVulkan&) = delete;
 		~ImGuiEditorViewport_ImplVulkan();
 
-		void RecreateEditorViewport();
+		void RecreateEditorViewport(const Mango::RenderArea renderArea, const Mango::RenderAreaInfo renderAreaInfo);
 
-		const VkImage& GetViewportImage() const { return _viewportImage; }
+		const VkImage& GetViewportImage() const { return _image->Get(); }
 		const VkDescriptorSet& GetViewportImageDescriptorSet() const { return _viewportImageDescriptorSet; }
 
 	private:
-		void InitializeViewportImage();
-		void InitializeViewportImageView();
 		void InitializeImageSampler();
 		void DestroyEditorViewport();
 
 	private:
-		VkImage _viewportImage;
-		VkDeviceMemory _viewportImageMemory;
-		VkImageView _viewportImageView;
+		std::unique_ptr<Mango::Image> _image;
 		VkSampler _viewportImageSampler;
 		VkDescriptorSet _viewportImageDescriptorSet;
 
-		const Mango::PhysicalDevice* _physicalDevice;
-		const Mango::LogicalDevice* _logicalDevice;
-		const Mango::SwapChain* _swapChain;
+		const Mango::Context* _vulkanContext;
+		Mango::RenderArea _renderArea;
+		Mango::RenderAreaInfo _renderAreaInfo;
 	};
 }

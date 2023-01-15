@@ -2,13 +2,7 @@
 
 #include "../../Render/Renderer.h"
 
-#include "Instance.h"
-#include "PhysicalDevice.h"
-#include "QueueFamilyIndices.h"
-#include "RenderSurface.h"
-#include "LogicalDevice.h"
-#include "SwapChain.h"
-#include "SwapChainSupportDetails.h"
+#include "Context.h"
 #include "RenderPass.h"
 #include "FramebuffersPool.h"
 #include "CommandPool.h"
@@ -23,6 +17,7 @@
 #include "Vertex.h"
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
+#include "RenderArea.h"
 
 #include <vulkan/vulkan.h>
 
@@ -37,20 +32,14 @@ namespace Mango
 	struct Renderer_ImplVulkan_CreateInfo
 	{
 		uint32_t MaxFramesInFlight;
-		uint32_t WindowFramebufferWidth;
-		uint32_t WindowFramebufferHeight;
-		const Mango::Instance* Instance;
-		const Mango::RenderSurface* RenderSurface;
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::QueueFamilyIndices* QueueFamilyIndices;
-		const Mango::LogicalDevice* LogicalDevice;
+		Mango::RenderArea RenderArea;
+		Mango::RenderAreaInfo RenderAreaInfo;
+		const Mango::Context* VulkanContext;
 	};
 
 	class Renderer_ImplVulkan : public Renderer
 	{
 	public:
-		typedef void (*OnResizeCallback)();
-
 		Renderer_ImplVulkan(const Renderer_ImplVulkan_CreateInfo createInfo);
 		Renderer_ImplVulkan() = delete;
 		Renderer_ImplVulkan(const Renderer_ImplVulkan&) = delete;
@@ -58,40 +47,29 @@ namespace Mango
 
 		void BeginFrame(uint32_t currentFrame);
 		void EndFrame();
-		void HandleResize();
+		void HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo);
+
+		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex);
 
 		void DrawRect(glm::mat4 transform, glm::vec4 color) override;
 		void DrawTriangle(glm::mat4 transform, glm::vec4 color) override;
 
-		const Mango::SwapChain* GetSwapChain() const { return _swapChain.get(); }
-		const Mango::GraphicsPipeline* GetGraphicsPipeline() const { return _graphicsPipeline.get(); }
-		void SubmitCommandBuffers(std::vector<Mango::CommandBuffer> commandBuffers);
-
-		void SetViewportInfo(Mango::ViewportInfo info);
-		void SetOnResizeCallback(OnResizeCallback callback);
-
-		const Mango::ViewportInfo& GetCurrentViewportInfo() const { return _viewportInfo; }
-		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _commandBuffers->GetCommandBuffer(_currentFrame); }
+	private:
+		void UpdateGlobalDescriptorSets();
+		void UpdatePerModelDescriptorSets();
 
 	private:
-		void UpdateUniformBuffer(glm::mat4 modelMatrix);
-
-	private:
-		// This members is not owned by renderer
 		uint32_t _maxFramesInFlight;
-		const Mango::Instance* _instance;
-		const Mango::PhysicalDevice* _physicalDevice;
-		const Mango::QueueFamilyIndices* _queueFamilyIndices;
-		const Mango::RenderSurface* _renderSurface;
-		const Mango::LogicalDevice* _logicalDevice;
+		const Mango::Context* _vulkanContext;
 
 	private:
-		std::unique_ptr<Mango::SwapChain> _swapChain;
 		std::unique_ptr<Mango::RenderPass> _renderPass;
 		std::unique_ptr<Mango::DescriptorSetLayout> _globalDescriptorSetLayout;
+		std::unique_ptr<Mango::DescriptorSetLayout> _perModelDescriptorSetLayout;
 		const std::vector<VkDescriptorPoolSize> _poolSizes = // TODO: Figure out how to allocate correct pool sizes
 		{
 			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 3 },
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1 },
 			{ VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 2 }
 		};
 		std::unique_ptr<Mango::DescriptorPool> _descriptorPool;
@@ -100,19 +78,19 @@ namespace Mango
 		std::unique_ptr<Mango::FramebuffersPool> _framebuffers;
 		std::unique_ptr<Mango::CommandPool> _commandPool;
 		std::unique_ptr<Mango::CommandBuffersPool> _commandBuffers;
-		std::vector<std::unique_ptr<Mango::Fence>> _fences;
-		std::vector<std::unique_ptr<Mango::Semaphore>> _imageAvailableSemaphores;
-		std::vector<std::unique_ptr<Mango::Semaphore>> _renderFinishedSemaphores;
 		std::vector<VkDescriptorSet> _descriptorSets;
 
 		uint32_t _currentFrame = 0;
-		Mango::ViewportInfo _viewportInfo;
-		OnResizeCallback _onResizeCallback;
+		Mango::RenderArea _renderArea;
+		Mango::RenderAreaInfo _renderAreaInfo;
 
 		struct RenderData
 		{
+			std::vector<glm::mat4> Transforms;
 			std::vector<Mango::Vertex> Vertices;
 			std::vector<uint16_t> Indices;
+			std::vector<uint32_t> DynamicOffsets;
+			std::vector<uint32_t> IndicesPerDraw;
 
 			const std::vector<glm::vec3> TriangleVertices{ {-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 0.0f} };
 			const std::vector<uint16_t> TriangleIndices{ 0, 1, 2 };
@@ -121,6 +99,9 @@ namespace Mango
 			{
 				Vertices.clear();
 				Indices.clear();
+				Transforms.clear();
+				DynamicOffsets.clear();
+				IndicesPerDraw.clear();
 			}
 		};
 		RenderData _renderData{};

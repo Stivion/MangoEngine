@@ -4,10 +4,15 @@
 
 namespace Mango
 {
+	// TODO: This hardcoded structs could be any data that we want to pass to shaders
 	struct UniformBufferObject
 	{
-		glm::mat4 Model;
-		glm::mat4 View;
-		glm::mat4 Projection;
+		alignas(16) glm::mat4 View;
+		alignas(16) glm::mat4 Projection;
+	};
+
+	struct DynamicUniformBufferObject
+	{
+		alignas(16) glm::mat4 Model;
 	};
 }

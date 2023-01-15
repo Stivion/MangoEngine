@@ -4,7 +4,7 @@
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "RenderPass.h"
-#include "SwapChain.h"
+#include "RenderArea.h"
 
 #include <vulkan/vulkan.h>
 
@@ -18,10 +18,9 @@ namespace Mango
 		CommandBuffersPool(
 			uint32_t commandBuffersCount,
 			const Mango::LogicalDevice& logicalDevice,
-			const Mango::SwapChain& swapChain,
 			const Mango::RenderPass& renderPass,
 			const Mango::CommandPool& commandPool,
-			const Mango::GraphicsPipeline& graphicsPipeline
+			const Mango::RenderArea& renderArea
 		);
 		CommandBuffersPool() = delete;
 		CommandBuffersPool(const CommandBuffersPool&) = delete;

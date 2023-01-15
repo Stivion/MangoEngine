@@ -15,7 +15,8 @@ namespace Mango
 		Semaphore operator=(const Semaphore&) = delete;
 		~Semaphore();
 
-		VkSemaphore& GetSemaphore() { return _semaphore; }
+		const VkSemaphore& GetSemaphore() { return _semaphore; }
+		const VkSemaphore& GetSemaphore() const { return _semaphore; }
 
 	private:
 		VkSemaphore _semaphore;

@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "LogicalDevice.h"
-#include "SwapChain.h"
 
 #include <vulkan/vulkan.h>
 
@@ -9,6 +8,7 @@ namespace Mango
 {
     struct RenderPassCreateInfo
     {
+        VkFormat ImageFormat;
         VkImageLayout ColorAttachmentReferenceLayout;
         VkImageLayout ColorAttachmentFinalLayout;
     };
@@ -16,13 +16,13 @@ namespace Mango
     class RenderPass
     {
     public:
-        RenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain, const RenderPassCreateInfo& createInfo);
+        RenderPass(const Mango::LogicalDevice& logicalDevice, const RenderPassCreateInfo& createInfo);
         RenderPass() = delete;
         RenderPass(const RenderPass&) = delete;
         RenderPass operator=(const RenderPass&) = delete;
         ~RenderPass();
 
-        void RecreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain);
+        void RecreateRenderPass(const Mango::LogicalDevice& logicalDevice, VkFormat imageFormat);
 
         const VkRenderPass& GetRenderPass() const { return _renderPass; }
         
@@ -33,6 +33,6 @@ namespace Mango
 
     private:
         void DisposeVulkanObjects();
-        void CreateRenderPass(const Mango::LogicalDevice& logicalDevice, const Mango::SwapChain& swapChain);
+        void CreateRenderPass(const Mango::LogicalDevice& logicalDevice, VkFormat imageFormat);
     };
 }

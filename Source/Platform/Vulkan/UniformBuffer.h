@@ -21,5 +21,10 @@ namespace Mango
 		~UniformBuffer() = default;
 
 		void* MapMemory() const;
+		VkDeviceSize GetAlignedSize(const VkDeviceSize bufferSizeBytes);
+		bool EnsureCapacity(VkDeviceSize bufferSizeBytes);
+
+	private:
+		VkDeviceSize GetAlignedSize(const Mango::PhysicalDevice& physicalDevice, const VkDeviceSize bufferSizeBytes);
 	};
 }

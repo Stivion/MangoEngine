@@ -2,8 +2,8 @@
 
 #include "LogicalDevice.h"
 #include "RenderPass.h"
-#include "SwapChain.h"
 #include "Framebuffer.h"
+#include "RenderArea.h"
 
 #include <vulkan/vulkan.h>
 
@@ -17,7 +17,8 @@ namespace Mango
         FramebuffersPool(
             const Mango::LogicalDevice& logicalDevice,
             const Mango::RenderPass& renderPass,
-            const Mango::SwapChain& swapChain
+            const Mango::RenderArea& renderArea,
+            const Mango::RenderAreaInfo& renderAreaInfo
         );
         FramebuffersPool() = delete;
         FramebuffersPool(const FramebuffersPool&) = delete;

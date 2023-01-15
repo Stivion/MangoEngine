@@ -25,6 +25,10 @@ Mango::PhysicalDevice::PhysicalDevice(Mango::Instance& instance, Mango::RenderSu
     {
         if (IsDeviceSuitable(physicalDevices[deviceIndex], vkRenderSurface))
         {
+            VkPhysicalDeviceProperties deviceProperties;
+            vkGetPhysicalDeviceProperties(physicalDevices[deviceIndex], &deviceProperties);
+
+            _deviceLimits = deviceProperties.limits;
             _physicalDevice = physicalDevices[deviceIndex];
             break;
         }

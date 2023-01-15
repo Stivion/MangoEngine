@@ -18,7 +18,6 @@ namespace Mango
 
 		virtual void NewFrame(uint32_t currentFrame);
 		virtual void EndFrame();
-		virtual void Draw() const = 0;
 
 	protected:
 		ImTextureID _viewportTextureId;

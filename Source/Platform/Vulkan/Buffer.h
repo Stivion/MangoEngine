@@ -26,12 +26,19 @@ namespace Mango
 		void UnmapMemory() const;
 
 		const VkBuffer& GetBuffer() const { return _buffer; }
+		const VkDeviceSize GetSize() const { return _bufferSize; }
 
 	protected:
+		void ReallocateBuffer(VkDeviceSize bufferSizeBytes);
+
+	protected:
+		VkBufferUsageFlags _bufferUsage;
+		VkMemoryPropertyFlags _requiredProperties;
 		VkBuffer _buffer;
 		VkDeviceMemory _bufferMemory;
 		VkDeviceSize _bufferSize;
-		const VkDevice& _logicalDevice;
+		const Mango::LogicalDevice& _logicalDevice;
+		const Mango::PhysicalDevice& _physicalDevice;
 
 	private:
 		void AllocateMemory(const Mango::PhysicalDevice& physicalDevice, VkMemoryPropertyFlags requiredProperties);

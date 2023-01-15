@@ -17,6 +17,7 @@ namespace Mango
 
 		void WaitForFence();
 		void ResetFence();
+		bool IsFenceSignaled(); // Signaled means it is waitable
 
 		const VkFence& GetFence() const { return _fence; }
 

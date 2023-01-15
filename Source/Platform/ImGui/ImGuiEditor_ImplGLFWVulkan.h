@@ -2,14 +2,9 @@
 
 #include "../../ImGui/ImGuiEditor.h"
 
-#include "../Vulkan/Instance.h"
-#include "../Vulkan/PhysicalDevice.h"
-#include "../Vulkan/RenderSurface.h"
-#include "../Vulkan/LogicalDevice.h"
-#include "../Vulkan/QueueFamilyIndices.h"
+#include "../Vulkan/Context.h"
 #include "../Vulkan/SwapChain.h"
 #include "../Vulkan/SwapChainSupportDetails.h"
-#include "../Vulkan/GraphicsPipeline.h"
 #include "../Vulkan/RenderPass.h"
 #include "../Vulkan/FramebuffersPool.h"
 #include "../Vulkan/DescriptorPool.h"
@@ -30,16 +25,12 @@ namespace Mango
 {
 	struct ImGuiEditor_ImplGLFWVulkan_CreateInfo
 	{
-		const Mango::GLFWWindow* Window;
 		uint32_t MaxFramesInFlight;
-		const Mango::Instance* Instance;
-		const Mango::PhysicalDevice* PhysicalDevice;
-		const Mango::RenderSurface* RenderSurface;
-		const Mango::LogicalDevice* LogicalDevice;
-		const Mango::QueueFamilyIndices* QueueFamilyIndices;
-		const Mango::SwapChain* SwapChain;
-		const Mango::GraphicsPipeline* GraphicsPipeline;
-		Mango::ViewportInfo ViewportInfo;
+		const Mango::Context* VulkanContext;
+		Mango::RenderArea RenderArea;
+		Mango::RenderAreaInfo RenderAreaInfo;
+		Mango::RenderArea ViewportRenderArea;
+		Mango::RenderAreaInfo ViewportAreaInfo;
 	};
 
 	class ImGuiEditor_ImplGLFWVulkan : public ImGuiEditor
@@ -52,9 +43,10 @@ namespace Mango
 
 		void NewFrame(uint32_t currentFrame) override;
 		void EndFrame() override;
-		void Draw() const override;
+		const Mango::CommandBuffer& RecordCommandBuffer(uint32_t imageIndex);
 
-		void HandleResize();
+		void HandleResize(Mango::RenderArea renderArea, Mango::RenderAreaInfo renderAreaInfo);
+		void HandleViewportResize(const Mango::RenderArea viewportRenderArea, const Mango::RenderAreaInfo viewportRenderAreaInfo);
 
 		const Mango::CommandBuffer& GetCurrentCommandBuffer() const { return _imGuiCommandBuffers->GetCommandBuffer(_currentFrame); }
 
@@ -68,11 +60,12 @@ namespace Mango
 		);
 
 	private:
-		const Mango::LogicalDevice& _logicalDevice;
-		const Mango::SwapChain& _swapChain;
-		const Mango::GraphicsPipeline& _graphicsPipeline;
 		const uint32_t _maxFramesInFlight;
-		Mango::ViewportInfo _viewportInfo;
+		const Mango::Context* _vulkanContext;
+		Mango::RenderArea _renderArea;
+		Mango::RenderArea _viewportRenderArea;
+		Mango::RenderAreaInfo _renderAreaInfo;
+		Mango::RenderAreaInfo _viewportRenderAreaInfo;
 
 		const std::vector<VkDescriptorPoolSize> _imGuiPoolSizes =
 		{
