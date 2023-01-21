@@ -92,6 +92,8 @@ namespace Mango
 			std::vector<uint32_t> DynamicOffsets;
 			std::vector<uint32_t> IndicesPerDraw;
 
+			const std::vector<glm::vec3> RectangleVertices{ {-1.0f, -1.0f, 0.0f}, {-1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 0.0f } };
+			const std::vector<uint16_t> RectangleIndices{ 0, 1, 2, 0, 2, 3 };
 			const std::vector<glm::vec3> TriangleVertices{ {-1.0f, -1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, -1.0f, 0.0f} };
 			const std::vector<uint16_t> TriangleIndices{ 0, 1, 2 };
 

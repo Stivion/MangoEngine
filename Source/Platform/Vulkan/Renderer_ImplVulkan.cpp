@@ -163,7 +163,20 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
 
 void Mango::Renderer_ImplVulkan::DrawRect(glm::mat4 transform, glm::vec4 color)
 {
-    // TODO: Write implmentation
+    const uint32_t vertexCount = static_cast<uint32_t>(_renderData.RectangleVertices.size());
+    
+    const uint32_t lastVertexCount = _renderData.Vertices.size();
+    for (size_t i = 0; i < vertexCount; i++)
+    {
+        Mango::Vertex vertex{ _renderData.RectangleVertices[i], color };
+        _renderData.Vertices.push_back(vertex);
+    }
+    for (size_t i = 0; i < _renderData.RectangleIndices.size(); i++)
+    {
+        _renderData.Indices.push_back(lastVertexCount + _renderData.RectangleIndices[i]);
+    }
+    _renderData.IndicesPerDraw.push_back(static_cast<uint32_t>(_renderData.RectangleIndices.size()));
+    _renderData.Transforms.push_back(transform);
 }
 
 void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 color)
@@ -184,7 +197,7 @@ void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 col
 void Mango::Renderer_ImplVulkan::UpdateGlobalDescriptorSets()
 {
     Mango::UniformBufferObject ubo{};
-    ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, -5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     ubo.Projection = glm::perspective(glm::radians(45.0f), _renderArea.Width / static_cast<float>(_renderArea.Height), 0.1f, 10.0f);
     ubo.Projection[1][1] *= -1;
 
