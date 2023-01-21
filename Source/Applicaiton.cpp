@@ -3,13 +3,13 @@
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-
 Mango::Application::Application()
 {
     InitializeWindow();
     InitializeVulkan();
+
+    auto& renderer = _renderingLayer->GetRenderer();
+    _scene = std::make_unique<Mango::Scene>(renderer);
 }
 
 void Mango::Application::Run()
@@ -45,23 +45,8 @@ void Mango::Application::DrawFrame()
     {
         return;
     }
-
-    auto& renderer = _renderingLayer->GetRenderer();
-
-    glm::mat4 transform = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-        * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    renderer.DrawTriangle(transform, { 1.0f, 1.0f, 0.0f, 1.0f });
-
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-        * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    renderer.DrawTriangle(transform, { 0.0f, 1.0f, 1.0f, 1.0f });
-
-    transform = glm::translate(glm::mat4(1.0f), glm::vec3(-1.5f, 0.0f, 0.0f))
-        * glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f))
-        * glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-    renderer.DrawRect(transform, { 1.0f, 1.0f, 1.0f, 1.0f });
+    
+    _scene->OnUpdate();
 
     _renderingLayer->EndFrame();
 }

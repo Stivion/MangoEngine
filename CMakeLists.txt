@@ -77,6 +77,10 @@ target_link_libraries(${PROJECT_NAME} ImGui)
 include_directories(Libraries/stb)
 link_directories(Libraries/stb)
 
+# Link with EnTT
+add_subdirectory(Libraries/entt)
+target_link_libraries(${PROJECT_NAME} EnTT::EnTT)
+
 # Compile shaders
 file(
         GLOB VERTEX_SHADERS

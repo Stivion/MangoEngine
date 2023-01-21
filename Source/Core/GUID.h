@@ -17,6 +17,7 @@ namespace Mango
 	public:
 		GUID();
 		GUID(uint64_t id);
+		GUID& operator=(const GUID&) = default;
 
 	private:
 		static std::random_device _randomDevice;
@@ -24,6 +25,6 @@ namespace Mango
 		static std::uniform_int_distribution<unsigned long long> _distribution;
 
 	private:
-		const uint64_t _id;
+		uint64_t _id;
 	};
 }
