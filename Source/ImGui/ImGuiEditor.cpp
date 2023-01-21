@@ -18,7 +18,18 @@ Mango::ImGuiEditor::~ImGuiEditor()
 
 void Mango::ImGuiEditor::ConstructEditor()
 {
-    ImGui::Begin("Viewport");
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    ImGui::Begin("Editor", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    
+    ImGui::SetWindowPos({ 0.0f, 0.0f });
+    ImGui::SetWindowSize(ImGui::GetIO().DisplaySize);
+
+    auto dockSpaceId = ImGui::GetID("EditorDockSpace");
+    ImGui::DockSpace(dockSpaceId, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
+
+    ImGui::End();
+    ImGui::PopStyleVar();
+
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
