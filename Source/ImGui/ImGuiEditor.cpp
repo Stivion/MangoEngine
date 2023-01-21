@@ -7,6 +7,7 @@ Mango::ImGuiEditor::ImGuiEditor(const Window* window)
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize.x = static_cast<float>(window->GetWindowWidth());
     io.DisplaySize.y = static_cast<float>(window->GetWindowHeight());
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
 }
 
@@ -18,6 +19,7 @@ Mango::ImGuiEditor::~ImGuiEditor()
 void Mango::ImGuiEditor::ConstructEditor()
 {
     ImGui::Begin("Viewport");
+    ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
