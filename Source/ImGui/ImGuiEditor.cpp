@@ -32,11 +32,19 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::PopStyleVar();
 
     // Viewport window
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
+    // NOTE: Vulkan can't render to 0px screen so we force viewport to be at least 1px
+    if (viewportPanelSize.x < 1.0f || viewportPanelSize.y < 1.0f)
+    {
+        ImGui::SetWindowSize({ 1.0f, 1.0f });
+    }
+    viewportPanelSize = ImGui::GetContentRegionAvail();
     _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
     ImGui::End();
+    ImGui::PopStyleVar();
 
     // Entities window
     ImGui::Begin("Entities");
@@ -55,8 +63,45 @@ void Mango::ImGuiEditor::ConstructEditor()
             }
             _selectableEntities[id.GetId()] = true;
         }
+
+        // Single entity popup
+        if (ImGui::BeginPopupContextItem("Single entity popup"))
+        {
+            if (ImGui::Button("Delete entity"))
+            {
+                _scene->DeleteEntity(id.GetId());
+            }
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::IsWindowHovered() && ImGui::IsItemClicked(ImGuiMouseButton_Right))
+        {
+            ImGui::OpenPopupOnItemClick("Single entity popup");
+        }
+
         ImGui::PopID();
     }
+
+    // Entities popup
+    if (ImGui::BeginPopup("Entities popup"))
+    {
+        if (ImGui::Button("Add triangle"))
+        {
+            _scene->AddTriangle();
+        }
+
+        if (ImGui::Button("Add rectangle"))
+        {
+            _scene->AddRectangle();
+        }
+        ImGui::EndPopup();
+    }
+
+    if (ImGui::IsWindowHovered() && !ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+    {
+        ImGui::OpenPopup("Entities popup");
+    }
+
     ImGui::End();
 
     // Entities component properties window

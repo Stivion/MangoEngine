@@ -23,8 +23,19 @@ namespace Mango
 		// Happens every frame
 		void OnUpdate();
 
+		// Add new triangle entity to scene
+		void AddTriangle();
+
+		// Add new rectangle entity to scene
+		void AddRectangle();
+
+		void DeleteEntity(Mango::GUID entityId);
+
 	private:
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
+
+	private:
+		void AddDefaultEntity(Mango::GeometryType geometry);
 	};
 }

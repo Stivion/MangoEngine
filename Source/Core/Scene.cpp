@@ -45,3 +45,37 @@ void Mango::Scene::OnUpdate()
         }
     }
 }
+
+void Mango::Scene::AddTriangle()
+{
+    AddDefaultEntity(Mango::GeometryType::Triangle);
+}
+
+void Mango::Scene::AddRectangle()
+{
+    AddDefaultEntity(Mango::GeometryType::Rectangle);
+}
+
+void Mango::Scene::DeleteEntity(Mango::GUID entityId)
+{
+    auto view = _registry.view<IdComponent>();
+    // TODO: Iteration over whole registry may be not needed here
+    for (const auto [entity, id] : view.each())
+    {
+        if (id.GetId() == entityId)
+        {
+            _registry.destroy(entity);
+            return;
+        }
+    }
+}
+
+void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
+{
+    const auto entity = _registry.create();
+    _registry.emplace<IdComponent>(entity);
+    _registry.emplace<NameComponent>(entity);
+    _registry.emplace<TransformComponent>(entity, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    _registry.emplace<ColorComponent>(entity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+    _registry.emplace<GeometryComponent>(entity, geometry);
+}

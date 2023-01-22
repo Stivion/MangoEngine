@@ -28,6 +28,13 @@ namespace Mango
 
 		glm::mat4 GetTransform()
 		{
+			// NOTE: If rotation axis is zero, then we don't need to rotate at all (geometry would disappear otherwise)
+			if (_rotationAxis == glm::vec3(0.0f, 0.0f, 0.0f))
+			{
+				return glm::translate(glm::mat4(1.0f), _translation)
+					* glm::scale(glm::mat4(1.0f), _scale);
+			}
+
 			return glm::translate(glm::mat4(1.0f), _translation)
 				* glm::rotate(glm::mat4(1.0f), glm::radians(_rotation), _rotationAxis)
 				* glm::scale(glm::mat4(1.0f), _scale);

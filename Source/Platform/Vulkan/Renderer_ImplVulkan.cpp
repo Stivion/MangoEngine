@@ -139,6 +139,14 @@ const Mango::CommandBuffer& Mango::Renderer_ImplVulkan::RecordCommandBuffer(uint
     // Group all verices into buffers
     const uint32_t vertexCount = static_cast<uint32_t>(_renderData.Vertices.size());
     const uint32_t indicesCount = static_cast<uint32_t>(_renderData.Indices.size());
+    
+    if (vertexCount == 0)
+    {
+        currentCommandBuffer.EndRenderPass();
+        currentCommandBuffer.EndCommandBuffer();
+        return currentCommandBuffer;
+    }
+
     _vertexBuffer = std::make_unique<Mango::VertexBuffer>(vertexCount, sizeof(Vertex) * vertexCount, _renderData.Vertices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
     _indexBuffer = std::make_unique<Mango::IndexBuffer>(indicesCount, sizeof(uint16_t) * indicesCount, _renderData.Indices.data(), *_vulkanContext->GetPhysicalDevice(), *_vulkanContext->GetLogicalDevice(), *_commandPool);
     
