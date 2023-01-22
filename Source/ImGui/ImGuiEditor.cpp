@@ -18,8 +18,9 @@ Mango::ImGuiEditor::~ImGuiEditor()
 
 void Mango::ImGuiEditor::ConstructEditor()
 {
+    // Main Mango Engine window
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Editor", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Mango Engine", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
     
     ImGui::SetWindowPos({ 0.0f, 0.0f });
     ImGui::SetWindowSize(ImGui::GetIO().DisplaySize);
@@ -30,11 +31,99 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::End();
     ImGui::PopStyleVar();
 
+    // Viewport window
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
     ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
     _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
     ImGui::End();
+
+    // Entities window
+    ImGui::Begin("Entities");
+    for (auto [_, id, name] : _scene->GetRegistry().view<IdComponent, NameComponent>().each())
+    {
+        if (!_selectableEntities.contains(id.GetId()))
+        {
+            _selectableEntities[id.GetId()] = false;
+        }
+        ImGui::PushID(id.GetId());
+        if (ImGui::Selectable(name.GetName(), _selectableEntities[id.GetId()]))
+        {
+            for (auto it = _selectableEntities.begin(); it != _selectableEntities.end(); it++)
+            {
+                it->second = false;
+            }
+            _selectableEntities[id.GetId()] = true;
+        }
+        ImGui::PopID();
+    }
+    ImGui::End();
+
+    // Entities component properties window
+    ImGui::Begin("Properies");
+    // TODO: Iteration over whole registry is not necessary here, we could just use selected entt:entity with registry.get<TComponent>(entity)
+    for (auto [_, id, name, transform, color] : _scene->GetRegistry().view<IdComponent, NameComponent, TransformComponent, ColorComponent>().each())
+    {
+        if (id.GetId() != GetSelectedEntity())
+        {
+            continue;
+        }
+
+        // NameComponent
+        ImGui::PushID(id.GetId());
+        ImGui::InputText("Name", name.GetName(), name.GetBufferSize());
+
+        // TransformComponent
+        float transformDragSpeed = 0.1f;
+        glm::vec3 translationVector = transform.GetTranslation();
+        float inputTranslation[3] = { translationVector.x, translationVector.y, translationVector.z };
+        if (ImGui::DragFloat3("Translation", inputTranslation, transformDragSpeed))
+        {
+            transform.SetTranslation({ inputTranslation[0], inputTranslation[1], inputTranslation[2] });
+        }
+
+        float rotation = transform.GetRotation();
+        if (ImGui::DragFloat("Rotation", &rotation, transformDragSpeed, -360.0f, 360.0f))
+        {
+            transform.SetRotation(transform.GetRotationAxis(), rotation);
+        }
+        glm::vec3 rotationAxis = transform.GetRotationAxis();
+        float inputRotationAxis[3] = { rotationAxis.x, rotationAxis.y, rotationAxis.z };
+        if (ImGui::DragFloat3("Rotation Axis", inputRotationAxis, transformDragSpeed))
+        {
+            transform.SetRotation({ inputRotationAxis[0], inputRotationAxis[1], inputRotationAxis[2] }, transform.GetRotation());
+        }
+
+        glm::vec3 scaleVector = transform.GetScale();
+        float inputScale[3] = { scaleVector.x, scaleVector.y, scaleVector.z };
+        if (ImGui::DragFloat3("Scale", inputScale, transformDragSpeed))
+        {
+            transform.SetScale({ inputScale[0], inputScale[1], inputScale[2] });
+        }
+
+        // Color Component
+        glm::vec4 colorVector = color.GetColor();
+        float pickerColor[4] = { colorVector.r, colorVector.g, colorVector.b, colorVector.a };
+        if (ImGui::ColorEdit4("Color", pickerColor))
+        {
+            color.SetColor({ pickerColor[0], pickerColor[1], pickerColor[2], pickerColor[3] });
+        }
+
+        ImGui::PopID();
+    }
+    ImGui::End();
+
+    // Assets window
+    ImGui::Begin("Assets");
+    // Assets placeholder
+    ImGui::End();
+
+    ImGui::ShowDemoWindow();
+}
+
+void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
+{
+    _scene = scene;
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)
@@ -45,4 +134,16 @@ void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)
 void Mango::ImGuiEditor::EndFrame()
 {
     ImGui::EndFrame();
+}
+
+inline Mango::GUID Mango::ImGuiEditor::GetSelectedEntity()
+{
+    for (auto it = _selectableEntities.begin(); it != _selectableEntities.end(); it++)
+    {
+        if (it->second == true)
+        {
+            return it->first;
+        }
+    }
+    return Mango::GUID::Empty();
 }

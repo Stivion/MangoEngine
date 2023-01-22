@@ -15,6 +15,8 @@ namespace Mango
 		Scene(const Scene&) = delete;
 		Scene operator=(const Scene&) = delete;
 
+		entt::registry& GetRegistry() { return _registry; }
+
 		// Happens when scene was loaded
 		void OnCreate();
 

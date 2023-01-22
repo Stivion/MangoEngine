@@ -32,6 +32,7 @@ namespace Mango
 		void WaitRenderingIdle();
 
 		Mango::Renderer& GetRenderer() const { return *_renderer; }
+		Mango::ImGuiEditor& GetEditor() const { return *_editor; }
 
 	private:
 		const Mango::Context* _vulkanContext;

@@ -9,6 +9,7 @@ namespace Mango
 	{
 	public:		
 		static uint64_t GetNext();
+		static uint64_t Empty() { return 0; }
 
 	public:
 		operator uint64_t() { return _id; }

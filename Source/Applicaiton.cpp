@@ -10,6 +10,7 @@ Mango::Application::Application()
 
     auto& renderer = _renderingLayer->GetRenderer();
     _scene = std::make_unique<Mango::Scene>(renderer);
+    _renderingLayer->GetEditor().SetScene(_scene.get());
 }
 
 void Mango::Application::Run()
@@ -19,7 +20,7 @@ void Mango::Application::Run()
 
 void Mango::Application::InitializeWindow()
 {
-    _window = std::make_unique<Mango::GLFWWindow>(1200, 800);
+    _window = std::make_unique<Mango::GLFWWindow>(1920, 1080);
 }
 
 void Mango::Application::InitializeVulkan()

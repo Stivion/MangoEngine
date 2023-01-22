@@ -29,7 +29,7 @@ namespace Mango
 		glm::mat4 GetTransform()
 		{
 			return glm::translate(glm::mat4(1.0f), _translation)
-				* glm::rotate(glm::mat4(1.0f), _rotation, _rotationAxis)
+				* glm::rotate(glm::mat4(1.0f), glm::radians(_rotation), _rotationAxis)
 				* glm::scale(glm::mat4(1.0f), _scale);
 		}
 
