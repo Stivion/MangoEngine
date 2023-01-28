@@ -54,6 +54,8 @@ namespace Mango
 		void DrawRect(glm::mat4 transform, glm::vec4 color) override;
 		void DrawTriangle(glm::mat4 transform, glm::vec4 color) override;
 
+		void SetCamera(RendererCameraInfo cameraInfo) override;
+
 	private:
 		void UpdateGlobalDescriptorSets();
 		void UpdatePerModelDescriptorSets();
@@ -110,23 +112,6 @@ namespace Mango
 		std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
 		std::unique_ptr<Mango::IndexBuffer> _indexBuffer;
 
-		// TODO: Game objects (temporary)
-		//const std::vector<Mango::Vertex> _vertices =
-		//{
-		//	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f, 1.0f}},
-		//	{{0.0f, 0.5f}, {0.0f, 1.0f, 0.0f, 1.0f}},
-		//	{{-1.0f, 0.5f}, {0.0f, 0.0f, 1.0f, 1.0f}},
-
-		//	//{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-		//	//{{1.0f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-		//	//{{1.0f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-		//	//{{0.0f, 0.5f}, {1.0f, 0.0f, 0.0f}}
-		//};
-		//const std::vector<uint16_t> _indices =
-		//{
-		//	0, 1, 2, 3, 4, 5, 5, 6, 3
-		//};
-		//std::unique_ptr<Mango::VertexBuffer> _vertexBuffer;
-		//std::unique_ptr<Mango::IndexBuffer> _indexBuffer;
+		RendererCameraInfo _cameraInfo;
 	};
 }

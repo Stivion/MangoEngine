@@ -29,13 +29,22 @@ namespace Mango
 		// Add new rectangle entity to scene
 		void AddRectangle();
 
+		// Add new camera to scene
+		void AddCamera();
+
+		// Delete specified entity from scene
 		void DeleteEntity(Mango::GUID entityId);
 
 	private:
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
 
+		// Editor camera
+		RendererCameraInfo _editorCamera;
+		glm::vec3 _editorCameraPosition;
+
 	private:
 		void AddDefaultEntity(Mango::GeometryType geometry);
+		void SetRendererCamera(Mango::CameraComponent& camera, Mango::TransformComponent& transform);
 	};
 }

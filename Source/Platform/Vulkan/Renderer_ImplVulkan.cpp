@@ -202,11 +202,16 @@ void Mango::Renderer_ImplVulkan::DrawTriangle(glm::mat4 transform, glm::vec4 col
     _renderData.Transforms.push_back(transform);
 }
 
+void Mango::Renderer_ImplVulkan::SetCamera(RendererCameraInfo cameraInfo)
+{
+    _cameraInfo = cameraInfo;
+}
+
 void Mango::Renderer_ImplVulkan::UpdateGlobalDescriptorSets()
 {
     Mango::UniformBufferObject ubo{};
-    ubo.View = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    ubo.Projection = glm::perspective(glm::radians(45.0f), _renderArea.Width / static_cast<float>(_renderArea.Height), 0.1f, 10.0f);
+    ubo.View = glm::lookAt(_cameraInfo.Position, _cameraInfo.ViewTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+    ubo.Projection = glm::perspective(glm::radians(_cameraInfo.FovDegrees), _renderArea.Width / static_cast<float>(_renderArea.Height), _cameraInfo.NearPlane, _cameraInfo.FarPlane);
     ubo.Projection[1][1] *= -1;
 
     const auto& uniformBuffer = _uniformBuffers->GetUniformBuffer(_currentFrame);

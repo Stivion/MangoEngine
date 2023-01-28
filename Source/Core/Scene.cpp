@@ -3,26 +3,6 @@
 Mango::Scene::Scene(Mango::Renderer& renderer)
     : _renderer(renderer)
 {
-	const auto entity1 = _registry.create();
-    _registry.emplace<IdComponent>(entity1);
-    _registry.emplace<NameComponent>(entity1);
-	_registry.emplace<TransformComponent>(entity1, glm::vec3(0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    _registry.emplace<ColorComponent>(entity1, glm::vec4(1.0f, 1.0f, 0.0f, 1.0f));
-    _registry.emplace<GeometryComponent>(entity1, Mango::GeometryType::Triangle);
-
-    const auto entity2 = _registry.create();
-    _registry.emplace<IdComponent>(entity2);
-    _registry.emplace<NameComponent>(entity2);
-    _registry.emplace<TransformComponent>(entity2, glm::vec3(-0.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    _registry.emplace<ColorComponent>(entity2, glm::vec4(0.0f, 1.0f, 1.0f, 1.0f));
-    _registry.emplace<GeometryComponent>(entity2, Mango::GeometryType::Triangle);
-
-    const auto entity3 = _registry.create();
-    _registry.emplace<IdComponent>(entity3);
-    _registry.emplace<NameComponent>(entity3);
-    _registry.emplace<TransformComponent>(entity3, glm::vec3(-1.5f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-    _registry.emplace<ColorComponent>(entity3, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-    _registry.emplace<GeometryComponent>(entity3, Mango::GeometryType::Rectangle);
 }
 
 void Mango::Scene::OnCreate()
@@ -31,6 +11,29 @@ void Mango::Scene::OnCreate()
 
 void Mango::Scene::OnUpdate()
 {
+    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
+    bool editorCameraFound = false;
+    for (auto [entity, camera, transform] : camerasView.each())
+    {
+        if (camera.IsEditorCamera())
+        {
+            editorCameraFound = true;
+            SetRendererCamera(camera, transform);
+            break;
+        }
+    }
+    if (!editorCameraFound)
+    {
+        for (auto [entity, camera, transform] : camerasView.each())
+        {
+            if (camera.IsPrimary())
+            {
+                SetRendererCamera(camera, transform);
+                break;
+            }
+        }
+    }
+
     // Iteration over registry is performed in reverse order compared in which they was added
     auto view = _registry.view<TransformComponent, ColorComponent, GeometryComponent>();
     for (auto [entity, transform, color, geometry] : view.each())
@@ -56,6 +59,15 @@ void Mango::Scene::AddRectangle()
     AddDefaultEntity(Mango::GeometryType::Rectangle);
 }
 
+void Mango::Scene::AddCamera()
+{
+    const auto editorCamera = _registry.create();
+    _registry.emplace<IdComponent>(editorCamera);
+    _registry.emplace<NameComponent>(editorCamera);
+    _registry.emplace<TransformComponent>(editorCamera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+    _registry.emplace<CameraComponent>(editorCamera, false);
+}
+
 void Mango::Scene::DeleteEntity(Mango::GUID entityId)
 {
     auto view = _registry.view<IdComponent>();
@@ -78,4 +90,15 @@ void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
     _registry.emplace<TransformComponent>(entity, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
     _registry.emplace<ColorComponent>(entity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     _registry.emplace<GeometryComponent>(entity, geometry);
+}
+
+void Mango::Scene::SetRendererCamera(Mango::CameraComponent& camera, Mango::TransformComponent& transform)
+{
+    RendererCameraInfo cameraInfo{};
+    cameraInfo.NearPlane = camera.GetNearPlane();
+    cameraInfo.FarPlane = camera.GetFarPlane();
+    cameraInfo.FovDegrees = camera.GetFOV();
+    cameraInfo.Position = transform.GetTranslation();
+    cameraInfo.ViewTarget = camera.GetViewTarget();
+    _renderer.SetCamera(cameraInfo);
 }

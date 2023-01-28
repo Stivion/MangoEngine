@@ -5,3 +5,4 @@
 #include "TransformComponent.h"
 #include "ColorComponent.h"
 #include "GeometryComponent.h"
+#include "CameraComponent.h"
