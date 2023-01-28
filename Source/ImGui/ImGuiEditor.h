@@ -31,6 +31,10 @@ namespace Mango
 	private:
 		Mango::Scene* _scene;
 		std::map<Mango::GUID, bool> _selectableEntities;
+		entt::entity _editorCamera;
+		
+		bool _viewportCameraMoveStarted = false;
+		ImVec2 _viewportCameraMoveStartPosition;
 
 	private:
 		inline Mango::GUID GetSelectedEntity();

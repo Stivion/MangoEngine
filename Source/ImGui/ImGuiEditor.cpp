@@ -43,12 +43,46 @@ void Mango::ImGuiEditor::ConstructEditor()
     viewportPanelSize = ImGui::GetContentRegionAvail();
     _viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
+
+    // Moving camera
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted)
+    {
+        _viewportCameraMoveStarted = true;
+        _viewportCameraMoveStartPosition = ImGui::GetIO().MousePos;
+    }
+
+    if (_viewportCameraMoveStarted)
+    {
+        auto mousePosition = ImGui::GetIO().MousePos;
+        auto deltaX = _viewportCameraMoveStartPosition.x - mousePosition.x;
+        auto deltaY = _viewportCameraMoveStartPosition.y - mousePosition.y;
+
+        // Smooth camera movement
+        deltaX /= 20;
+        deltaY /= 20;
+
+        // Y-axis is inverted
+        deltaY = -deltaY;
+
+        Mango::CameraComponent& editorCamera = _scene->GetRegistry().get<CameraComponent>(_editorCamera);
+        glm::vec3 currentViewTarget = editorCamera.GetViewTarget();
+        glm::vec3 newViewTarget = glm::vec3(currentViewTarget.x - deltaX, currentViewTarget.y - deltaY, currentViewTarget.z);
+        editorCamera.SetViewTarget(newViewTarget);
+
+        _viewportCameraMoveStartPosition = mousePosition;
+    }
+
+    if (_viewportCameraMoveStarted && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
+    {
+        _viewportCameraMoveStarted = false;
+    }
+
     ImGui::End();
     ImGui::PopStyleVar();
 
     // Entities window
     ImGui::Begin("Entities");
-    for (auto [_, id, name] : _scene->GetRegistry().view<IdComponent, NameComponent>().each())
+    for (auto [entity, id, name] : _scene->GetRegistry().view<IdComponent, NameComponent>().each())
     {
         if (!_selectableEntities.contains(id.GetId()))
         {
@@ -67,9 +101,12 @@ void Mango::ImGuiEditor::ConstructEditor()
         // Single entity popup
         if (ImGui::BeginPopupContextItem("Single entity popup"))
         {
-            if (ImGui::Button("Delete entity"))
+            if (entity != _editorCamera)
             {
-                _scene->DeleteEntity(id.GetId());
+                if (ImGui::Button("Delete entity"))
+                {
+                    _scene->DeleteEntity(id.GetId());
+                }
             }
             ImGui::EndPopup();
         }
@@ -240,15 +277,11 @@ void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
 {
     _scene = scene;
     _scene->OnCreate();
-    _scene->AddCamera(); // Editor scene will always have an editor camera
-
-    for (auto [entity, camera] : _scene->GetRegistry().view<CameraComponent>().each())
-    {
-        if (camera.IsEditorCamera())
-        {
-            camera.SetEditorCamera(true);
-        }
-    }
+    _editorCamera = _scene->AddCamera(); // Editor scene will always have an editor camera
+    auto [id, camera, transform] = _scene->GetRegistry().get<IdComponent, CameraComponent, TransformComponent>(_editorCamera);
+    camera.SetEditorCamera(true);
+    auto currentTranslation = transform.GetTranslation();
+    transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)

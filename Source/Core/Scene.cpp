@@ -59,13 +59,14 @@ void Mango::Scene::AddRectangle()
     AddDefaultEntity(Mango::GeometryType::Rectangle);
 }
 
-void Mango::Scene::AddCamera()
+entt::entity Mango::Scene::AddCamera()
 {
     const auto editorCamera = _registry.create();
     _registry.emplace<IdComponent>(editorCamera);
     _registry.emplace<NameComponent>(editorCamera);
     _registry.emplace<TransformComponent>(editorCamera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
     _registry.emplace<CameraComponent>(editorCamera, false);
+    return editorCamera;
 }
 
 void Mango::Scene::DeleteEntity(Mango::GUID entityId)

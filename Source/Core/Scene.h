@@ -30,7 +30,7 @@ namespace Mango
 		void AddRectangle();
 
 		// Add new camera to scene
-		void AddCamera();
+		entt::entity AddCamera();
 
 		// Delete specified entity from scene
 		void DeleteEntity(Mango::GUID entityId);
