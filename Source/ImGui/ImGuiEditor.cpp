@@ -48,28 +48,51 @@ void Mango::ImGuiEditor::ConstructEditor()
     if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted)
     {
         _viewportCameraMoveStarted = true;
-        _viewportCameraMoveStartPosition = ImGui::GetIO().MousePos;
+        _viewportCameraMoveStartMousePosition = ImGui::GetIO().MousePos;
     }
 
     if (_viewportCameraMoveStarted)
     {
+        auto [editorCamera, editorCameraTransform] = _scene->GetRegistry().get<CameraComponent, TransformComponent>(_editorCamera);
+
+        // Camera look at controls
         auto mousePosition = ImGui::GetIO().MousePos;
-        auto deltaX = _viewportCameraMoveStartPosition.x - mousePosition.x;
-        auto deltaY = _viewportCameraMoveStartPosition.y - mousePosition.y;
+        auto deltaX = _viewportCameraMoveStartMousePosition.x - mousePosition.x;
+        auto deltaY = _viewportCameraMoveStartMousePosition.y - mousePosition.y;
 
         // Smooth camera movement
-        deltaX /= 20;
-        deltaY /= 20;
+        deltaX *= 0.2;
+        deltaY *= 0.2;
 
-        // Y-axis is inverted
-        deltaY = -deltaY;
+        auto currentRotation = editorCameraTransform.GetRotation();
+        // X-mouse movement corresponds to pitch which is the second component
+        // Y-mouse movement corresponds to yaw which is the first component
+        editorCameraTransform.SetRotation({ currentRotation.x + deltaY, currentRotation.y + deltaX, currentRotation.z });
+        _viewportCameraMoveStartMousePosition = mousePosition;
 
-        Mango::CameraComponent& editorCamera = _scene->GetRegistry().get<CameraComponent>(_editorCamera);
-        glm::vec3 currentViewTarget = editorCamera.GetViewTarget();
-        glm::vec3 newViewTarget = glm::vec3(currentViewTarget.x - deltaX, currentViewTarget.y - deltaY, currentViewTarget.z);
-        editorCamera.SetViewTarget(newViewTarget);
+        // Camera position controls
+        float cameraMoveDelta = 0.1f;
+        glm::vec3 newTranslation = editorCameraTransform.GetTranslation();
+        if (ImGui::IsKeyDown(ImGuiKey_W))
+        {
+            newTranslation.z -= cameraMoveDelta;
+        }
 
-        _viewportCameraMoveStartPosition = mousePosition;
+        if (ImGui::IsKeyDown(ImGuiKey_A))
+        {
+            newTranslation.x -= cameraMoveDelta;
+        }
+
+        if (ImGui::IsKeyDown(ImGuiKey_S))
+        {
+            newTranslation.z += cameraMoveDelta;
+        }
+
+        if (ImGui::IsKeyDown(ImGuiKey_D))
+        {
+            newTranslation.x += cameraMoveDelta;
+        }
+        editorCameraTransform.SetTranslation(newTranslation);
     }
 
     if (_viewportCameraMoveStarted && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
@@ -170,16 +193,11 @@ void Mango::ImGuiEditor::ConstructEditor()
             transform.SetTranslation({ inputTranslation[0], inputTranslation[1], inputTranslation[2] });
         }
 
-        float rotation = transform.GetRotation();
-        if (ImGui::DragFloat("Rotation", &rotation, transformDragSpeed, -360.0f, 360.0f))
+        glm::vec3 rotationVector = transform.GetRotation();
+        float inputRotations[3] = { rotationVector.x, rotationVector.y, rotationVector.z };
+        if (ImGui::DragFloat3("Rotation", inputRotations, transformDragSpeed))
         {
-            transform.SetRotation(transform.GetRotationAxis(), rotation);
-        }
-        glm::vec3 rotationAxis = transform.GetRotationAxis();
-        float inputRotationAxis[3] = { rotationAxis.x, rotationAxis.y, rotationAxis.z };
-        if (ImGui::DragFloat3("Rotation Axis", inputRotationAxis, transformDragSpeed))
-        {
-            transform.SetRotation({ inputRotationAxis[0], inputRotationAxis[1], inputRotationAxis[2] }, transform.GetRotation());
+            transform.SetRotation({ inputRotations[0], inputRotations[1], inputRotations[2] });
         }
 
         glm::vec3 scaleVector = transform.GetScale();
@@ -222,6 +240,13 @@ void Mango::ImGuiEditor::ConstructEditor()
             transform.SetTranslation({ inputTranslation[0], inputTranslation[1], inputTranslation[2] });
         }
 
+        glm::vec3 rotationVector = transform.GetRotation();
+        float inputRotations[2] = { rotationVector.x, rotationVector.y };
+        if (ImGui::DragFloat2("Rotation", inputRotations, transformDragSpeed))
+        {
+            transform.SetRotation({ inputRotations[0], inputRotations[1], rotationVector.z });
+        }
+
         // CameraComponent
         float cameraDragSpeed = 1.0f;
         float nearPlane = camera.GetNearPlane();
@@ -240,14 +265,6 @@ void Mango::ImGuiEditor::ConstructEditor()
         if (ImGui::DragFloat("FOV", &fov, cameraDragSpeed, -360.0f, 360.0f))
         {
             camera.SetFOV(fov);
-        }
-
-        float lookAtDragSpeed = 0.1f;
-        glm::vec3 viewTargetVector = camera.GetViewTarget();
-        float inputViewTarget[3] = { viewTargetVector.x, viewTargetVector.y, viewTargetVector.z };
-        if (ImGui::DragFloat3("Look At", inputViewTarget, lookAtDragSpeed))
-        {
-            camera.SetViewTarget({ inputViewTarget[0], inputViewTarget[1], inputViewTarget[2] });
         }
 
         bool isPrimary = camera.IsPrimary();
@@ -282,6 +299,7 @@ void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
     camera.SetEditorCamera(true);
     auto currentTranslation = transform.GetTranslation();
     transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
+    transform.SetRotation({ 0.0f, 0.0f, 0.0f });
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)

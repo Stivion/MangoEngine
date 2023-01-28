@@ -10,8 +10,8 @@ namespace Mango
 		float NearPlane;
 		float FarPlane;
 		float FovDegrees;
-		glm::vec3 ViewTarget;
-		glm::vec3 Position;
+		glm::vec3 Translation;
+		glm::vec3 Rotation;
 	};
 
 	class Renderer

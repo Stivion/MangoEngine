@@ -210,7 +210,9 @@ void Mango::Renderer_ImplVulkan::SetCamera(RendererCameraInfo cameraInfo)
 void Mango::Renderer_ImplVulkan::UpdateGlobalDescriptorSets()
 {
     Mango::UniformBufferObject ubo{};
-    ubo.View = glm::lookAt(_cameraInfo.Position, _cameraInfo.ViewTarget, glm::vec3(0.0f, 1.0f, 0.0f));
+    auto rotationQuaternion = glm::quat({ glm::radians(_cameraInfo.Rotation.x), glm::radians(_cameraInfo.Rotation.y), glm::radians(_cameraInfo.Rotation.z) });
+    ubo.View = glm::translate(glm::mat4(1.0f), _cameraInfo.Translation) * glm::toMat4(rotationQuaternion);
+    ubo.View = glm::inverse(ubo.View);
     ubo.Projection = glm::perspective(glm::radians(_cameraInfo.FovDegrees), _renderArea.Width / static_cast<float>(_renderArea.Height), _cameraInfo.NearPlane, _cameraInfo.FarPlane);
     ubo.Projection[1][1] *= -1;
 

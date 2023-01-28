@@ -64,7 +64,7 @@ entt::entity Mango::Scene::AddCamera()
     const auto editorCamera = _registry.create();
     _registry.emplace<IdComponent>(editorCamera);
     _registry.emplace<NameComponent>(editorCamera);
-    _registry.emplace<TransformComponent>(editorCamera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), 0.0f, glm::vec3(0.0f, 0.0f, 0.0f));
+    _registry.emplace<TransformComponent>(editorCamera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     _registry.emplace<CameraComponent>(editorCamera, false);
     return editorCamera;
 }
@@ -88,7 +88,7 @@ void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
     const auto entity = _registry.create();
     _registry.emplace<IdComponent>(entity);
     _registry.emplace<NameComponent>(entity);
-    _registry.emplace<TransformComponent>(entity, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+    _registry.emplace<TransformComponent>(entity, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     _registry.emplace<ColorComponent>(entity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     _registry.emplace<GeometryComponent>(entity, geometry);
 }
@@ -99,7 +99,7 @@ void Mango::Scene::SetRendererCamera(Mango::CameraComponent& camera, Mango::Tran
     cameraInfo.NearPlane = camera.GetNearPlane();
     cameraInfo.FarPlane = camera.GetFarPlane();
     cameraInfo.FovDegrees = camera.GetFOV();
-    cameraInfo.Position = transform.GetTranslation();
-    cameraInfo.ViewTarget = camera.GetViewTarget();
+    cameraInfo.Translation = transform.GetTranslation();
+    cameraInfo.Rotation = transform.GetRotation();
     _renderer.SetCamera(cameraInfo);
 }

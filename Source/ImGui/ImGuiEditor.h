@@ -34,7 +34,7 @@ namespace Mango
 		entt::entity _editorCamera;
 		
 		bool _viewportCameraMoveStarted = false;
-		ImVec2 _viewportCameraMoveStartPosition;
+		ImVec2 _viewportCameraMoveStartMousePosition;
 
 	private:
 		inline Mango::GUID GetSelectedEntity();
