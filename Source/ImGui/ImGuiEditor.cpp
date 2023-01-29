@@ -61,8 +61,8 @@ void Mango::ImGuiEditor::ConstructEditor()
         auto deltaY = _viewportCameraMoveStartMousePosition.y - mousePosition.y;
 
         // Smooth camera movement
-        deltaX *= 0.2;
-        deltaY *= 0.2;
+        deltaX *= GetCameraRotationSpeed();
+        deltaY *= GetCameraRotationSpeed();
 
         auto currentRotation = editorCameraTransform.GetRotation();
         // X-mouse movement corresponds to pitch which is the second component
@@ -71,26 +71,34 @@ void Mango::ImGuiEditor::ConstructEditor()
         _viewportCameraMoveStartMousePosition = mousePosition;
 
         // Camera position controls
-        float cameraMoveDelta = 0.1f;
         glm::vec3 newTranslation = editorCameraTransform.GetTranslation();
+
         if (ImGui::IsKeyDown(ImGuiKey_W))
         {
-            newTranslation.z -= cameraMoveDelta;
-        }
-
-        if (ImGui::IsKeyDown(ImGuiKey_A))
-        {
-            newTranslation.x -= cameraMoveDelta;
-        }
-
-        if (ImGui::IsKeyDown(ImGuiKey_S))
-        {
-            newTranslation.z += cameraMoveDelta;
+            glm::vec3 forwardVector = glm::vec3(0.0f, 0.0f, 1.0f);
+            glm::vec3 rotatedForwardVector = glm::rotate(editorCameraTransform.GetQuaternionRotation(), forwardVector);
+            newTranslation -= rotatedForwardVector * GetCameraMovementSpeed();
         }
 
         if (ImGui::IsKeyDown(ImGuiKey_D))
         {
-            newTranslation.x += cameraMoveDelta;
+            glm::vec3 rightVector = glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 rotatedRightVector = glm::rotate(editorCameraTransform.GetQuaternionRotation(), rightVector);
+            newTranslation += rotatedRightVector * GetCameraMovementSpeed();
+        }
+
+        if (ImGui::IsKeyDown(ImGuiKey_A))
+        {
+            glm::vec3 leftVector = glm::vec3(-1.0f, 0.0f, 0.0f);
+            glm::vec3 rotatedLeftVector = glm::rotate(editorCameraTransform.GetQuaternionRotation(), leftVector);
+            newTranslation += rotatedLeftVector * GetCameraMovementSpeed();
+        }
+
+        if (ImGui::IsKeyDown(ImGuiKey_S))
+        {
+            glm::vec3 backwardVector = glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::vec3 rotatedBackwardVector = glm::rotate(editorCameraTransform.GetQuaternionRotation(), backwardVector);
+            newTranslation -= rotatedBackwardVector * GetCameraMovementSpeed();
         }
         editorCameraTransform.SetTranslation(newTranslation);
     }
@@ -322,4 +330,14 @@ inline Mango::GUID Mango::ImGuiEditor::GetSelectedEntity()
         }
     }
     return Mango::GUID::Empty();
+}
+
+inline float Mango::ImGuiEditor::GetCameraRotationSpeed()
+{
+    return 0.1f;
+}
+
+inline float Mango::ImGuiEditor::GetCameraMovementSpeed()
+{
+    return 0.01f;
 }

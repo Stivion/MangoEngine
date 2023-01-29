@@ -20,6 +20,7 @@ namespace Mango
 
 		inline glm::vec3 GetTranslation() { return _translation; }
 		inline glm::vec3 GetRotation() { return _rotation; }
+		inline glm::quat GetQuaternionRotation() { return glm::quat({ glm::radians(_rotation.x), glm::radians(_rotation.y), glm::radians(_rotation.z) }); }
 		inline glm::vec3 GetScale() { return _scale; }
 
 		void SetTranslation(glm::vec3 translation) { _translation = translation; }
@@ -28,8 +29,7 @@ namespace Mango
 
 		glm::mat4 GetTransform()
 		{
-			auto rotationQuaternion = glm::quat({ glm::radians(_rotation.x), glm::radians(_rotation.y), glm::radians(_rotation.z) });
-			glm::mat4 rotation = glm::toMat4(rotationQuaternion);
+			glm::mat4 rotation = glm::toMat4(GetQuaternionRotation());
 			return glm::translate(glm::mat4(1.0f), _translation)
 				* rotation
 				* glm::scale(glm::mat4(1.0f), _scale);

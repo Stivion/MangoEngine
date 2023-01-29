@@ -38,6 +38,8 @@ namespace Mango
 
 	private:
 		inline Mango::GUID GetSelectedEntity();
+		inline float GetCameraRotationSpeed();
+		inline float GetCameraMovementSpeed();
 
 	};
 }
