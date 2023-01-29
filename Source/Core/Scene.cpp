@@ -7,12 +7,8 @@ Mango::Scene::Scene(Mango::Renderer& renderer)
 
 void Mango::Scene::OnCreate()
 {
-}
-
-void Mango::Scene::OnUpdate()
-{
-    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
     bool editorCameraFound = false;
+    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
     for (auto [entity, camera, transform] : camerasView.each())
     {
         if (camera.IsEditorCamera())
@@ -33,7 +29,10 @@ void Mango::Scene::OnUpdate()
             }
         }
     }
+}
 
+void Mango::Scene::OnUpdate()
+{
     // Iteration over registry is performed in reverse order compared in which they was added
     auto view = _registry.view<TransformComponent, ColorComponent, GeometryComponent>();
     for (auto [entity, transform, color, geometry] : view.each())
@@ -45,6 +44,71 @@ void Mango::Scene::OnUpdate()
         if (geometry.GetGeometry() == Mango::GeometryType::Rectangle)
         {
             _renderer.DrawRect(transform.GetTransform(), color.GetColor());
+        }
+    }
+
+    // Update camera views
+    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
+    for (auto [entity, camera, transform] : camerasView.each())
+    {
+        if (_sceneState == Mango::SceneState::Play)
+        {
+            if (camera.IsPrimary())
+            {
+                SetRendererCamera(camera, transform);
+            }
+        }
+        else if (_sceneState == Mango::SceneState::Stop)
+        {
+            if (camera.IsEditorCamera())
+            {
+                SetRendererCamera(camera, transform);
+            }
+        }
+    }
+}
+
+void Mango::Scene::OnPlay()
+{
+    if (_sceneState == Mango::SceneState::Play)
+    {
+        return;
+    }
+
+    bool cameraFound = false;
+    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
+    for (auto [entity, camera, transform] : camerasView.each())
+    {
+        if (camera.IsPrimary())
+        {
+            cameraFound = true;
+            SetRendererCamera(camera, transform);
+            break;
+        }
+    }
+
+    if (cameraFound)
+    {
+        _sceneState = Mango::SceneState::Play;
+    }
+}
+
+void Mango::Scene::OnStop()
+{
+    if (_sceneState == Mango::SceneState::Stop)
+    {
+        return;
+    }
+
+    _sceneState = Mango::SceneState::Stop;
+
+    auto camerasView = _registry.view<CameraComponent, TransformComponent>();
+    for (auto [entity, camera, transform] : camerasView.each())
+    {
+        if (camera.IsEditorCamera())
+        {
+            SetRendererCamera(camera, transform);
+            break;
         }
     }
 }
@@ -69,18 +133,9 @@ entt::entity Mango::Scene::AddCamera()
     return editorCamera;
 }
 
-void Mango::Scene::DeleteEntity(Mango::GUID entityId)
+void Mango::Scene::DeleteEntity(entt::entity entity)
 {
-    auto view = _registry.view<IdComponent>();
-    // TODO: Iteration over whole registry may be not needed here
-    for (const auto [entity, id] : view.each())
-    {
-        if (id.GetId() == entityId)
-        {
-            _registry.destroy(entity);
-            return;
-        }
-    }
+    _registry.destroy(entity);
 }
 
 void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)

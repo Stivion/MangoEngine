@@ -31,6 +31,44 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::End();
     ImGui::PopStyleVar();
 
+    // Viewport controls
+    ImGuiWindowClass viewportControlsClass;
+    viewportControlsClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_AutoHideTabBar;
+    ImGui::SetNextWindowClass(&viewportControlsClass);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
+    ImGui::Begin("##ViewportControls", nullptr, ImGuiWindowFlags_NoCollapse);
+    const char* playText = "Play";
+    const char* stopText = "Stop";
+    
+    // Center buttons
+    const float windowWidth = ImGui::GetContentRegionAvail().x;
+    float buttonsWidth = 0.0f;
+    buttonsWidth += ImGui::CalcTextSize(playText).x;
+    buttonsWidth += ImGui::GetStyle().ItemInnerSpacing.x;
+    buttonsWidth += ImGui::GetStyle().ItemSpacing.x;
+    buttonsWidth += ImGui::CalcTextSize(stopText).x;
+    buttonsWidth += ImGui::GetStyle().ItemInnerSpacing.x;
+    float offset = windowWidth / 2.0 - buttonsWidth / 2.0f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offset);
+    
+    float buttonsHeight = ImGui::GetWindowHeight();
+    float firstButtonWidth = ImGui::CalcTextSize(playText).x;
+    firstButtonWidth += ImGui::GetStyle().ItemInnerSpacing.x * 2.0f;
+    float secondButtonWidth = ImGui::CalcTextSize(stopText).x;
+    secondButtonWidth += ImGui::GetStyle().ItemInnerSpacing.x * 2.0f;
+
+    if (ImGui::Button(playText, { firstButtonWidth, buttonsHeight }))
+    {
+        _scene->OnPlay();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button(stopText, { secondButtonWidth, buttonsHeight }))
+    {
+        _scene->OnStop();
+    }
+    ImGui::End();
+    ImGui::PopStyleVar();
+
     // Viewport window
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0.0f, 0.0f });
     ImGui::Begin("Viewport", nullptr, ImGuiWindowFlags_NoCollapse);
@@ -45,7 +83,7 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
 
     // Moving camera
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted)
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && _scene->GetSceneState() != Mango::SceneState::Play)
     {
         _viewportCameraMoveStarted = true;
         _viewportCameraMoveStartMousePosition = ImGui::GetIO().MousePos;
@@ -136,7 +174,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             {
                 if (ImGui::Button("Delete entity"))
                 {
-                    _scene->DeleteEntity(id.GetId());
+                    _scene->DeleteEntity(entity);
                 }
             }
             ImGui::EndPopup();
@@ -301,13 +339,15 @@ void Mango::ImGuiEditor::ConstructEditor()
 void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
 {
     _scene = scene;
-    _scene->OnCreate();
     _editorCamera = _scene->AddCamera(); // Editor scene will always have an editor camera
-    auto [id, camera, transform] = _scene->GetRegistry().get<IdComponent, CameraComponent, TransformComponent>(_editorCamera);
+    auto [id, camera, transform, name] = _scene->GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
     camera.SetEditorCamera(true);
+    camera.SetPrimary(false);
+    name.SetName("Editor Camera");
     auto currentTranslation = transform.GetTranslation();
     transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
     transform.SetRotation({ 0.0f, 0.0f, 0.0f });
+    _scene->OnCreate();
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)

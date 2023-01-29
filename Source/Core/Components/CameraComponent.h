@@ -13,7 +13,7 @@ namespace Mango
 			_nearPlane = 0.1f;
 			_farPlane = 10.0f;
 			_fovDegrees = 45.0f;
-			_isPrimary = true;
+			_isPrimary = false;
 			_isEditorCamera = false;
 		}
 

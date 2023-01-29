@@ -8,6 +8,12 @@
 
 namespace Mango
 {
+	enum SceneState
+	{
+		Play = 0,
+		Stop = 1
+	};
+
 	class Scene
 	{
 	public:
@@ -23,6 +29,14 @@ namespace Mango
 		// Happens every frame
 		void OnUpdate();
 
+		// Start game view of this scene
+		void OnPlay();
+
+		// Stop game view of this scene
+		void OnStop();
+
+		inline Mango::SceneState GetSceneState() { return _sceneState; }
+
 		// Add new triangle entity to scene
 		void AddTriangle();
 
@@ -33,15 +47,12 @@ namespace Mango
 		entt::entity AddCamera();
 
 		// Delete specified entity from scene
-		void DeleteEntity(Mango::GUID entityId);
+		void DeleteEntity(entt::entity entity);
 
 	private:
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
-
-		// Editor camera
-		RendererCameraInfo _editorCamera;
-		glm::vec3 _editorCameraPosition;
+		Mango::SceneState _sceneState = Mango::SceneState::Stop;
 
 	private:
 		void AddDefaultEntity(Mango::GeometryType geometry);
