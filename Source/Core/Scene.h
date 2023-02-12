@@ -5,7 +5,7 @@
 #include "../Render/Renderer.h"
 
 #include <entt/entity/registry.hpp>
-#include <box2d/b2_world.h>
+#include <box2d/box2d.h>
 
 namespace Mango
 {
@@ -30,6 +30,9 @@ namespace Mango
 		// Happens every frame
 		void OnUpdate();
 
+		// Happens 60 times per frame
+		void OnFixedUpdate();
+
 		// Start game view of this scene
 		void OnPlay();
 
@@ -47,6 +50,8 @@ namespace Mango
 		// Add new camera to scene
 		entt::entity AddCamera();
 
+		void AddRigidbody(entt::entity entity);
+
 		// Delete specified entity from scene
 		void DeleteEntity(entt::entity entity);
 
@@ -54,6 +59,7 @@ namespace Mango
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
 		Mango::SceneState _sceneState = Mango::SceneState::Stop;
+		b2World _physicsWorld{{ 0.0f, -9.8f }};
 
 	private:
 		void AddDefaultEntity(Mango::GeometryType geometry);

@@ -68,6 +68,11 @@ void Mango::Scene::OnUpdate()
     }
 }
 
+void Mango::Scene::OnFixedUpdate()
+{
+
+}
+
 void Mango::Scene::OnPlay()
 {
     if (_sceneState == Mango::SceneState::Play)
@@ -131,6 +136,17 @@ entt::entity Mango::Scene::AddCamera()
     _registry.emplace<TransformComponent>(editorCamera, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f));
     _registry.emplace<CameraComponent>(editorCamera, false);
     return editorCamera;
+}
+
+void Mango::Scene::AddRigidbody(entt::entity entity)
+{
+    auto rigidbody = _registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody != nullptr)
+    {
+        return;
+    }
+
+    _registry.emplace<RigidbodyComponent>(entity);
 }
 
 void Mango::Scene::DeleteEntity(entt::entity entity)

@@ -6,3 +6,4 @@
 #include "ColorComponent.h"
 #include "GeometryComponent.h"
 #include "CameraComponent.h"
+#include "RigidbodyComponent.h"

@@ -37,7 +37,8 @@ namespace Mango
 		ImVec2 _viewportCameraMoveStartMousePosition;
 
 	private:
-		inline Mango::GUID GetSelectedEntity();
+		inline Mango::GUID GetSelectedEntityId();
+		inline entt::entity GetSelectedEntity();
 		inline float GetCameraRotationSpeed();
 		inline float GetCameraMovementSpeed();
 
