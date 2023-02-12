@@ -7,8 +7,6 @@
 #include <imgui.h>
 #include <glm/glm.hpp>
 
-#include <map>
-
 namespace Mango
 {
 	class ImGuiEditor
@@ -30,15 +28,13 @@ namespace Mango
 
 	private:
 		Mango::Scene* _scene;
-		std::map<Mango::GUID, bool> _selectableEntities;
+		entt::entity _selectedEntity;
 		entt::entity _editorCamera;
 		
 		bool _viewportCameraMoveStarted = false;
 		ImVec2 _viewportCameraMoveStartMousePosition;
 
 	private:
-		inline Mango::GUID GetSelectedEntityId();
-		inline entt::entity GetSelectedEntity();
 		inline float GetCameraRotationSpeed();
 		inline float GetCameraMovementSpeed();
 

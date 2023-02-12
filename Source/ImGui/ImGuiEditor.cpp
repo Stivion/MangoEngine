@@ -153,18 +153,11 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::Begin("Entities");
     for (auto [entity, id, name] : _scene->GetRegistry().view<IdComponent, NameComponent>().each())
     {
-        if (!_selectableEntities.contains(id.GetId()))
-        {
-            _selectableEntities[id.GetId()] = false;
-        }
         ImGui::PushID(id.GetId());
-        if (ImGui::Selectable(name.GetName(), _selectableEntities[id.GetId()]))
+        auto entitySelected = entity == _selectedEntity;
+        if (ImGui::Selectable(name.GetName(), entitySelected))
         {
-            for (auto it = _selectableEntities.begin(); it != _selectableEntities.end(); it++)
-            {
-                it->second = false;
-            }
-            _selectableEntities[id.GetId()] = true;
+            _selectedEntity = entity;
         }
 
         // Single entity popup
@@ -216,115 +209,114 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::End();
 
     // Entities component properties window
-    auto selectedEntity = GetSelectedEntity();
     ImGui::Begin("Properies");
-    
-    auto [id, name, transform] = _scene->GetRegistry().get<IdComponent, NameComponent, TransformComponent>(selectedEntity);
-    ImGui::PushID(id.GetId());
-
-    // NameComponent
-    ImGui::InputText("Name", name.GetName(), name.GetBufferSize());
-
-    // TransformComponent
-    float transformDragSpeed = 0.1f;
-    glm::vec3 translationVector = transform.GetTranslation();
-    float inputTranslation[3] = { translationVector.x, translationVector.y, translationVector.z };
-    if (ImGui::DragFloat3("Translation", inputTranslation, transformDragSpeed))
+    if (_scene->GetRegistry().valid(_selectedEntity))
     {
-        transform.SetTranslation({ inputTranslation[0], inputTranslation[1], inputTranslation[2] });
-    }
+        auto [id, name, transform] = _scene->GetRegistry().get<IdComponent, NameComponent, TransformComponent>(_selectedEntity);
+        ImGui::PushID(id.GetId());
 
-    glm::vec3 rotationVector = transform.GetRotation();
-    float inputRotations[3] = { rotationVector.x, rotationVector.y, rotationVector.z };
-    if (ImGui::DragFloat3("Rotation", inputRotations, transformDragSpeed))
-    {
-        transform.SetRotation({ inputRotations[0], inputRotations[1], inputRotations[2] });
-    }
+        // NameComponent
+        ImGui::InputText("Name", name.GetName(), name.GetBufferSize());
 
-    glm::vec3 scaleVector = transform.GetScale();
-    float inputScale[3] = { scaleVector.x, scaleVector.y, scaleVector.z };
-    if (ImGui::DragFloat3("Scale", inputScale, transformDragSpeed))
-    {
-        transform.SetScale({ inputScale[0], inputScale[1], inputScale[2] });
-    }
-
-    // ColorComponent
-    auto color = _scene->GetRegistry().try_get<ColorComponent>(selectedEntity);
-    if (color != nullptr)
-    {
-        glm::vec4 colorVector = color->GetColor();
-        float pickerColor[4] = { colorVector.r, colorVector.g, colorVector.b, colorVector.a };
-        if (ImGui::ColorEdit4("Color", pickerColor))
+        // TransformComponent
+        float transformDragSpeed = 0.1f;
+        glm::vec3 translationVector = transform.GetTranslation();
+        float inputTranslation[3] = { translationVector.x, translationVector.y, translationVector.z };
+        if (ImGui::DragFloat3("Translation", inputTranslation, transformDragSpeed))
         {
-            color->SetColor({ pickerColor[0], pickerColor[1], pickerColor[2], pickerColor[3] });
-        }
-    }
-
-    // CameraComponent
-    auto camera = _scene->GetRegistry().try_get<CameraComponent>(selectedEntity);
-    if (camera != nullptr)
-    {
-        float cameraDragSpeed = 1.0f;
-        float nearPlane = camera->GetNearPlane();
-        if (ImGui::DragFloat("Near plane", &nearPlane, cameraDragSpeed))
-        {
-            camera->SetClippingPlanes(nearPlane, camera->GetFarPlane());
+            transform.SetTranslation({ inputTranslation[0], inputTranslation[1], inputTranslation[2] });
         }
 
-        float farPlane = camera->GetFarPlane();
-        if (ImGui::DragFloat("Far plane", &farPlane, cameraDragSpeed))
+        glm::vec3 rotationVector = transform.GetRotation();
+        float inputRotations[3] = { rotationVector.x, rotationVector.y, rotationVector.z };
+        if (ImGui::DragFloat3("Rotation", inputRotations, transformDragSpeed))
         {
-            camera->SetClippingPlanes(camera->GetNearPlane(), farPlane);
+            transform.SetRotation({ inputRotations[0], inputRotations[1], inputRotations[2] });
         }
 
-        float fov = camera->GetFOV();
-        if (ImGui::DragFloat("FOV", &fov, cameraDragSpeed, -360.0f, 360.0f))
+        glm::vec3 scaleVector = transform.GetScale();
+        float inputScale[3] = { scaleVector.x, scaleVector.y, scaleVector.z };
+        if (ImGui::DragFloat3("Scale", inputScale, transformDragSpeed))
         {
-            camera->SetFOV(fov);
+            transform.SetScale({ inputScale[0], inputScale[1], inputScale[2] });
         }
 
-        bool isPrimary = camera->IsPrimary();
-        if (ImGui::Checkbox("Is Primary", &isPrimary))
+        // ColorComponent
+        auto color = _scene->GetRegistry().try_get<ColorComponent>(_selectedEntity);
+        if (color != nullptr)
         {
-            for (auto [_, otherCamera] : _scene->GetRegistry().view<CameraComponent>().each())
+            glm::vec4 colorVector = color->GetColor();
+            float pickerColor[4] = { colorVector.r, colorVector.g, colorVector.b, colorVector.a };
+            if (ImGui::ColorEdit4("Color", pickerColor))
             {
-                otherCamera.SetPrimary(false);
+                color->SetColor({ pickerColor[0], pickerColor[1], pickerColor[2], pickerColor[3] });
             }
-            camera->SetPrimary(isPrimary);
         }
-    }
 
-    // Rigidbody component
-    auto rigidbody = _scene->GetRegistry().try_get<RigidbodyComponent>(selectedEntity);
-    if (rigidbody != nullptr)
-    {
-        bool isDynamic = rigidbody->IsDynamic();
-        if (ImGui::Checkbox("Is Dynamic", &isDynamic))
+        // CameraComponent
+        auto camera = _scene->GetRegistry().try_get<CameraComponent>(_selectedEntity);
+        if (camera != nullptr)
         {
-            rigidbody->SetDynamic(isDynamic);
+            float cameraDragSpeed = 1.0f;
+            float nearPlane = camera->GetNearPlane();
+            if (ImGui::DragFloat("Near plane", &nearPlane, cameraDragSpeed))
+            {
+                camera->SetClippingPlanes(nearPlane, camera->GetFarPlane());
+            }
+
+            float farPlane = camera->GetFarPlane();
+            if (ImGui::DragFloat("Far plane", &farPlane, cameraDragSpeed))
+            {
+                camera->SetClippingPlanes(camera->GetNearPlane(), farPlane);
+            }
+
+            float fov = camera->GetFOV();
+            if (ImGui::DragFloat("FOV", &fov, cameraDragSpeed, -360.0f, 360.0f))
+            {
+                camera->SetFOV(fov);
+            }
+
+            bool isPrimary = camera->IsPrimary();
+            if (ImGui::Checkbox("Is Primary", &isPrimary))
+            {
+                for (auto [_, otherCamera] : _scene->GetRegistry().view<CameraComponent>().each())
+                {
+                    otherCamera.SetPrimary(false);
+                }
+                camera->SetPrimary(isPrimary);
+            }
         }
-    }
 
-    ImGui::PopID();
-
-    // Components popup
-    if (ImGui::BeginPopup("Components popup"))
-    {
-        auto rigidbodyExist = _scene->GetRegistry().try_get<RigidbodyComponent>(selectedEntity) != nullptr;
-        if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
+        // Rigidbody component
+        auto rigidbody = _scene->GetRegistry().try_get<RigidbodyComponent>(_selectedEntity);
+        if (rigidbody != nullptr)
         {
-            auto selectedEntity = GetSelectedEntity();
-            _scene->AddRigidbody(selectedEntity);
+            bool isDynamic = rigidbody->IsDynamic();
+            if (ImGui::Checkbox("Is Dynamic", &isDynamic))
+            {
+                rigidbody->SetDynamic(isDynamic);
+            }
         }
 
-        ImGui::EndPopup();
-    }
+        ImGui::PopID();
 
-    if (ImGui::IsWindowHovered() && !ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-    {
-        ImGui::OpenPopup("Components popup");
-    }
+        // Components popup
+        if (ImGui::BeginPopup("Components popup"))
+        {
+            auto rigidbodyExist = _scene->GetRegistry().try_get<RigidbodyComponent>(_selectedEntity) != nullptr;
+            if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
+            {
+                _scene->AddRigidbody(_selectedEntity);
+            }
 
+            ImGui::EndPopup();
+        }
+
+        if (ImGui::IsWindowHovered() && !ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+        {
+            ImGui::OpenPopup("Components popup");
+        }
+    }
     ImGui::End();
 
     // Assets window
@@ -357,31 +349,6 @@ void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)
 void Mango::ImGuiEditor::EndFrame()
 {
     ImGui::EndFrame();
-}
-
-inline Mango::GUID Mango::ImGuiEditor::GetSelectedEntityId()
-{
-    for (auto it = _selectableEntities.begin(); it != _selectableEntities.end(); it++)
-    {
-        if (it->second == true)
-        {
-            return it->first;
-        }
-    }
-    return Mango::GUID::Empty();
-}
-
-inline entt::entity Mango::ImGuiEditor::GetSelectedEntity()
-{
-    auto selectedEntityId = GetSelectedEntityId();
-    for (auto [entity, id] : _scene->GetRegistry().view<IdComponent>().each())
-    {
-        if (id.GetId() == selectedEntityId)
-        {
-            return entity;
-        }
-    }
-    return entt::entity();
 }
 
 inline float Mango::ImGuiEditor::GetCameraRotationSpeed()
