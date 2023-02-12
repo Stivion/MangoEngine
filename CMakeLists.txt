@@ -81,6 +81,13 @@ link_directories(Libraries/stb)
 add_subdirectory(Libraries/entt)
 target_link_libraries(${PROJECT_NAME} EnTT::EnTT)
 
+# Link with Box2D
+set(BOX2D_BUILD_UNIT_TESTS OFF)
+set(BOX2D_BUILD_TESTBED OFF)
+
+add_subdirectory(Libraries/Box2D)
+target_link_libraries(${PROJECT_NAME} box2d)
+
 # Compile shaders
 file(
         GLOB VERTEX_SHADERS

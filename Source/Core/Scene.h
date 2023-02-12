@@ -5,6 +5,7 @@
 #include "../Render/Renderer.h"
 
 #include <entt/entity/registry.hpp>
+#include <box2d/b2_world.h>
 
 namespace Mango
 {

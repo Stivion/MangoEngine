@@ -15,3 +15,7 @@
 	path = Libraries/entt
 	url = https://github.com/skypjack/entt.git
 	branch = master
+[submodule "Libraries/box2d"]
+	path = Libraries/box2d
+	url = https://github.com/erincatto/box2d
+	branch = main
