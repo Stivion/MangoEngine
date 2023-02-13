@@ -33,7 +33,6 @@ void Mango::Scene::OnCreate()
 
 void Mango::Scene::OnUpdate()
 {
-    // Iteration over registry is performed in reverse order compared in which they was added
     auto view = _registry.view<TransformComponent, ColorComponent, GeometryComponent>();
     for (auto [entity, transform, color, geometry] : view.each())
     {
@@ -70,7 +69,23 @@ void Mango::Scene::OnUpdate()
 
 void Mango::Scene::OnFixedUpdate()
 {
+    if (_sceneState != Mango::SceneState::Play)
+    {
+        return;
+    }
 
+    _physicsWorld.Step(_timeStep, _velocityIterations, _positionIterations);
+    
+    auto view = _registry.view<TransformComponent, RigidbodyComponent>();
+    for (auto [entity, transform, rigidbody] : view.each())
+    {
+        auto position = rigidbody.GetPosition();
+        float angle = rigidbody.GetAngle();
+        auto currentTranslation = transform.GetTranslation();
+        transform.SetTranslation(glm::vec3(position, currentTranslation.z));
+        auto currentRotation = transform.GetRotation();
+        transform.SetRotation(glm::vec3(currentRotation.x, currentRotation.y, glm::degrees(angle)));
+    }
 }
 
 void Mango::Scene::OnPlay()
@@ -96,6 +111,23 @@ void Mango::Scene::OnPlay()
     {
         _sceneState = Mango::SceneState::Play;
     }
+
+    // Setup rigidbodies
+    for (auto [_, transform, rigidbody] : _registry.view<TransformComponent, RigidbodyComponent>().each())
+    {
+        auto translation = transform.GetTranslation();
+        auto rotation = transform.GetRotation().z;
+        auto scale = transform.GetScale();
+
+        rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
+        b2PolygonShape bodyBox;
+        bodyBox.SetAsBox(scale.x, scale.y);
+        b2FixtureDef fixtureDefinition;
+        fixtureDefinition.shape = &bodyBox;
+        fixtureDefinition.density = 1.0f;
+        fixtureDefinition.friction = 0.3f;
+        rigidbody.SetFixture(fixtureDefinition);
+    }
 }
 
 void Mango::Scene::OnStop()
@@ -115,6 +147,12 @@ void Mango::Scene::OnStop()
             SetRendererCamera(camera, transform);
             break;
         }
+    }
+
+    // Dispose rigidbodies
+    for (auto [_, rigidbody] : _registry.view<RigidbodyComponent>().each())
+    {
+        rigidbody.DestroyFixture();
     }
 }
 
@@ -146,7 +184,9 @@ void Mango::Scene::AddRigidbody(entt::entity entity)
         return;
     }
 
-    _registry.emplace<RigidbodyComponent>(entity);
+    b2BodyDef bodyDefinition;
+    b2Body* body = _physicsWorld.CreateBody(&bodyDefinition);
+    _registry.emplace<RigidbodyComponent>(entity, body);
 }
 
 void Mango::Scene::DeleteEntity(entt::entity entity)

@@ -59,6 +59,11 @@ namespace Mango
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
 		Mango::SceneState _sceneState = Mango::SceneState::Stop;
+		
+		// Physics
+		const float _timeStep = 1.0f / 60.0f;
+		const int32_t _velocityIterations = 8;
+		const int32_t _positionIterations = 3;
 		b2World _physicsWorld{{ 0.0f, -9.8f }};
 
 	private:

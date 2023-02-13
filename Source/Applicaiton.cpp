@@ -48,6 +48,8 @@ void Mango::Application::DrawFrame()
     }
     
     _scene->OnUpdate();
+    // TODO: Should be independent from frame-rate
+    _scene->OnFixedUpdate();
 
     _renderingLayer->EndFrame();
 }

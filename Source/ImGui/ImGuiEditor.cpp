@@ -228,17 +228,17 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         glm::vec3 rotationVector = transform.GetRotation();
-        float inputRotations[3] = { rotationVector.x, rotationVector.y, rotationVector.z };
-        if (ImGui::DragFloat3("Rotation", inputRotations, transformDragSpeed))
+        float inputRotation = rotationVector.z;
+        if (ImGui::DragFloat("Rotation", &inputRotation, transformDragSpeed))
         {
-            transform.SetRotation({ inputRotations[0], inputRotations[1], inputRotations[2] });
+            transform.SetRotation({ rotationVector.x, rotationVector.y, inputRotation });
         }
 
         glm::vec3 scaleVector = transform.GetScale();
-        float inputScale[3] = { scaleVector.x, scaleVector.y, scaleVector.z };
-        if (ImGui::DragFloat3("Scale", inputScale, transformDragSpeed))
+        float inputScale[2] = { scaleVector.x, scaleVector.y };
+        if (ImGui::DragFloat2("Scale", inputScale, transformDragSpeed))
         {
-            transform.SetScale({ inputScale[0], inputScale[1], inputScale[2] });
+            transform.SetScale({ inputScale[0], inputScale[1], scaleVector.z });
         }
 
         // ColorComponent
@@ -333,7 +333,7 @@ void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
     _editorCamera = _scene->AddCamera(); // Editor scene will always have an editor camera
     auto [id, camera, transform, name] = _scene->GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
     camera.SetEditorCamera(true);
-    camera.SetPrimary(false);
+    camera.SetPrimary(true);
     name.SetName("Editor Camera");
     auto currentTranslation = transform.GetTranslation();
     transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
