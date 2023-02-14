@@ -88,6 +88,10 @@ set(BOX2D_BUILD_TESTBED OFF)
 add_subdirectory(Libraries/Box2D)
 target_link_libraries(${PROJECT_NAME} box2d)
 
+# Link with nlohmann/json
+add_subdirectory(Libraries/json)
+target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
+
 # Compile shaders
 file(
         GLOB VERTEX_SHADERS
