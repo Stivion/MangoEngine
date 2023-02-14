@@ -69,5 +69,7 @@ namespace Mango
 	private:
 		void AddDefaultEntity(Mango::GeometryType geometry);
 		void SetRendererCamera(Mango::CameraComponent& camera, Mango::TransformComponent& transform);
+
+		friend class SceneSerializer;
 	};
 }

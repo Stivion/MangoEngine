@@ -1,5 +1,7 @@
 #include "ImGuiEditor.h"
 
+#include "../Infrastructure/IO/FileWriter.h"
+
 Mango::ImGuiEditor::ImGuiEditor(const Window* window)
 {
     IMGUI_CHECKVERSION();
@@ -20,7 +22,24 @@ void Mango::ImGuiEditor::ConstructEditor()
 {
     // Main Mango Engine window
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    ImGui::Begin("Mango Engine", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Mango Engine", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar);
+
+    if (ImGui::BeginMenuBar())
+    {
+        if (ImGui::BeginMenu("File"))
+        {
+            if (ImGui::MenuItem("Save as...", "Ctrl+Alt+S"))
+            {
+                Mango::SceneSerializer serializer;
+                const auto serializedScene = serializer.Serialize(*_scene);
+
+                // Open Save File Dialog here
+                Mango::FileWriter::WriteFile("scene.json", serializedScene);
+            }
+            ImGui::EndMenu();
+        }
+        ImGui::EndMenuBar();
+    }
     
     ImGui::SetWindowPos({ 0.0f, 0.0f });
     ImGui::SetWindowSize(ImGui::GetIO().DisplaySize);

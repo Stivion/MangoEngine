@@ -3,6 +3,7 @@
 #include "../Core/GUID.h"
 #include "../Windowing/Window.h"
 #include "../Core/Scene.h"
+#include "../Core/SceneSerializer.h"
 
 #include <imgui.h>
 #include <glm/glm.hpp>
