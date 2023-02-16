@@ -89,8 +89,12 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     if (ImGui::Button(playText, { firstButtonWidth, buttonsHeight }))
     {
-        Mango::SceneSerializer serializer;
-        _sceneState = serializer.Serialize(Mango::SceneManager::GetScene());
+        if (Mango::SceneManager::GetScene().GetSceneState() != Mango::SceneState::Play)
+        {
+            Mango::SceneSerializer serializer;
+            _sceneState = serializer.Serialize(Mango::SceneManager::GetScene());
+        }
+
         Mango::SceneManager::GetScene().OnPlay();
     }
     ImGui::SameLine();
