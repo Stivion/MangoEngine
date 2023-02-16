@@ -7,6 +7,8 @@
 #include <imgui.h>
 #include <glm/glm.hpp>
 
+#include <string>
+
 namespace Mango
 {
 	class ImGuiEditor
@@ -29,6 +31,7 @@ namespace Mango
 	private:
 		entt::entity _selectedEntity;
 		entt::entity _editorCamera;
+		std::string _sceneState;
 		
 		bool _viewportCameraMoveStarted = false;
 		ImVec2 _viewportCameraMoveStartMousePosition;

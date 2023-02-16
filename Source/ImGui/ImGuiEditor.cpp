@@ -42,7 +42,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             if (ImGui::MenuItem("Save as...", "Ctrl+Alt+S"))
             {
                 Mango::SceneSerializer serializer;
-                const auto serializedScene = serializer.Serialize(scene);
+                const auto serializedScene = serializer.Serialize(Mango::SceneManager::GetScene());
 
                 // Open Save File Dialog here
                 Mango::FileWriter::WriteFile("scene.json", serializedScene);
@@ -89,12 +89,16 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     if (ImGui::Button(playText, { firstButtonWidth, buttonsHeight }))
     {
-        scene.OnPlay();
+        Mango::SceneSerializer serializer;
+        _sceneState = serializer.Serialize(Mango::SceneManager::GetScene());
+        Mango::SceneManager::GetScene().OnPlay();
     }
     ImGui::SameLine();
     if (ImGui::Button(stopText, { secondButtonWidth, buttonsHeight }))
     {
-        scene.OnStop();
+        Mango::SceneManager::GetScene().OnStop();
+        Mango::SceneManager::LoadFromJson(_sceneState);
+        InitializeSceneForEditor();
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -113,7 +117,7 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
 
     // Moving camera
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && scene.GetSceneState() != Mango::SceneState::Play)
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && Mango::SceneManager::GetScene().GetSceneState() != Mango::SceneState::Play)
     {
         _viewportCameraMoveStarted = true;
         _viewportCameraMoveStartMousePosition = ImGui::GetIO().MousePos;
@@ -121,7 +125,7 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     if (_viewportCameraMoveStarted)
     {
-        auto [editorCamera, editorCameraTransform] = scene.GetRegistry().get<CameraComponent, TransformComponent>(_editorCamera);
+        auto [editorCamera, editorCameraTransform] = Mango::SceneManager::GetScene().GetRegistry().get<CameraComponent, TransformComponent>(_editorCamera);
 
         // Camera look at controls
         auto mousePosition = ImGui::GetIO().MousePos;
@@ -181,7 +185,7 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     // Entities window
     ImGui::Begin("Entities");
-    for (auto [entity, id, name] : scene.GetRegistry().view<IdComponent, NameComponent>().each())
+    for (auto [entity, id, name] : Mango::SceneManager::GetScene().GetRegistry().view<IdComponent, NameComponent>().each())
     {
         ImGui::PushID(id.GetId());
         auto entitySelected = entity == _selectedEntity;
@@ -197,7 +201,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             {
                 if (ImGui::Button("Delete entity"))
                 {
-                    scene.DeleteEntity(entity);
+                    Mango::SceneManager::GetScene().DeleteEntity(entity);
                 }
             }
             ImGui::EndPopup();
@@ -216,17 +220,17 @@ void Mango::ImGuiEditor::ConstructEditor()
     {
         if (ImGui::Button("Add triangle"))
         {
-            scene.AddTriangle();
+            Mango::SceneManager::GetScene().AddTriangle();
         }
 
         if (ImGui::Button("Add rectangle"))
         {
-            scene.AddRectangle();
+            Mango::SceneManager::GetScene().AddRectangle();
         }
 
         if (ImGui::Button("Add camera"))
         {
-            scene.AddCamera();
+            Mango::SceneManager::GetScene().AddCamera();
         }
         ImGui::EndPopup();
     }
@@ -240,9 +244,9 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     // Entities component properties window
     ImGui::Begin("Properies");
-    if (scene.GetRegistry().valid(_selectedEntity))
+    if (Mango::SceneManager::GetScene().GetRegistry().valid(_selectedEntity))
     {
-        auto [id, name, transform] = scene.GetRegistry().get<IdComponent, NameComponent, TransformComponent>(_selectedEntity);
+        auto [id, name, transform] = Mango::SceneManager::GetScene().GetRegistry().get<IdComponent, NameComponent, TransformComponent>(_selectedEntity);
         ImGui::PushID(id.GetId());
 
         // NameComponent
@@ -272,7 +276,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // ColorComponent
-        auto color = scene.GetRegistry().try_get<ColorComponent>(_selectedEntity);
+        auto color = Mango::SceneManager::GetScene().GetRegistry().try_get<ColorComponent>(_selectedEntity);
         if (color != nullptr)
         {
             glm::vec4 colorVector = color->GetColor();
@@ -284,7 +288,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // CameraComponent
-        auto camera = scene.GetRegistry().try_get<CameraComponent>(_selectedEntity);
+        auto camera = Mango::SceneManager::GetScene().GetRegistry().try_get<CameraComponent>(_selectedEntity);
         if (camera != nullptr)
         {
             float cameraDragSpeed = 1.0f;
@@ -309,7 +313,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             bool isPrimary = camera->IsPrimary();
             if (ImGui::Checkbox("Is Primary", &isPrimary))
             {
-                for (auto [_, otherCamera] : scene.GetRegistry().view<CameraComponent>().each())
+                for (auto [_, otherCamera] : Mango::SceneManager::GetScene().GetRegistry().view<CameraComponent>().each())
                 {
                     otherCamera.SetPrimary(false);
                 }
@@ -318,7 +322,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // Rigidbody component
-        auto rigidbody = scene.GetRegistry().try_get<RigidbodyComponent>(_selectedEntity);
+        auto rigidbody = Mango::SceneManager::GetScene().GetRegistry().try_get<RigidbodyComponent>(_selectedEntity);
         if (rigidbody != nullptr)
         {
             bool isDynamic = rigidbody->IsDynamic();
@@ -333,10 +337,10 @@ void Mango::ImGuiEditor::ConstructEditor()
         // Components popup
         if (ImGui::BeginPopup("Components popup"))
         {
-            auto rigidbodyExist = scene.GetRegistry().try_get<RigidbodyComponent>(_selectedEntity) != nullptr;
+            auto rigidbodyExist = Mango::SceneManager::GetScene().GetRegistry().try_get<RigidbodyComponent>(_selectedEntity) != nullptr;
             if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
             {
-                scene.AddRigidbody(_selectedEntity);
+                Mango::SceneManager::GetScene().AddRigidbody(_selectedEntity);
             }
 
             ImGui::EndPopup();
@@ -379,9 +383,8 @@ inline float Mango::ImGuiEditor::GetCameraMovementSpeed()
 
 void Mango::ImGuiEditor::InitializeSceneForEditor()
 {
-    auto& scene = Mango::SceneManager::GetScene();
     bool editorCameraExist = false;
-    for (const auto& [entity, camera] : scene.GetRegistry().view<CameraComponent>().each())
+    for (const auto& [entity, camera] : Mango::SceneManager::GetScene().GetRegistry().view<CameraComponent>().each())
     {
         if (camera.IsEditorCamera())
         {
@@ -393,8 +396,8 @@ void Mango::ImGuiEditor::InitializeSceneForEditor()
 
     if (!editorCameraExist)
     {
-        _editorCamera = scene.AddCamera(); // Editor scene will always have an editor camera
-        auto [id, camera, transform, name] = scene.GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
+        _editorCamera = Mango::SceneManager::GetScene().AddCamera(); // Editor scene will always have an editor camera
+        auto [id, camera, transform, name] = Mango::SceneManager::GetScene().GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
         camera.SetEditorCamera(true);
         camera.SetPrimary(true);
         name.SetName("Editor Camera");
@@ -402,5 +405,5 @@ void Mango::ImGuiEditor::InitializeSceneForEditor()
         transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
         transform.SetRotation({ 0.0f, 0.0f, 0.0f });
     }
-    scene.OnCreate();
+    Mango::SceneManager::GetScene().OnCreate();
 }
