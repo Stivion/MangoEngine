@@ -1,5 +1,6 @@
 ﻿#include "Application.h"
 
+#include "Core/SceneManager.h"
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
@@ -9,8 +10,9 @@ Mango::Application::Application()
     InitializeVulkan();
 
     auto& renderer = _renderingLayer->GetRenderer();
-    _scene = std::make_unique<Mango::Scene>(renderer);
-    _renderingLayer->GetEditor().SetScene(_scene.get());
+    Mango::SceneManager::SetRenderer(&renderer);
+    Mango::SceneManager::LoadEmpty();
+    _renderingLayer->GetEditor().InitializeSceneForEditor();
 }
 
 void Mango::Application::Run()
@@ -46,10 +48,12 @@ void Mango::Application::DrawFrame()
     {
         return;
     }
+
+    auto& scene = Mango::SceneManager::GetScene();
     
-    _scene->OnUpdate();
+    scene.OnUpdate();
     // TODO: Should be independent from frame-rate
-    _scene->OnFixedUpdate();
+    scene.OnFixedUpdate();
 
     _renderingLayer->EndFrame();
 }

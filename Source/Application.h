@@ -2,7 +2,6 @@
 
 #include "Windowing/Window.h"
 #include "Render/RenderingLayer.h"
-#include "Core/Scene.h"
 
 #include "Platform/Windowing/GLFWWindow.h"
 #include "Platform/Vulkan/Context.h"
@@ -31,6 +30,5 @@ namespace Mango
         std::unique_ptr<Mango::GLFWWindow> _window;
         std::unique_ptr<const Mango::Context> _vulkanContext;
         std::unique_ptr<Mango::RenderingLayer_ImplVulkan> _renderingLayer;
-        std::unique_ptr<Mango::Scene> _scene;
     };
 }

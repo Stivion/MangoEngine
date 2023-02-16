@@ -2,6 +2,8 @@
 
 #include "Scene.h"
 
+#include <nlohmann/json.hpp>
+
 #include <string>
 
 namespace Mango
@@ -10,6 +12,9 @@ namespace Mango
 	{
 	public:
 		std::string Serialize(Mango::Scene& scene);
-		Mango::Scene Deserialize(std::string& sceneJson);
+		void Populate(Mango::Scene& scene, std::string& sceneJson);
+
+	private:
+		void EnsureComponentExists(nlohmann::json json, const std::string& componentName);
 	};
 }

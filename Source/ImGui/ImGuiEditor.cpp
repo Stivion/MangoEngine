@@ -1,6 +1,8 @@
 #include "ImGuiEditor.h"
 
+#include "../Core/SceneManager.h"
 #include "../Infrastructure/IO/FileWriter.h"
+#include "../Infrastructure/IO/FileReader.h"
 
 Mango::ImGuiEditor::ImGuiEditor(const Window* window)
 {
@@ -20,6 +22,8 @@ Mango::ImGuiEditor::~ImGuiEditor()
 
 void Mango::ImGuiEditor::ConstructEditor()
 {
+    auto& scene = Mango::SceneManager::GetScene();
+
     // Main Mango Engine window
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::Begin("Mango Engine", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar);
@@ -28,10 +32,17 @@ void Mango::ImGuiEditor::ConstructEditor()
     {
         if (ImGui::BeginMenu("File"))
         {
+            if (ImGui::MenuItem("Open", "Ctrl+O"))
+            {
+                auto sceneJson = Mango::FileReader::ReadAllText("scene.json");
+                Mango::SceneManager::LoadFromJson(sceneJson);
+                InitializeSceneForEditor();
+            }
+
             if (ImGui::MenuItem("Save as...", "Ctrl+Alt+S"))
             {
                 Mango::SceneSerializer serializer;
-                const auto serializedScene = serializer.Serialize(*_scene);
+                const auto serializedScene = serializer.Serialize(scene);
 
                 // Open Save File Dialog here
                 Mango::FileWriter::WriteFile("scene.json", serializedScene);
@@ -78,12 +89,12 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     if (ImGui::Button(playText, { firstButtonWidth, buttonsHeight }))
     {
-        _scene->OnPlay();
+        scene.OnPlay();
     }
     ImGui::SameLine();
     if (ImGui::Button(stopText, { secondButtonWidth, buttonsHeight }))
     {
-        _scene->OnStop();
+        scene.OnStop();
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -102,7 +113,7 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
 
     // Moving camera
-    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && _scene->GetSceneState() != Mango::SceneState::Play)
+    if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && scene.GetSceneState() != Mango::SceneState::Play)
     {
         _viewportCameraMoveStarted = true;
         _viewportCameraMoveStartMousePosition = ImGui::GetIO().MousePos;
@@ -110,7 +121,7 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     if (_viewportCameraMoveStarted)
     {
-        auto [editorCamera, editorCameraTransform] = _scene->GetRegistry().get<CameraComponent, TransformComponent>(_editorCamera);
+        auto [editorCamera, editorCameraTransform] = scene.GetRegistry().get<CameraComponent, TransformComponent>(_editorCamera);
 
         // Camera look at controls
         auto mousePosition = ImGui::GetIO().MousePos;
@@ -170,7 +181,7 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     // Entities window
     ImGui::Begin("Entities");
-    for (auto [entity, id, name] : _scene->GetRegistry().view<IdComponent, NameComponent>().each())
+    for (auto [entity, id, name] : scene.GetRegistry().view<IdComponent, NameComponent>().each())
     {
         ImGui::PushID(id.GetId());
         auto entitySelected = entity == _selectedEntity;
@@ -186,7 +197,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             {
                 if (ImGui::Button("Delete entity"))
                 {
-                    _scene->DeleteEntity(entity);
+                    scene.DeleteEntity(entity);
                 }
             }
             ImGui::EndPopup();
@@ -205,17 +216,17 @@ void Mango::ImGuiEditor::ConstructEditor()
     {
         if (ImGui::Button("Add triangle"))
         {
-            _scene->AddTriangle();
+            scene.AddTriangle();
         }
 
         if (ImGui::Button("Add rectangle"))
         {
-            _scene->AddRectangle();
+            scene.AddRectangle();
         }
 
         if (ImGui::Button("Add camera"))
         {
-            _scene->AddCamera();
+            scene.AddCamera();
         }
         ImGui::EndPopup();
     }
@@ -229,9 +240,9 @@ void Mango::ImGuiEditor::ConstructEditor()
 
     // Entities component properties window
     ImGui::Begin("Properies");
-    if (_scene->GetRegistry().valid(_selectedEntity))
+    if (scene.GetRegistry().valid(_selectedEntity))
     {
-        auto [id, name, transform] = _scene->GetRegistry().get<IdComponent, NameComponent, TransformComponent>(_selectedEntity);
+        auto [id, name, transform] = scene.GetRegistry().get<IdComponent, NameComponent, TransformComponent>(_selectedEntity);
         ImGui::PushID(id.GetId());
 
         // NameComponent
@@ -261,7 +272,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // ColorComponent
-        auto color = _scene->GetRegistry().try_get<ColorComponent>(_selectedEntity);
+        auto color = scene.GetRegistry().try_get<ColorComponent>(_selectedEntity);
         if (color != nullptr)
         {
             glm::vec4 colorVector = color->GetColor();
@@ -273,7 +284,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // CameraComponent
-        auto camera = _scene->GetRegistry().try_get<CameraComponent>(_selectedEntity);
+        auto camera = scene.GetRegistry().try_get<CameraComponent>(_selectedEntity);
         if (camera != nullptr)
         {
             float cameraDragSpeed = 1.0f;
@@ -298,7 +309,7 @@ void Mango::ImGuiEditor::ConstructEditor()
             bool isPrimary = camera->IsPrimary();
             if (ImGui::Checkbox("Is Primary", &isPrimary))
             {
-                for (auto [_, otherCamera] : _scene->GetRegistry().view<CameraComponent>().each())
+                for (auto [_, otherCamera] : scene.GetRegistry().view<CameraComponent>().each())
                 {
                     otherCamera.SetPrimary(false);
                 }
@@ -307,7 +318,7 @@ void Mango::ImGuiEditor::ConstructEditor()
         }
 
         // Rigidbody component
-        auto rigidbody = _scene->GetRegistry().try_get<RigidbodyComponent>(_selectedEntity);
+        auto rigidbody = scene.GetRegistry().try_get<RigidbodyComponent>(_selectedEntity);
         if (rigidbody != nullptr)
         {
             bool isDynamic = rigidbody->IsDynamic();
@@ -322,10 +333,10 @@ void Mango::ImGuiEditor::ConstructEditor()
         // Components popup
         if (ImGui::BeginPopup("Components popup"))
         {
-            auto rigidbodyExist = _scene->GetRegistry().try_get<RigidbodyComponent>(_selectedEntity) != nullptr;
+            auto rigidbodyExist = scene.GetRegistry().try_get<RigidbodyComponent>(_selectedEntity) != nullptr;
             if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
             {
-                _scene->AddRigidbody(_selectedEntity);
+                scene.AddRigidbody(_selectedEntity);
             }
 
             ImGui::EndPopup();
@@ -346,20 +357,6 @@ void Mango::ImGuiEditor::ConstructEditor()
     ImGui::ShowDemoWindow();
 }
 
-void Mango::ImGuiEditor::SetScene(Mango::Scene* scene)
-{
-    _scene = scene;
-    _editorCamera = _scene->AddCamera(); // Editor scene will always have an editor camera
-    auto [id, camera, transform, name] = _scene->GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
-    camera.SetEditorCamera(true);
-    camera.SetPrimary(true);
-    name.SetName("Editor Camera");
-    auto currentTranslation = transform.GetTranslation();
-    transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
-    transform.SetRotation({ 0.0f, 0.0f, 0.0f });
-    _scene->OnCreate();
-}
-
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)
 {
     ImGui::NewFrame();
@@ -378,4 +375,32 @@ inline float Mango::ImGuiEditor::GetCameraRotationSpeed()
 inline float Mango::ImGuiEditor::GetCameraMovementSpeed()
 {
     return 0.01f;
+}
+
+void Mango::ImGuiEditor::InitializeSceneForEditor()
+{
+    auto& scene = Mango::SceneManager::GetScene();
+    bool editorCameraExist = false;
+    for (const auto& [entity, camera] : scene.GetRegistry().view<CameraComponent>().each())
+    {
+        if (camera.IsEditorCamera())
+        {
+            _editorCamera = entity;
+            editorCameraExist = true;
+            break;
+        }
+    }
+
+    if (!editorCameraExist)
+    {
+        _editorCamera = scene.AddCamera(); // Editor scene will always have an editor camera
+        auto [id, camera, transform, name] = scene.GetRegistry().get<IdComponent, CameraComponent, TransformComponent, NameComponent>(_editorCamera);
+        camera.SetEditorCamera(true);
+        camera.SetPrimary(true);
+        name.SetName("Editor Camera");
+        auto currentTranslation = transform.GetTranslation();
+        transform.SetTranslation({ currentTranslation.x, currentTranslation.y, 5.0f });
+        transform.SetRotation({ 0.0f, 0.0f, 0.0f });
+    }
+    scene.OnCreate();
 }
