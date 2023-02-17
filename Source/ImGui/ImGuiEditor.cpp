@@ -39,8 +39,8 @@ void Mango::ImGuiEditor::ConstructEditor()
 			{
 				Mango::FileDialog fileDialog;
 				std::filesystem::path filePath;
-				const auto succeded = fileDialog.Open(&filePath);
-				if (!succeded)
+				const auto succeeded = fileDialog.Open(&filePath, { { L"JSON (*.json)", L"*.json" } });
+				if (!succeeded)
 				{
 					goto cancelled;
 				}
@@ -54,8 +54,8 @@ void Mango::ImGuiEditor::ConstructEditor()
 			{
 				Mango::FileDialog fileDialog;
 				std::filesystem::path filePath;
-				const auto succeded = fileDialog.Save(&filePath);
-				if (!succeded)
+				const auto succeeded = fileDialog.Save(&filePath, { { L"JSON (*.json)", L"*.json" } }, L"json");
+				if (!succeeded)
 				{
 					goto cancelled;
 				}

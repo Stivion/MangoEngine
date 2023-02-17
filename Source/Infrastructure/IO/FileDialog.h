@@ -13,12 +13,12 @@ namespace Mango
 	public:
 		FileDialog() = default;
 
-		bool Open(std::filesystem::path* path) const
+		bool Open(std::filesystem::path* path, std::vector<std::pair<std::wstring, std::wstring>> fileTypes) const
 		{
 #ifdef WIN32
 			WindowsFileDialog winFileDialog;
 			std::wstring filePathString;
-			bool succeded = winFileDialog.Open(&filePathString);
+			bool succeded = winFileDialog.Open(&filePathString, fileTypes);
 			if (!succeded)
 			{
 				return false;
@@ -31,12 +31,17 @@ namespace Mango
 			throw std::runtime_error("Current platform is not supported");
 		}
 
-		bool Save(std::filesystem::path* path) const
+		bool Save(std::filesystem::path* path, std::vector<std::pair<std::wstring, std::wstring>> fileTypes) const
+		{
+			return Save(path, fileTypes, L"");
+		}
+
+		bool Save(std::filesystem::path* path, std::vector<std::pair<std::wstring, std::wstring>> fileTypes, std::wstring defaultFileExtension) const
 		{
 #ifdef WIN32
 			WindowsFileDialog winFileDialog;
 			std::wstring filePathString;
-			bool succeded = winFileDialog.Save(&filePathString);
+			bool succeded = winFileDialog.Save(&filePathString, fileTypes, defaultFileExtension);
 			if (!succeded)
 			{
 				return false;
