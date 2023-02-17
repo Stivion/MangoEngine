@@ -38,3 +38,22 @@ std::string Mango::FileReader::ReadAllText(const std::string& filepath)
     file.close();
     return text;
 }
+
+std::string Mango::FileReader::ReadAllText(const std::filesystem::path& filepath)
+{
+    std::ifstream file(filepath, std::ios::ate);
+
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Failed to open file: " + filepath.string());
+    }
+
+    int64_t fileSize = file.tellg();
+    std::string text;
+    text.resize(fileSize);
+
+    file.seekg(0);
+    file.read(text.data(), fileSize);
+    file.close();
+    return text;
+}
