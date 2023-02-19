@@ -1,5 +1,11 @@
 ﻿cmake-build-debug
 .idea
-Libraries
+Libraries/box2d
+Libraries/entt
+Libraries/glfw
+Libraries/glm
+Libraries/ImGui
+Libraries/json
+Libraries/stb
 .vs
 out

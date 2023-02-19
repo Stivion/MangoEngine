@@ -92,6 +92,31 @@ target_link_libraries(${PROJECT_NAME} box2d)
 add_subdirectory(Libraries/json)
 target_link_libraries(${PROJECT_NAME} nlohmann_json::nlohmann_json)
 
+# Link with Python
+## Link with static library
+target_include_directories(${PROJECT_NAME} PRIVATE Libraries/python/include)
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python3.lib)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python311.lib)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python3_d.lib)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python311_d.lib)
+else()
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python3.lib)
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_SOURCE_DIR}/Libraries/python/libs/python311.lib)
+endif()
+
+
+## Copy DLL's
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python3.dll python3.dll COPYONLY)
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python311.dll python311.dll COPYONLY)
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python3_d.dll python3_d.dll COPYONLY)
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python311_d.dll python311_d.dll COPYONLY)
+else()
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python3.dll python3.dll COPYONLY)
+    configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python311.dll python311.dll COPYONLY)
+endif()
+
 # Compile shaders
 file(
         GLOB VERTEX_SHADERS
