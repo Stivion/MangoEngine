@@ -37,6 +37,8 @@ void Mango::ImGuiEditor::ConstructEditor()
 		{
 			if (ImGui::MenuItem("Open", "Ctrl+O"))
 			{
+				// Bug: Add entity, Play, Stop, Remove Entity, Play, Stop - Crash
+
 				Mango::FileDialog fileDialog;
 				std::filesystem::path filePath;
 				const auto succeeded = fileDialog.Open(&filePath, { { L"JSON (*.json)", L"*.json" } });
