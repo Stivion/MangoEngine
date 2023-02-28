@@ -1,5 +1,10 @@
 #include "Scene.h"
 
+#include "../Infrastructure/Logging/Logging.h"
+
+#include <filesystem>
+#include <unordered_map>
+
 Mango::Scene::Scene(Mango::Renderer& renderer)
     : _renderer(renderer)
 {
@@ -33,6 +38,14 @@ void Mango::Scene::OnCreate()
 
 void Mango::Scene::OnUpdate()
 {
+    // Run scripts
+    auto scriptsView = _registry.view<IdComponent, ScriptComponent>();
+    for (auto [entity, id, script] : scriptsView.each())
+    {
+        
+    }
+
+    // Render
     auto view = _registry.view<TransformComponent, ColorComponent, GeometryComponent>();
     for (auto [entity, transform, color, geometry] : view.each())
     {
@@ -126,8 +139,38 @@ void Mango::Scene::OnPlay()
         fixtureDefinition.shape = &bodyBox;
         fixtureDefinition.density = 1.0f;
         fixtureDefinition.friction = 0.3f;
+        // TODO: Here is a memory leak
         rigidbody.SetFixture(fixtureDefinition);
     }
+
+    // Setup ScriptEngine
+    std::filesystem::path scriptsPath = std::filesystem::current_path();
+    std::unordered_map<std::string, std::filesystem::path> scripts;
+    for (const auto& entry : std::filesystem::directory_iterator(scriptsPath))
+    {
+        if (!entry.is_regular_file())
+        {
+            continue;
+        }
+
+        scripts[entry.path().filename().string()] = entry.path();
+    }
+
+    std::unordered_map<Mango::GUID, std::filesystem::path> entitiesToScriptsMap;
+    for (auto [entity, id, script] : _registry.view<IdComponent, ScriptComponent>().each())
+    {
+        const auto& scriptFileName = std::string(script.GetFileName());
+        if (!scripts.contains(scriptFileName))
+        {
+            M_ERROR("Couldn't find " + scriptFileName + " script.");
+        }
+
+        const auto& scriptFilePath = scripts[scriptFileName];
+        entitiesToScriptsMap[id.GetId()] = scriptFilePath;
+    }
+
+    // TODO: Here is a memory leak
+    _scriptEngine = std::make_unique<Mango::ScriptEngine>(entitiesToScriptsMap);
 }
 
 void Mango::Scene::OnStop()
@@ -154,6 +197,8 @@ void Mango::Scene::OnStop()
     {
         rigidbody.DestroyFixture();
     }
+
+    _scriptEngine = nullptr;
 }
 
 void Mango::Scene::AddTriangle()
@@ -187,6 +232,17 @@ void Mango::Scene::AddRigidbody(entt::entity entity)
     b2BodyDef bodyDefinition;
     b2Body* body = _physicsWorld.CreateBody(&bodyDefinition);
     _registry.emplace<RigidbodyComponent>(entity, body);
+}
+
+void Mango::Scene::AddScript(entt::entity entity)
+{
+    auto script = _registry.try_get<ScriptComponent>(entity);
+    if (script != nullptr)
+    {
+        return;
+    }
+
+    _registry.emplace<ScriptComponent>(entity);
 }
 
 void Mango::Scene::DeleteEntity(entt::entity entity)

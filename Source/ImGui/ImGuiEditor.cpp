@@ -359,6 +359,13 @@ void Mango::ImGuiEditor::ConstructEditor()
 			}
 		}
 
+		// Script component
+		auto script = Mango::SceneManager::GetScene().GetRegistry().try_get<ScriptComponent>(_selectedEntity);
+		if (script != nullptr)
+		{
+			ImGui::InputText("Script", script->GetFileName(), script->GetBufferSize());
+		}
+
 		ImGui::PopID();
 
 		// Components popup
@@ -368,6 +375,12 @@ void Mango::ImGuiEditor::ConstructEditor()
 			if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
 			{
 				Mango::SceneManager::GetScene().AddRigidbody(_selectedEntity);
+			}
+
+			auto scriptExist = Mango::SceneManager::GetScene().GetRegistry().try_get<ScriptComponent>(_selectedEntity) != nullptr;
+			if (!scriptExist && ImGui::Button("Add script"))
+			{
+				Mango::SceneManager::GetScene().AddScript(_selectedEntity);
 			}
 
 			ImGui::EndPopup();

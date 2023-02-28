@@ -29,3 +29,17 @@ namespace Mango
 		uint64_t _id;
 	};
 }
+
+namespace std
+{
+	template<>
+	class hash<Mango::GUID>
+	{
+	public:
+		std::uint64_t operator()(const Mango::GUID& guid) const
+		{
+			std::hash<uint64_t> hash;
+			return hash(guid);
+		}
+	};
+}

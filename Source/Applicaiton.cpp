@@ -4,8 +4,6 @@
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
-#include "Core/Scripting/ScriptEngine.h"
-
 Mango::Application::Application()
 {
     InitializeWindow();
@@ -15,8 +13,6 @@ Mango::Application::Application()
     Mango::SceneManager::SetRenderer(&renderer);
     Mango::SceneManager::LoadEmpty();
     _renderingLayer->GetEditor().InitializeSceneForEditor();
-
-    Mango::ScriptEngine scriptEngine;
 }
 
 void Mango::Application::Run()

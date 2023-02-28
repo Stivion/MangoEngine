@@ -90,6 +90,15 @@ std::string Mango::SceneSerializer::Serialize(Mango::Scene& scene)
 			});
 		}
 
+		// ScriptComponent
+		const auto script = scene._registry.try_get<ScriptComponent>(*entity);
+		if (script != nullptr)
+		{
+			currentEntity["components"]["scriptComponent"] = nlohmann::json::object({
+				{ "scriptFileName", std::string(script->GetFileName()) }
+			});
+		}
+
 		json["entities"].push_back(currentEntity);
 	}
 
@@ -166,6 +175,15 @@ void Mango::SceneSerializer::Populate(Mango::Scene& scene, std::string& sceneJso
 			b2Body* body = scene._physicsWorld.CreateBody(&bodyDefinition);
 			auto& component = registry.emplace<RigidbodyComponent>(entity, body);
 			component.SetDynamic(isDynamic);
+		}
+
+		// ScriptComponent
+		if (currentComponents.contains("scriptComponent"))
+		{
+			const auto& scriptJson = currentComponents["scriptComponent"];
+			std::string scriptFileName = scriptJson["scriptFileName"];
+			auto& script = registry.emplace<ScriptComponent>(entity);
+			script.SetFileName(scriptFileName);
 		}
 	}
 }

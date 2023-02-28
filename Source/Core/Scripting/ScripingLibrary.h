@@ -16,7 +16,7 @@ namespace Mango
 		class ScriptableEntity
 		{
 		public:
-			Mango::GUID _id;
+			Mango::GUID _id = 0;
 		};
 
 		typedef struct
@@ -25,6 +25,7 @@ namespace Mango
 			ScriptableEntity* objPtr;
 		} PyEntity;
 
+		PyObject* GetEntityType();
 		std::string GetLibraryName();
 		ModuleInitFunc GetModuleInitializationFunction();
 	}

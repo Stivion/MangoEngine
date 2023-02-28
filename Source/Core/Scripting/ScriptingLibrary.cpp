@@ -1,6 +1,5 @@
 #include "ScripingLibrary.h"
 
-#include <iostream>
 #include <stdexcept>
 
 static std::string _engineModuleName = "MangoEngine";
@@ -47,12 +46,17 @@ static struct PyModuleDef _mangoEngineModuleDefinition =
     nullptr // module methods
 };
 
-static PyObject* PyEntity_New(PyTypeObject* type, PyObject* args, PyObject* kwargs)
+static PyObject* PyEntity_New(PyTypeObject* type, PyObject* args, PyObject* Py_UNUSED(kwargs))
 {
     Mango::Scripting::PyEntity* self = (Mango::Scripting::PyEntity*)type->tp_alloc(type, 0);
     if (self != nullptr)
     {
         self->objPtr = new Mango::Scripting::ScriptableEntity();
+        if (PyTuple_Size(args) == 1)
+        {
+            PyObject* entityId = PyTuple_GetItem(args, 0);
+            self->objPtr->_id = PyLong_AsUnsignedLongLong(entityId);
+        }
     }
     return (PyObject*)self;
 }
@@ -98,8 +102,18 @@ PyMODINIT_FUNC PyInit_EntityModule(void)
     }
 
     Py_IncRef((PyObject*)&PyEntityType);
-    PyModule_AddObject(entityModule, _entityClassName.c_str(), (PyObject*)&PyEntityType);
+    if (PyModule_AddObject(entityModule, _entityClassName.c_str(), (PyObject*)&PyEntityType) != 0)
+    {
+        Py_DecRef(entityModule);
+        Py_DecRef((PyObject*)&PyEntityType);
+        return nullptr;
+    }
     return entityModule;
+}
+
+PyObject* Mango::Scripting::GetEntityType()
+{
+    return (PyObject*)&PyEntityType;
 }
 
 std::string Mango::Scripting::GetLibraryName()

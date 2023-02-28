@@ -1,67 +1,78 @@
 #include "ScriptEngine.h"
 
 #include "ScripingLibrary.h"
+#include "../../Infrastructure/Logging/Logging.h"
 
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
-
-#include <iostream>
 #include <stdexcept>
 
-Mango::ScriptEngine::ScriptEngine()
+Mango::ScriptEngine::ScriptEngine(std::unordered_map<Mango::GUID, std::filesystem::path> entitiesToScriptsMap)
 {
+    // Make engine scripting library available for import from Python
     const auto engineModuleName = Mango::Scripting::GetLibraryName();
-
     if (PyImport_AppendInittab(engineModuleName.c_str(), Mango::Scripting::GetModuleInitializationFunction()) < 0)
     {
         throw std::runtime_error("Unable to initialize MangoEngine python module");
     }
     Py_Initialize();
 
-    PyRun_SimpleString(
-        "import MangoEngine\n"
-        "\n"
-        "class TestEntity(MangoEngine.Entity):"
-        "\n"
-        "    def __init__(self):\n"
-        "        print('init')\n"
-        "        pass\n"
-        "\n"
-        "\n"
-        "test = TestEntity()\n"
-        "test.GetId()\n"
-        "a = MangoEngine.Entity()\n"
-    );
-
+    // Import engine scripting library from Python side
     PyObject* engineModule = PyImport_ImportModule(engineModuleName.c_str());
     if (engineModule == nullptr)
     {
         throw std::runtime_error("Unable to import MangoEngine python module");
     }
-
-    PyObject* moduleClasses = PyModule_GetDict(engineModule);
     Py_DecRef(engineModule);
-    PyObject* key, * value;
-    Py_ssize_t position = 0;
 
-    while (PyDict_Next(moduleClasses, &position, &key, &value))
+    // Iterate over all scripts from engine editor
+    for (auto it = entitiesToScriptsMap.begin(); it != entitiesToScriptsMap.end(); it++)
     {
-        if (PyCallable_Check(value))
+        const std::string scriptName = it->second.stem().string();
+        PyObject* module = PyImport_ImportModule(scriptName.c_str());
+        if (module == nullptr)
         {
-            // PyObject_IsSubclass
-            PyObject* o = PyObject_CallObject(value, nullptr);
-            std::cout << o->ob_type->tp_name << '\n';
-            if (PyCallable_Check(o))
-            {
-                PyObject_CallNoArgs(o);
-            }
-            // PyObject* object = PyObject_CallNoArgs(value);
+            PyErr_Print();
+            M_ERROR("Unable to load Python script: " + scriptName);
         }
-    }
 
-    Py_DecRef(moduleClasses);
-    
-    if (Py_FinalizeEx() < 0) {
-        // Handle errors
+        // Scan module
+        PyObject* moduleClasses = PyModule_GetDict(module);
+        Py_DecRef(module);
+
+        PyObject* key, * value;
+        Py_ssize_t position = 0;
+        // Iterate over all entries in module
+        while (PyDict_Next(moduleClasses, &position, &key, &value))
+        {
+            // Make sure that we can call this object
+            if (!PyCallable_Check(value))
+            {
+                continue;
+            }
+
+            // Skip all classes that don't inherit from base MangoEngine.Entity class
+            if (!PyObject_IsSubclass(value, Mango::Scripting::GetEntityType()))
+            {
+                continue;
+            }
+
+            // Create PyEnities
+            PyObject* entityId = PyLong_FromUnsignedLongLong((uint64_t)it->first);
+            PyObject* args = PyTuple_Pack(1, entityId);
+            PyObject* obj = PyObject_CallObject(value, args);
+            // Py_DecRef(obj); TODO: ???
+            Py_DecRef(args);
+            Py_DecRef(entityId);
+        }
+        Py_DecRef(key);
+        Py_DecRef(value);
+        Py_DecRef(moduleClasses);
+    }
+}
+
+Mango::ScriptEngine::~ScriptEngine()
+{
+    if (Py_FinalizeEx() < 0)
+    {
+        PyErr_Print();
     }
 }

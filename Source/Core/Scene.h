@@ -3,9 +3,12 @@
 #include "GUID.h"
 #include "Components/Components.h"
 #include "../Render/Renderer.h"
+#include "Scripting/ScriptEngine.h"
 
 #include <entt/entity/registry.hpp>
 #include <box2d/box2d.h>
+
+#include <memory>
 
 namespace Mango
 {
@@ -51,6 +54,7 @@ namespace Mango
 		entt::entity AddCamera();
 
 		void AddRigidbody(entt::entity entity);
+		void AddScript(entt::entity entity);
 
 		// Delete specified entity from scene
 		void DeleteEntity(entt::entity entity);
@@ -65,6 +69,9 @@ namespace Mango
 		const int32_t _velocityIterations = 8;
 		const int32_t _positionIterations = 3;
 		b2World _physicsWorld{{ 0.0f, -9.8f }};
+
+		// Scripting
+		std::unique_ptr<Mango::ScriptEngine> _scriptEngine;
 
 	private:
 		void AddDefaultEntity(Mango::GeometryType geometry);
