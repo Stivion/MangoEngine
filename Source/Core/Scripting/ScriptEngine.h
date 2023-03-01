@@ -14,8 +14,12 @@ namespace Mango
 	class ScriptEngine
 	{
 	public:
-		ScriptEngine() = delete;
-		ScriptEngine(std::unordered_map<Mango::GUID, std::filesystem::path> entitiesToScriptsMap);
+		ScriptEngine();
 		~ScriptEngine();
+
+		void LoadScripts(std::unordered_map<Mango::GUID, std::filesystem::path> entitiesToScriptsMap);
+
+	private:
+		std::unordered_map<std::string, PyObject*> _loadedModules;
 	};
 }

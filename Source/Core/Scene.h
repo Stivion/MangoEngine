@@ -24,6 +24,7 @@ namespace Mango
 		Scene(Mango::Renderer& renderer);
 		Scene(const Scene&) = delete;
 		Scene operator=(const Scene&) = delete;
+		~Scene();
 
 		entt::registry& GetRegistry() { return _registry; }
 

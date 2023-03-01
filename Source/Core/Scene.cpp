@@ -8,6 +8,12 @@
 Mango::Scene::Scene(Mango::Renderer& renderer)
     : _renderer(renderer)
 {
+    _scriptEngine = std::make_unique<Mango::ScriptEngine>();
+}
+
+Mango::Scene::~Scene()
+{
+    _scriptEngine = nullptr;
 }
 
 void Mango::Scene::OnCreate()
@@ -139,7 +145,6 @@ void Mango::Scene::OnPlay()
         fixtureDefinition.shape = &bodyBox;
         fixtureDefinition.density = 1.0f;
         fixtureDefinition.friction = 0.3f;
-        // TODO: Here is a memory leak
         rigidbody.SetFixture(fixtureDefinition);
     }
 
@@ -169,8 +174,7 @@ void Mango::Scene::OnPlay()
         entitiesToScriptsMap[id.GetId()] = scriptFilePath;
     }
 
-    // TODO: Here is a memory leak
-    _scriptEngine = std::make_unique<Mango::ScriptEngine>(entitiesToScriptsMap);
+    _scriptEngine->LoadScripts(entitiesToScriptsMap);
 }
 
 void Mango::Scene::OnStop()
@@ -197,8 +201,6 @@ void Mango::Scene::OnStop()
     {
         rigidbody.DestroyFixture();
     }
-
-    _scriptEngine = nullptr;
 }
 
 void Mango::Scene::AddTriangle()
