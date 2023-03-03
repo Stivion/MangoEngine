@@ -1,12 +1,15 @@
 #include "ScriptEngine.h"
 
-#include "ScripingLibrary.h"
 #include "../../Infrastructure/Logging/Logging.h"
 
 #include <stdexcept>
 
 Mango::ScriptEngine::ScriptEngine()
 {
+    // Initialize events
+    Mango::Scripting::SetUserPointer(this);
+    Mango::Scripting::SetScriptEventHanlder(HandleScriptEvent);
+
     // Make engine scripting library available for import from Python
     const auto engineModuleName = Mango::Scripting::GetLibraryName();
     if (PyImport_AppendInittab(engineModuleName.c_str(), Mango::Scripting::GetModuleInitializationFunction()) < 0)
@@ -29,6 +32,11 @@ Mango::ScriptEngine::ScriptEngine()
 
 Mango::ScriptEngine::~ScriptEngine()
 {
+    for (auto& [_, entity] : _entities)
+    {
+        Py_DecRef(entity);
+    }
+
     for (auto it = _loadedModules.begin(); it != _loadedModules.end(); it++)
     {
         Py_DecRef(it->second);
@@ -42,6 +50,9 @@ Mango::ScriptEngine::~ScriptEngine()
 
 void Mango::ScriptEngine::LoadScripts(std::unordered_map<Mango::GUID, std::filesystem::path> entitiesToScriptsMap)
 {
+    // NOTE: Entities not freed here because Python interpreter will crash after some reloads
+    _entities.clear();
+
     // Iterate over all scripts from engine editor
     for (auto it = entitiesToScriptsMap.begin(); it != entitiesToScriptsMap.end(); it++)
     {
@@ -88,6 +99,7 @@ void Mango::ScriptEngine::LoadScripts(std::unordered_map<Mango::GUID, std::files
             PyObject* entityId = PyLong_FromUnsignedLongLong((uint64_t)it->first);
             PyObject* args = PyTuple_Pack(1, entityId);
             PyObject* obj = PyObject_CallObject(value, args);
+            _entities[it->first] = obj;
             Py_DecRef(args);
             Py_DecRef(entityId);
         }
@@ -95,4 +107,62 @@ void Mango::ScriptEngine::LoadScripts(std::unordered_map<Mango::GUID, std::files
         Py_DecRef(value);
         Py_DecRef(moduleClasses);
     }
+}
+
+void Mango::ScriptEngine::OnCreate(std::uint64_t entityId)
+{
+    PyObject* entity = _entities[entityId];
+    CallMethod(entity, "OnCreate");
+}
+
+void Mango::ScriptEngine::OnCreate()
+{
+    for (auto& [_, entity] : _entities)
+    {
+        CallMethod(entity, "OnCreate");
+    }
+}
+
+void Mango::ScriptEngine::OnUpdate()
+{
+    for (auto& [_, entity] : _entities)
+    {
+        CallMethod(entity, "OnUpdate");
+    }
+}
+
+void Mango::ScriptEngine::OnFixedUpdate()
+{
+    for (auto& [_, entity] : _entities)
+    {
+        CallMethod(entity, "OnFixedUpdate");
+    }
+}
+
+void Mango::ScriptEngine::CallMethod(PyObject* entity, std::string methodName)
+{
+    PyObject* method = PyUnicode_DecodeFSDefault(methodName.c_str());
+    PyObject_CallMethodNoArgs(entity, method);
+    Py_DecRef(method);
+}
+
+PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent event)
+{
+    Mango::ScriptEngine* scriptEngine = reinterpret_cast<Mango::ScriptEngine*>(Mango::Scripting::GetUserPointer());
+    if (event.EventName == "ApplyForce")
+    {
+        return scriptEngine->HandleApplyForceEvent(event.ScriptableEntity, event.Args);
+    }
+}
+
+PyObject* Mango::ScriptEngine::HandleApplyForceEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyX = PyTuple_GetItem(args, 0);
+    PyObject* pyY = PyTuple_GetItem(args, 1);
+    float x = PyFloat_AsDouble(pyX);
+    float y = PyFloat_AsDouble(pyY);
+    glm::vec2 force = glm::vec2(x, y);
+    _applyForceHandler(this, entityId, force);
+    return Py_None;
 }

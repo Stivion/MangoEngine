@@ -5,8 +5,21 @@
 static std::string _engineModuleName = "MangoEngine";
 static std::string _entityClassName = "Entity";
 static std::string _fullClassName = _engineModuleName + "." + _entityClassName;
+static Mango::Scripting::ScriptEventHandler _eventHandler = nullptr;
+static void* _userPointer = nullptr;
 
-static PyObject* GetId(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(ignored))
+static PyObject* ReturnNone()
+{
+    Py_IncRef(Py_None);
+    return Py_None;
+}
+
+// This methods is provided in order to always have something to call without need to check for method existance
+static PyObject* OnCreate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
+static PyObject* OnUpdate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
+static PyObject* OnFixedUpdate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
+
+static PyObject* GetId(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args))
 {
     uint64_t id = self->objPtr->_id;
     PyObject* pyId = PyLong_FromUnsignedLongLong(id);
@@ -14,14 +27,43 @@ static PyObject* GetId(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(ign
     return pyId;
 }
 
-static PyObject* GetTransform(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(ignored))
+static PyObject* GetTransform(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args))
 {
     Py_IncRef(Py_None);
     return Py_None;
 }
 
+static PyObject* ApplyForce(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "ApplyForce";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
 static PyMethodDef _entityMethods[] =
 {
+    {
+        "OnCreate",
+        (PyCFunction)OnCreate,
+        METH_NOARGS,
+        "Method gets executed once when the entity is created in game world"
+    },
+    {
+        "OnUpdate",
+        (PyCFunction)OnUpdate,
+        METH_NOARGS,
+        "Method gets executed every frame"
+    },
+    {
+        "OnFixedUpdate",
+        (PyCFunction)OnFixedUpdate,
+        METH_NOARGS,
+        "Method gets executed every tick physics gets updated"
+    },
     {
         "GetId",
         (PyCFunction)GetId,
@@ -33,6 +75,12 @@ static PyMethodDef _entityMethods[] =
         (PyCFunction)GetTransform,
         METH_NOARGS,
         "Get transform of the current entity"
+    },
+    {
+        "ApplyForce",
+        (PyCFunction)ApplyForce,
+        METH_VARARGS,
+        "Apply force to current entity"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };
@@ -124,4 +172,19 @@ std::string Mango::Scripting::GetLibraryName()
 Mango::Scripting::ModuleInitFunc Mango::Scripting::GetModuleInitializationFunction()
 {
     return PyInit_EntityModule;
+}
+
+void Mango::Scripting::SetScriptEventHanlder(ScriptEventHandler handler)
+{
+    _eventHandler = handler;
+}
+
+void Mango::Scripting::SetUserPointer(void* pointer)
+{
+    _userPointer = pointer;
+}
+
+void* Mango::Scripting::GetUserPointer()
+{
+    return _userPointer;
 }

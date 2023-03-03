@@ -61,6 +61,10 @@ namespace Mango
 		void DeleteEntity(entt::entity entity);
 
 	private:
+		// Manipualte scene entities methods
+		static void ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 force);
+
+	private:
 		Mango::Renderer& _renderer;
 		entt::registry _registry;
 		Mango::SceneState _sceneState = Mango::SceneState::Stop;

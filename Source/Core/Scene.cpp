@@ -44,13 +44,6 @@ void Mango::Scene::OnCreate()
 
 void Mango::Scene::OnUpdate()
 {
-    // Run scripts
-    auto scriptsView = _registry.view<IdComponent, ScriptComponent>();
-    for (auto [entity, id, script] : scriptsView.each())
-    {
-        
-    }
-
     // Render
     auto view = _registry.view<TransformComponent, ColorComponent, GeometryComponent>();
     for (auto [entity, transform, color, geometry] : view.each())
@@ -84,6 +77,8 @@ void Mango::Scene::OnUpdate()
             }
         }
     }
+
+    _scriptEngine->OnUpdate();
 }
 
 void Mango::Scene::OnFixedUpdate()
@@ -105,6 +100,8 @@ void Mango::Scene::OnFixedUpdate()
         auto currentRotation = transform.GetRotation();
         transform.SetRotation(glm::vec3(currentRotation.x, currentRotation.y, glm::degrees(angle)));
     }
+
+    _scriptEngine->OnFixedUpdate();
 }
 
 void Mango::Scene::OnPlay()
@@ -140,7 +137,8 @@ void Mango::Scene::OnPlay()
 
         rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
         b2PolygonShape bodyBox;
-        bodyBox.SetAsBox(scale.x, scale.y);
+        // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+        bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
         b2FixtureDef fixtureDefinition;
         fixtureDefinition.shape = &bodyBox;
         fixtureDefinition.density = 1.0f;
@@ -174,7 +172,13 @@ void Mango::Scene::OnPlay()
         entitiesToScriptsMap[id.GetId()] = scriptFilePath;
     }
 
+    _scriptEngine->SetUserData(this);
+    _scriptEngine->SetApplyForceEventHandler(ApplyForce);
+
     _scriptEngine->LoadScripts(entitiesToScriptsMap);
+
+    // Run OnPlay on already existing entities
+    _scriptEngine->OnCreate();
 }
 
 void Mango::Scene::OnStop()
@@ -250,6 +254,20 @@ void Mango::Scene::AddScript(entt::entity entity)
 void Mango::Scene::DeleteEntity(entt::entity entity)
 {
     _registry.destroy(entity);
+}
+
+void Mango::Scene::ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 force)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            rigidbody.ApplyForce(force);
+            break;
+        }
+    }
 }
 
 void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)

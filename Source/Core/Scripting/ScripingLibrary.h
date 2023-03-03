@@ -11,8 +11,6 @@ namespace Mango
 {
 	namespace Scripting
 	{
-		typedef PyObject* (*ModuleInitFunc)(void);
-
 		class ScriptableEntity
 		{
 		public:
@@ -25,8 +23,21 @@ namespace Mango
 			ScriptableEntity* objPtr;
 		} PyEntity;
 
+		struct ScriptEvent
+		{
+			Mango::Scripting::ScriptableEntity* ScriptableEntity;
+			std::string EventName;
+			PyObject* Args;
+		};
+
+		typedef PyObject* (*ModuleInitFunc)(void);
+		typedef PyObject* (*ScriptEventHandler)(Mango::Scripting::ScriptEvent);
+
 		PyObject* GetEntityType();
 		std::string GetLibraryName();
 		ModuleInitFunc GetModuleInitializationFunction();
+		void SetScriptEventHanlder(ScriptEventHandler handler);
+		void SetUserPointer(void* pointer);
+		void* GetUserPointer();
 	}
 }
