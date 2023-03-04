@@ -153,6 +153,16 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     {
         return scriptEngine->HandleApplyForceEvent(event.ScriptableEntity, event.Args);
     }
+    else if (event.EventName == "GetPosition")
+    {
+        return scriptEngine->HandleGetPositionEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "SetPosition")
+    {
+        return scriptEngine->HandleSetPositionEvent(event.ScriptableEntity, event.Args);
+    }
+    Py_IncRef(Py_None);
+    return Py_None;
 }
 
 PyObject* Mango::ScriptEngine::HandleApplyForceEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
@@ -164,5 +174,25 @@ PyObject* Mango::ScriptEngine::HandleApplyForceEvent(Mango::Scripting::Scriptabl
     float y = PyFloat_AsDouble(pyY);
     glm::vec2 force = glm::vec2(x, y);
     _applyForceHandler(this, entityId, force);
+    return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleGetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    glm::vec2 transform = _getPositionHandler(this, entityId);
+    PyObject* pyX = PyFloat_FromDouble((double)transform.x);
+    PyObject* pyY = PyFloat_FromDouble((double)transform.y);
+    return PyTuple_Pack(2, pyX, pyY);
+}
+
+PyObject* Mango::ScriptEngine::HandleSetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyX = PyTuple_GetItem(args, 0);
+    PyObject* pyY = PyTuple_GetItem(args, 1);
+    float x = PyFloat_AsDouble(pyX);
+    float y = PyFloat_AsDouble(pyY);
+    _setPositionHandler(this, entityId, glm::vec2(x, y));
     return Py_None;
 }

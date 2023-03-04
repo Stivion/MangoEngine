@@ -27,10 +27,26 @@ static PyObject* GetId(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(arg
     return pyId;
 }
 
-static PyObject* GetTransform(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args))
+static PyObject* GetPosition(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args))
 {
-    Py_IncRef(Py_None);
-    return Py_None;
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "GetPosition";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = nullptr;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* SetPosition(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "SetPosition";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
 }
 
 static PyObject* ApplyForce(Mango::Scripting::PyEntity* self, PyObject* args)
@@ -50,37 +66,53 @@ static PyMethodDef _entityMethods[] =
         "OnCreate",
         (PyCFunction)OnCreate,
         METH_NOARGS,
-        "Method gets executed once when the entity is created in game world"
+        "Method gets executed once when the entity is created in game world. \
+         Method signature is: def OnCreate(self) -> None \
+         It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
     },
     {
         "OnUpdate",
         (PyCFunction)OnUpdate,
         METH_NOARGS,
-        "Method gets executed every frame"
+        "Method gets executed every frame. \
+         Method signature is: def OnUpdate(self) -> None \
+         It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
     },
     {
         "OnFixedUpdate",
         (PyCFunction)OnFixedUpdate,
         METH_NOARGS,
-        "Method gets executed every tick physics gets updated"
+        "Method gets executed every tick physics gets updated. \
+         Method signature is: def OnFixedUpdate(self) -> None \
+         It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
     },
     {
         "GetId",
         (PyCFunction)GetId,
         METH_NOARGS,
-        "Get current entity's ID"
+        "Get current entity's ID. \
+         Call example: super().GetId() -> int"
     },
     {
-        "GetTransform",
-        (PyCFunction)GetTransform,
+        "GetPosition",
+        (PyCFunction)GetPosition,
         METH_NOARGS,
-        "Get transform of the current entity"
+        "Get position of the current entity. \
+         Call example: super().GetPosition() -> (x: float, y: float)"
+    },
+    {
+        "SetPosition",
+        (PyCFunction)SetPosition,
+        METH_VARARGS,
+        "Set position of the current entity. \
+         Call example: super().SetPosition(x: float, y: float) -> None"
     },
     {
         "ApplyForce",
         (PyCFunction)ApplyForce,
         METH_VARARGS,
-        "Apply force to current entity"
+        "Apply force to current entity. \
+         Call example: super().ApplyForce(x: float, y: float) -> None"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };

@@ -17,6 +17,8 @@ namespace Mango
 	{
 	public:
 		typedef void (*ApplyForceEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
+		typedef glm::vec2 (*GetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID);
+		typedef void (*SetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -30,6 +32,8 @@ namespace Mango
 
 	public:
 		void SetApplyForceEventHandler(ApplyForceEventHandler handler) { _applyForceHandler = handler; }
+		void SetGetTransformEventHandler(GetPositionEventHandler handler) { _getPositionHandler = handler; }
+		void SetSetTransformEventHandler(SetPositionEventHandler handler) { _setPositionHandler = handler; }
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
@@ -41,9 +45,13 @@ namespace Mango
 		static PyObject* HandleScriptEvent(Mango::Scripting::ScriptEvent event);
 
 		PyObject* HandleApplyForceEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleGetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleSetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
+		GetPositionEventHandler _getPositionHandler;
+		SetPositionEventHandler _setPositionHandler;
 		void* _userData;
 	};
 }

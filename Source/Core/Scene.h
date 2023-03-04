@@ -63,6 +63,8 @@ namespace Mango
 	private:
 		// Manipualte scene entities methods
 		static void ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 force);
+		static glm::vec2 GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
+		static void SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 position);
 
 	private:
 		Mango::Renderer& _renderer;

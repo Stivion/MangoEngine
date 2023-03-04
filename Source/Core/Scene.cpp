@@ -174,8 +174,17 @@ void Mango::Scene::OnPlay()
 
     _scriptEngine->SetUserData(this);
     _scriptEngine->SetApplyForceEventHandler(ApplyForce);
+    _scriptEngine->SetGetTransformEventHandler(GetPosition);
+    _scriptEngine->SetSetTransformEventHandler(SetPosition);
 
-    _scriptEngine->LoadScripts(entitiesToScriptsMap);
+    try
+    {
+        _scriptEngine->LoadScripts(entitiesToScriptsMap);
+    }
+    catch (std::exception ex)
+    {
+        M_ERROR("Unable to load scripts: " + std::string(ex.what()));
+    }
 
     // Run OnPlay on already existing entities
     _scriptEngine->OnCreate();
@@ -265,6 +274,37 @@ void Mango::Scene::ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID ent
         if (id.GetId() == entityId)
         {
             rigidbody.ApplyForce(force);
+            break;
+        }
+    }
+}
+
+glm::vec2 Mango::Scene::GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            return rigidbody.GetPosition();
+        }
+    }
+    return glm::vec2(0, 0); // Unable to find correct entity
+}
+
+void Mango::Scene::SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 transform)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            float angleRadians = glm::radians(transformComponent.GetRotation().z);
+            float zPos = transformComponent.GetTranslation().z;
+            transformComponent.SetTranslation(glm::vec3(transform, zPos));
+            rigidbody.SetTransform(transform, angleRadians);
             break;
         }
     }
