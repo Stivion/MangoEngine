@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../../Core/Input.h"
 #include "../../Windowing/Window.h"
 
 #include <GLFW/glfw3.h>
@@ -24,6 +25,7 @@ namespace Mango
 		GLFWwindow* _window;
 
 	private:
+		static void GLFWKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 		static void GLFWWindowFramebufferResizedCallback(GLFWwindow* window, int width, int height);
 	};
 }

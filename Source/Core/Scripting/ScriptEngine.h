@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ScripingLibrary.h"
+#include "../Input.h"
 #include "../GUID.h"
 
 #define PY_SSIZE_T_CLEAN
@@ -19,6 +20,7 @@ namespace Mango
 		typedef void (*ApplyForceEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
 		typedef glm::vec2 (*GetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID);
 		typedef void (*SetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
+		typedef bool(*IsKeyPressedEventHandler)(Mango::ScriptEngine*, Mango::Key);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -34,6 +36,7 @@ namespace Mango
 		void SetApplyForceEventHandler(ApplyForceEventHandler handler) { _applyForceHandler = handler; }
 		void SetGetTransformEventHandler(GetPositionEventHandler handler) { _getPositionHandler = handler; }
 		void SetSetTransformEventHandler(SetPositionEventHandler handler) { _setPositionHandler = handler; }
+		void SetIsKeyPressedEventHandler(IsKeyPressedEventHandler handler) { _isKeyPressedHandler = handler; }
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
@@ -47,11 +50,13 @@ namespace Mango
 		PyObject* HandleApplyForceEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleGetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleSetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleIsKeyPressedEvent(PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
 		GetPositionEventHandler _getPositionHandler;
 		SetPositionEventHandler _setPositionHandler;
+		IsKeyPressedEventHandler _isKeyPressedHandler;
 		void* _userData;
 	};
 }

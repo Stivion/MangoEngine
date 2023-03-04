@@ -161,6 +161,10 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     {
         return scriptEngine->HandleSetPositionEvent(event.ScriptableEntity, event.Args);
     }
+    else if (event.EventName == "IsKeyPressed")
+    {
+        return scriptEngine->HandleIsKeyPressedEvent(event.Args);
+    }
     Py_IncRef(Py_None);
     return Py_None;
 }
@@ -195,4 +199,12 @@ PyObject* Mango::ScriptEngine::HandleSetPositionEvent(Mango::Scripting::Scriptab
     float y = PyFloat_AsDouble(pyY);
     _setPositionHandler(this, entityId, glm::vec2(x, y));
     return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleIsKeyPressedEvent(PyObject* args)
+{
+    PyObject* pyKey = PyTuple_GetItem(args, 0);
+    uint32_t keyCode = PyLong_AsUnsignedLong(pyKey);
+    bool isPressed = _isKeyPressedHandler(this, static_cast<Mango::Key>(keyCode));
+    return isPressed ? Py_True : Py_False;
 }

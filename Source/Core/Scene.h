@@ -4,6 +4,7 @@
 #include "Components/Components.h"
 #include "../Render/Renderer.h"
 #include "Scripting/ScriptEngine.h"
+#include "Input.h"
 
 #include <entt/entity/registry.hpp>
 #include <box2d/box2d.h>
@@ -65,6 +66,7 @@ namespace Mango
 		static void ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 force);
 		static glm::vec2 GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
 		static void SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 position);
+		static bool GetKeyPressed(Mango::ScriptEngine* scriptEngine, Mango::Key key);
 
 	private:
 		Mango::Renderer& _renderer;

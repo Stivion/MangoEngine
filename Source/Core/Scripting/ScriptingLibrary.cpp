@@ -1,5 +1,6 @@
 #include "ScripingLibrary.h"
 
+#include <unordered_map>
 #include <stdexcept>
 
 static std::string _engineModuleName = "MangoEngine";
@@ -7,6 +8,21 @@ static std::string _entityClassName = "Entity";
 static std::string _fullClassName = _engineModuleName + "." + _entityClassName;
 static Mango::Scripting::ScriptEventHandler _eventHandler = nullptr;
 static void* _userPointer = nullptr;
+static std::unordered_map<std::string, int32_t> _keysMapping
+{
+    { "W", 1 },
+    { "A", 2 },
+    { "S", 3 },
+    { "D", 4 },
+    { "Space", 5 },
+    { "ArrowUp", 6 },
+    { "ArrowDown", 7 },
+    { "ArrowLeft", 8 },
+    { "ArrowRight", 9 },
+    { "Q", 10 },
+    { "E", 11 },
+    { "R", 12 }
+};
 
 static PyObject* ReturnNone()
 {
@@ -117,13 +133,61 @@ static PyMethodDef _entityMethods[] =
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };
 
+static PyObject* IsKeyPressed(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "IsKeyPressed";
+    event.ScriptableEntity = nullptr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* Keys(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    PyObject* pyKey = PyTuple_GetItem(args, 0);
+    std::string keyName = PyUnicode_AsUTF8(pyKey);
+    if (_keysMapping.contains(keyName))
+    {
+        PyObject* keyInt = PyLong_FromLong(_keysMapping[keyName]);
+        Py_IncRef(keyInt);
+        return keyInt;
+    }
+
+    PyObject* noneKey = PyLong_FromLong(0);
+    Py_IncRef(noneKey);
+    return noneKey;
+}
+
+static PyMethodDef _moduleMethods[]
+{
+    {
+        "IsKeyPressed",
+        (PyCFunction)IsKeyPressed,
+        METH_VARARGS,
+        "Is provided key is pressed. \
+         Call example: MangoEngine.IsKeyPressed(key: MangoEngine.Key) -> Boolean"
+    },
+    {
+        "Keys",
+        (PyCFunction)Keys,
+        METH_VARARGS,
+        "Get key for specified key string. \
+         Available arguments: [ W, A, S, D, Space, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Q, E, R ] \
+         If provided key doesn't exist method will return not existing key. \
+         Call example: MangoEngine.Keys(keyName: str) -> int"
+    },
+    { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
+};
+
 static struct PyModuleDef _mangoEngineModuleDefinition =
 {
     PyModuleDef_HEAD_INIT,
     _engineModuleName.c_str(),
     "Standard MangoEngine module for scripting",
     -1,
-    nullptr // module methods
+    _moduleMethods
 };
 
 static PyObject* PyEntity_New(PyTypeObject* type, PyObject* args, PyObject* Py_UNUSED(kwargs))

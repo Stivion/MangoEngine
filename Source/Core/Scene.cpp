@@ -176,6 +176,7 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetApplyForceEventHandler(ApplyForce);
     _scriptEngine->SetGetTransformEventHandler(GetPosition);
     _scriptEngine->SetSetTransformEventHandler(SetPosition);
+    _scriptEngine->SetIsKeyPressedEventHandler(GetKeyPressed);
 
     try
     {
@@ -308,6 +309,12 @@ void Mango::Scene::SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID en
             break;
         }
     }
+}
+
+bool Mango::Scene::GetKeyPressed(Mango::ScriptEngine* scriptEngine, Mango::Key key)
+{
+    auto pressedKeys = Mango::Input::GetPressedKeys();
+    return pressedKeys.contains(key);
 }
 
 void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
