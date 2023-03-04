@@ -10,6 +10,8 @@ Mango::GLFWWindow::GLFWWindow(uint32_t width, uint32_t height) : Window(width, h
     _framebufferResizedCallback = nullptr;
     glfwSetWindowUserPointer(_window, this);
     glfwSetKeyCallback(_window, GLFWKeyCallback);
+    glfwSetMouseButtonCallback(_window, GLFWMouseButtonCallback);
+    glfwSetCursorPosCallback(_window, GLFWCursorPositionCallback);
 }
 
 Mango::GLFWWindow::~GLFWWindow()
@@ -108,6 +110,40 @@ void Mango::GLFWWindow::GLFWKeyCallback(GLFWwindow* window, int keycode, int sca
     }
 
     Mango::Input::KeyCallback(key, keyAction);
+}
+
+void Mango::GLFWWindow::GLFWMouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+    // Get action
+    Mango::MouseAction mouseAction = Mango::MouseAction::None;
+    switch (action)
+    {
+    case GLFW_PRESS:
+        mouseAction = Mango::MouseAction::Press;
+        break;
+    case GLFW_RELEASE:
+        mouseAction = Mango::MouseAction::Release;
+        break;
+    }
+
+    // Get button
+    Mango::MouseButton mouseButton = Mango::MouseButton::None;
+    switch (button)
+    {
+    case GLFW_MOUSE_BUTTON_LEFT:
+        mouseButton = Mango::MouseButton::Left;
+        break;
+    case GLFW_MOUSE_BUTTON_RIGHT:
+        mouseButton = Mango::MouseButton::Right;
+        break;
+    }
+
+    Mango::Input::MouseCallback(mouseButton, mouseAction);
+}
+
+void Mango::GLFWWindow::GLFWCursorPositionCallback(GLFWwindow* window, double xpos, double ypos)
+{
+    Mango::Input::CursorPositionCallback(xpos, ypos);
 }
 
 void Mango::GLFWWindow::GLFWWindowFramebufferResizedCallback(GLFWwindow* window, int width, int height)

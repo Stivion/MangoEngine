@@ -177,6 +177,8 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetGetTransformEventHandler(GetPosition);
     _scriptEngine->SetSetTransformEventHandler(SetPosition);
     _scriptEngine->SetIsKeyPressedEventHandler(GetKeyPressed);
+    _scriptEngine->SetIsMouseButtonPressedEventHandler(GetMouseButtonPressed);
+    _scriptEngine->SetGetMouseCursorPositionEventHandler(GetMouseCursorPosition);
 
     try
     {
@@ -315,6 +317,17 @@ bool Mango::Scene::GetKeyPressed(Mango::ScriptEngine* scriptEngine, Mango::Key k
 {
     auto pressedKeys = Mango::Input::GetPressedKeys();
     return pressedKeys.contains(key);
+}
+
+bool Mango::Scene::GetMouseButtonPressed(Mango::ScriptEngine* scriptEngine, Mango::MouseButton mouseButton)
+{
+    auto pressedMouseButtons = Mango::Input::GetPressedMouseButtons();
+    return pressedMouseButtons.contains(mouseButton);
+}
+
+glm::vec2 Mango::Scene::GetMouseCursorPosition(Mango::ScriptEngine* scriptEngine)
+{
+    return Mango::Input::GetMouseCursorPosition();
 }
 
 void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)

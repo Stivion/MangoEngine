@@ -165,6 +165,14 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     {
         return scriptEngine->HandleIsKeyPressedEvent(event.Args);
     }
+    else if (event.EventName == "IsMouseButtonPressed")
+    {
+        return scriptEngine->HandleIsMouseButtonPressedEvent(event.Args);
+    }
+    else if (event.EventName == "GetCursorPosition")
+    {
+        return scriptEngine->HandleGetMouseCursorPositionEvent();
+    }
     Py_IncRef(Py_None);
     return Py_None;
 }
@@ -207,4 +215,20 @@ PyObject* Mango::ScriptEngine::HandleIsKeyPressedEvent(PyObject* args)
     uint32_t keyCode = PyLong_AsUnsignedLong(pyKey);
     bool isPressed = _isKeyPressedHandler(this, static_cast<Mango::Key>(keyCode));
     return isPressed ? Py_True : Py_False;
+}
+
+PyObject* Mango::ScriptEngine::HandleIsMouseButtonPressedEvent(PyObject* args)
+{
+    PyObject* pyKey = PyTuple_GetItem(args, 0);
+    uint32_t keyCode = PyLong_AsUnsignedLong(pyKey);
+    bool isPressed = _isMouseButtonPressedHandler(this, static_cast<Mango::MouseButton>(keyCode));
+    return isPressed ? Py_True : Py_False;
+}
+
+PyObject* Mango::ScriptEngine::HandleGetMouseCursorPositionEvent()
+{
+    glm::vec2 mousePosition = _getMouseCursorPositionEventHandler(this);
+    PyObject* pyX = PyFloat_FromDouble(mousePosition.x);
+    PyObject* pyY = PyFloat_FromDouble(mousePosition.y);
+    return PyTuple_Pack(2, pyX, pyY);
 }

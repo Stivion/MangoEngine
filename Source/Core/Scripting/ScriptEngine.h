@@ -20,7 +20,9 @@ namespace Mango
 		typedef void (*ApplyForceEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
 		typedef glm::vec2 (*GetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID);
 		typedef void (*SetPositionEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
-		typedef bool(*IsKeyPressedEventHandler)(Mango::ScriptEngine*, Mango::Key);
+		typedef bool (*IsKeyPressedEventHandler)(Mango::ScriptEngine*, Mango::Key);
+		typedef bool (*IsMouseButtonPressedEventHandler)(Mango::ScriptEngine*, Mango::MouseButton);
+		typedef glm::vec2 (*GetMouseCursorPositionEventHandler)(Mango::ScriptEngine*);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -37,6 +39,8 @@ namespace Mango
 		void SetGetTransformEventHandler(GetPositionEventHandler handler) { _getPositionHandler = handler; }
 		void SetSetTransformEventHandler(SetPositionEventHandler handler) { _setPositionHandler = handler; }
 		void SetIsKeyPressedEventHandler(IsKeyPressedEventHandler handler) { _isKeyPressedHandler = handler; }
+		void SetIsMouseButtonPressedEventHandler(IsMouseButtonPressedEventHandler handler) { _isMouseButtonPressedHandler = handler; }
+		void SetGetMouseCursorPositionEventHandler(GetMouseCursorPositionEventHandler handler) { _getMouseCursorPositionEventHandler = handler; }
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
@@ -51,12 +55,16 @@ namespace Mango
 		PyObject* HandleGetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleSetPositionEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleIsKeyPressedEvent(PyObject* args);
+		PyObject* HandleIsMouseButtonPressedEvent(PyObject* args);
+		PyObject* HandleGetMouseCursorPositionEvent();
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
 		GetPositionEventHandler _getPositionHandler;
 		SetPositionEventHandler _setPositionHandler;
 		IsKeyPressedEventHandler _isKeyPressedHandler;
+		IsMouseButtonPressedEventHandler _isMouseButtonPressedHandler;
+		GetMouseCursorPositionEventHandler _getMouseCursorPositionEventHandler;
 		void* _userData;
 	};
 }

@@ -24,6 +24,12 @@ static std::unordered_map<std::string, int32_t> _keysMapping
     { "R", 12 }
 };
 
+static std::unordered_map<std::string, int32_t> _mouseButtonsMapping
+{
+    { "Left", 1 },
+    { "Right", 2 }
+};
+
 static PyObject* ReturnNone()
 {
     Py_IncRef(Py_None);
@@ -160,6 +166,44 @@ static PyObject* Keys(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* arg
     return noneKey;
 }
 
+static PyObject* IsMouseButtonPressed(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "IsMouseButtonPressed";
+    event.ScriptableEntity = nullptr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* MouseButtons(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    PyObject* pyMouseButton = PyTuple_GetItem(args, 0);
+    std::string buttonName = PyUnicode_AsUTF8(pyMouseButton);
+    if (_mouseButtonsMapping.contains(buttonName))
+    {
+        PyObject* buttonInt = PyLong_FromLong(_mouseButtonsMapping[buttonName]);
+        Py_IncRef(buttonInt);
+        return buttonInt;
+    }
+
+    PyObject* noneButton = PyLong_FromLong(0);
+    Py_IncRef(noneButton);
+    return noneButton;
+}
+
+static PyObject* GetCursorPosition(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "GetCursorPosition";
+    event.ScriptableEntity = nullptr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
 static PyMethodDef _moduleMethods[]
 {
     {
@@ -167,7 +211,7 @@ static PyMethodDef _moduleMethods[]
         (PyCFunction)IsKeyPressed,
         METH_VARARGS,
         "Is provided key is pressed. \
-         Call example: MangoEngine.IsKeyPressed(key: MangoEngine.Key) -> Boolean"
+         Call example: MangoEngine.IsKeyPressed(key: int) -> Boolean"
     },
     {
         "Keys",
@@ -177,6 +221,29 @@ static PyMethodDef _moduleMethods[]
          Available arguments: [ W, A, S, D, Space, ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Q, E, R ] \
          If provided key doesn't exist method will return not existing key. \
          Call example: MangoEngine.Keys(keyName: str) -> int"
+    },
+    {
+        "IsMouseButtonPressed",
+        (PyCFunction)IsMouseButtonPressed,
+        METH_VARARGS,
+        "Is provided mouse button pressed \
+         Call example: MangoEngine.IsMouseButtonPressed(mouseButton: int) -> Boolean"
+    },
+    {
+        "MouseButtons",
+        (PyCFunction)MouseButtons,
+        METH_VARARGS,
+        "Get key for specified mouse button string. \
+         Available arguments: [ Left, Right ] \
+         If provided key doesn't exist method will return not existing key. \
+         Call example: MangoEngine.MouseButtons(mouseButtonName: str) -> int"
+    },
+    {
+        "GetCursorPosition",
+        (PyCFunction)GetCursorPosition,
+        METH_NOARGS,
+        "Get current mouse cursor position. \
+         Call example: MangoEngine.GetCursorPosition() -> (x: float, y: float)"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };
