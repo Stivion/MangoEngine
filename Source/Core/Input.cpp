@@ -55,7 +55,6 @@ void Mango::Input::CursorPositionCallback(float x, float y)
 {
 	if (_handlingStopped)
 	{
-		_cursorPosition = glm::vec2(0);
 		return;
 	}
 
