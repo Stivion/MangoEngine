@@ -183,6 +183,8 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetSetRotationEventHandler(SetRotation);
     _scriptEngine->SetGetScaleEventHandler(GetScale);
     _scriptEngine->SetSetScaleEventHandler(SetScale);
+    _scriptEngine->SetCreateEntityEventHandler(CreateEntity);
+    _scriptEngine->SetDestroyEntityEventHandler(DestroyEntity);
 
     try
     {
@@ -276,18 +278,20 @@ void Mango::Scene::ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID ent
 {
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            rigidbody.ApplyForce(force);
-            break;
-        }
+        return;
     }
+
+    scene->AddRigidbody(entity);
+    auto& rigidbody = registry.get<RigidbodyComponent>(entity);
+    rigidbody.ApplyForce(force);
 }
 
 glm::vec2 Mango::Scene::GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
@@ -302,6 +306,7 @@ glm::vec2 Mango::Scene::GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GU
 
 void Mango::Scene::SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 transform)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
@@ -336,6 +341,7 @@ glm::vec2 Mango::Scene::GetMouseCursorPosition(Mango::ScriptEngine* scriptEngine
 
 float Mango::Scene::GetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
@@ -350,6 +356,7 @@ float Mango::Scene::GetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID e
 
 void Mango::Scene::SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float rotation)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
@@ -366,6 +373,7 @@ void Mango::Scene::SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID en
 
 glm::vec2 Mango::Scene::GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, transform] : registry.view<IdComponent, TransformComponent>().each())
@@ -381,6 +389,7 @@ glm::vec2 Mango::Scene::GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID 
 
 void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale)
 {
+    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
     for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
@@ -392,7 +401,7 @@ void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entit
             rigidbody.DestroyFixture();
 
             b2PolygonShape bodyBox;
-            // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+            // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
             bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
 
             b2FixtureDef fixtureDefinition;
@@ -405,7 +414,44 @@ void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entit
     }
 }
 
-void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
+Mango::GUID Mango::Scene::CreateEntity(Mango::ScriptEngine* scriptEngine)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    entt::entity entity = scene->AddDefaultEntity(Mango::GeometryType::Rectangle);
+    auto& registry = scene->GetRegistry();
+    return registry.get<IdComponent>(entity).GetId();
+}
+
+void Mango::Scene::DestroyEntity(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+
+    entt::entity entity;
+    for (auto [e, id] : registry.view<IdComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            entity = e;
+            break;
+        }
+    }
+
+    if (!registry.valid(entity))
+    {
+        return;
+    }
+
+    Mango::RigidbodyComponent* rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody != nullptr)
+    {
+        scene->_physicsWorld.DestroyBody(rigidbody->GetBody());
+    }
+
+    registry.destroy(entity);
+}
+
+entt::entity Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
 {
     const auto entity = _registry.create();
     _registry.emplace<IdComponent>(entity);
@@ -413,6 +459,7 @@ void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
     _registry.emplace<TransformComponent>(entity, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
     _registry.emplace<ColorComponent>(entity, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f));
     _registry.emplace<GeometryComponent>(entity, geometry);
+    return entity;
 }
 
 void Mango::Scene::SetRendererCamera(Mango::CameraComponent& camera, Mango::TransformComponent& transform)
@@ -424,4 +471,16 @@ void Mango::Scene::SetRendererCamera(Mango::CameraComponent& camera, Mango::Tran
     cameraInfo.Translation = transform.GetTranslation();
     cameraInfo.Rotation = transform.GetRotation();
     _renderer.SetCamera(cameraInfo);
+}
+
+entt::entity Mango::Scene::GetEntityById(Mango::GUID entityId)
+{
+    for (auto [entity, id] : _registry.view<IdComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            return entity;
+        }
+    }
+    return entt::entity();
 }

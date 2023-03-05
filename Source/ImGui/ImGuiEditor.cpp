@@ -143,6 +143,17 @@ void Mango::ImGuiEditor::ConstructEditor()
 	_viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 	ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
 
+	// Disable engine inputs handling
+	// Editor only
+	if (ImGui::IsWindowHovered())
+	{
+		Mango::Input::ResumeHandlingInput();
+	}
+	else
+	{
+		Mango::Input::StopHandlingInput();
+	}
+
 	// Moving camera
 	if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && Mango::SceneManager::GetScene().GetSceneState() != Mango::SceneState::Play)
 	{

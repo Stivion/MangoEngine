@@ -11,6 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <filesystem>
+#include <set>
 
 namespace Mango
 {
@@ -27,6 +28,8 @@ namespace Mango
 		typedef void (*SetRotationEventHandler)(Mango::ScriptEngine*, Mango::GUID, float);
 		typedef glm::vec2 (*GetScaleEventHandler)(Mango::ScriptEngine*, Mango::GUID);
 		typedef void (*SetScaleEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
+		typedef Mango::GUID (*CreateEntityEventHandler)(Mango::ScriptEngine*);
+		typedef void (*DestroyEntityEventHandler)(Mango::ScriptEngine*, Mango::GUID);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -49,14 +52,18 @@ namespace Mango
 		void SetSetRotationEventHandler(SetRotationEventHandler handler) { _setRotationEventHandler = handler; }
 		void SetGetScaleEventHandler(GetScaleEventHandler handler) { _getScaleEventHandler = handler; }
 		void SetSetScaleEventHandler(SetScaleEventHandler handler) { _setScaleEventHandler = handler; }
+		void SetCreateEntityEventHandler(CreateEntityEventHandler handler) { _createEntityEventHandler = handler; }
+		void SetDestroyEntityEventHandler(DestroyEntityEventHandler handler) { _destroyEntityEventHandler = handler; }
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
 	private:
 		std::unordered_map<std::string, PyObject*> _loadedModules;
 		std::unordered_map<std::uint64_t, PyObject*> _entities;
+		std::set<Mango::GUID> _markedForDeletionEntities;
 
 		void CallMethod(PyObject* entity, std::string methodName);
+		void DeletePyEntity(Mango::GUID entityId);
 		static PyObject* HandleScriptEvent(Mango::Scripting::ScriptEvent event);
 
 		PyObject* HandleApplyForceEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
@@ -69,6 +76,8 @@ namespace Mango
 		PyObject* HandleSetRotationEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleGetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleSetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleCreateEntityEvent();
+		PyObject* HandleDestroyEntityEvent(PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
@@ -81,6 +90,8 @@ namespace Mango
 		SetRotationEventHandler _setRotationEventHandler;
 		GetScaleEventHandler _getScaleEventHandler;
 		SetScaleEventHandler _setScaleEventHandler;
+		CreateEntityEventHandler _createEntityEventHandler;
+		DestroyEntityEventHandler _destroyEntityEventHandler;
 		void* _userData;
 	};
 }

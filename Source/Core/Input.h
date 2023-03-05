@@ -52,6 +52,9 @@ namespace Mango
 		Input(const Input&) = delete;
 		Input operator=(const Input&) = delete;
 
+		static void StopHandlingInput();
+		static void ResumeHandlingInput();
+
 		static std::set<Mango::Key> GetPressedKeys() { return _pressedKeys; }
 		static std::set<Mango::MouseButton> GetPressedMouseButtons() { return _pressedMouseButtons; }
 		static glm::vec2 GetMouseCursorPosition() { return _cursorPosition; }
@@ -64,5 +67,6 @@ namespace Mango
 		static std::set<Mango::Key> _pressedKeys;
 		static std::set<Mango::MouseButton> _pressedMouseButtons;
 		static glm::vec2 _cursorPosition;
+		static bool _handlingStopped;
 	};
 }

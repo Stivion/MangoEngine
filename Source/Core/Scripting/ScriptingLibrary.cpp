@@ -276,6 +276,28 @@ static PyObject* GetCursorPosition(Mango::Scripting::PyEntity* Py_UNUSED(self), 
     return result;
 }
 
+static PyObject* CreateEntity(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* Py_UNUSED(args))
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "CreateEntity";
+    event.ScriptableEntity = nullptr;
+    event.Args = nullptr;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* DestroyEntity(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "DestroyEntity";
+    event.ScriptableEntity = nullptr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
 static PyMethodDef _moduleMethods[]
 {
     {
@@ -316,6 +338,20 @@ static PyMethodDef _moduleMethods[]
         METH_NOARGS,
         "Get current mouse cursor position. \
          Call example: MangoEngine.GetCursorPosition() -> (x: float, y: float)"
+    },
+    {
+        "CreateEntity",
+        (PyCFunction)CreateEntity,
+        METH_NOARGS,
+        "Create new empty entity and return it. \
+         Call example: MangoEngine.CreateEntity() -> MangoEngine.Entity"
+    },
+    {
+        "DestroyEntity",
+        (PyCFunction)DestroyEntity,
+        METH_VARARGS,
+        "Destroy passed entity from scene. \
+         Call example: MangoEngine.DestroyEntity(MangoEngine.Entity) -> None"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };
@@ -392,6 +428,11 @@ PyMODINIT_FUNC PyInit_EntityModule(void)
         return nullptr;
     }
     return entityModule;
+}
+
+PyTypeObject* Mango::Scripting::GetEntityTypeRaw()
+{
+    return &PyEntityType;
 }
 
 PyObject* Mango::Scripting::GetEntityType()

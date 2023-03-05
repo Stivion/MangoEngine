@@ -125,6 +125,15 @@ void Mango::ScriptEngine::OnCreate()
 
 void Mango::ScriptEngine::OnUpdate()
 {
+    if (!_markedForDeletionEntities.empty())
+    {
+        for (auto& entityId : _markedForDeletionEntities)
+        {
+            DeletePyEntity(entityId);
+        }
+        _markedForDeletionEntities.clear();
+    }
+
     for (auto& [_, entity] : _entities)
     {
         CallMethod(entity, "OnUpdate");
@@ -133,6 +142,15 @@ void Mango::ScriptEngine::OnUpdate()
 
 void Mango::ScriptEngine::OnFixedUpdate()
 {
+    if (!_markedForDeletionEntities.empty())
+    {
+        for (auto& entityId : _markedForDeletionEntities)
+        {
+            DeletePyEntity(entityId);
+        }
+        _markedForDeletionEntities.clear();
+    }
+
     for (auto& [_, entity] : _entities)
     {
         CallMethod(entity, "OnFixedUpdate");
@@ -144,6 +162,13 @@ void Mango::ScriptEngine::CallMethod(PyObject* entity, std::string methodName)
     PyObject* method = PyUnicode_DecodeFSDefault(methodName.c_str());
     PyObject_CallMethodNoArgs(entity, method);
     Py_DecRef(method);
+}
+
+void Mango::ScriptEngine::DeletePyEntity(Mango::GUID entityId)
+{
+    PyObject* entity = _entities[entityId];
+    Py_DecRef(entity);
+    _entities.erase(entityId);
 }
 
 PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent event)
@@ -188,6 +213,14 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     else if (event.EventName == "SetScale")
     {
         return scriptEngine->HandleSetScaleEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "CreateEntity")
+    {
+        return scriptEngine->HandleCreateEntityEvent();
+    }
+    else if (event.EventName == "DestroyEntity")
+    {
+        return scriptEngine->HandleDestroyEntityEvent(event.Args);
     }
     Py_IncRef(Py_None);
     return Py_None;
@@ -282,5 +315,29 @@ PyObject* Mango::ScriptEngine::HandleSetScaleEvent(Mango::Scripting::ScriptableE
     float scaleX = PyFloat_AsDouble(pyScaleX);
     float scaleY = PyFloat_AsDouble(pyScaleX);
     _setScaleEventHandler(this, entityId, glm::vec2(scaleX, scaleY));
+    return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleCreateEntityEvent()
+{
+    Mango::GUID entityId = _createEntityEventHandler(this);
+    auto entity = PyObject_New(Mango::Scripting::PyEntity, Mango::Scripting::GetEntityTypeRaw());
+    entity->objPtr = new Mango::Scripting::ScriptableEntity();
+    entity->objPtr->_id = entityId;
+    return (PyObject*)entity;
+}
+
+PyObject* Mango::ScriptEngine::HandleDestroyEntityEvent(PyObject* args)
+{
+    PyObject* entity = PyTuple_GetItem(args, 0);
+    if (!PyObject_IsInstance(entity, Mango::Scripting::GetEntityType()))
+    {
+        return Py_None;
+    }
+
+    auto scriptableEntity = (Mango::Scripting::PyEntity*)entity;
+    Mango::GUID entityId(scriptableEntity->objPtr->_id);
+    _destroyEntityEventHandler(this, entityId);
+    _markedForDeletionEntities.insert(entityId);
     return Py_None;
 }

@@ -73,6 +73,8 @@ namespace Mango
 		static void SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float rotation);
 		static glm::vec2 GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
 		static void SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale);
+		static Mango::GUID CreateEntity(Mango::ScriptEngine* scriptEngine);
+		static void DestroyEntity(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
 
 	private:
 		Mango::Renderer& _renderer;
@@ -89,8 +91,9 @@ namespace Mango
 		std::unique_ptr<Mango::ScriptEngine> _scriptEngine;
 
 	private:
-		void AddDefaultEntity(Mango::GeometryType geometry);
+		entt::entity AddDefaultEntity(Mango::GeometryType geometry);
 		void SetRendererCamera(Mango::CameraComponent& camera, Mango::TransformComponent& transform);
+		entt::entity GetEntityById(Mango::GUID entityId);
 
 		friend class SceneSerializer;
 	};

@@ -33,6 +33,7 @@ namespace Mango
 		typedef PyObject* (*ModuleInitFunc)(void);
 		typedef PyObject* (*ScriptEventHandler)(Mango::Scripting::ScriptEvent);
 
+		PyTypeObject* GetEntityTypeRaw();
 		PyObject* GetEntityType();
 		std::string GetLibraryName();
 		ModuleInitFunc GetModuleInitializationFunction();

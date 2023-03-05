@@ -3,10 +3,23 @@
 std::set<Mango::Key> Mango::Input::_pressedKeys;
 std::set<Mango::MouseButton> Mango::Input::_pressedMouseButtons;
 glm::vec2 Mango::Input::_cursorPosition;
+bool Mango::Input::_handlingStopped = false;
+
+void Mango::Input::StopHandlingInput()
+{
+	_handlingStopped = true;
+	_pressedMouseButtons.clear();
+	_pressedKeys.clear();
+}
+
+void Mango::Input::ResumeHandlingInput()
+{
+	_handlingStopped = false;
+}
 
 void Mango::Input::KeyCallback(Mango::Key key, Mango::KeyAction action)
 {
-	if (key == Key::None || action == KeyAction::None)
+	if (_handlingStopped || key == Key::None || action == KeyAction::None)
 	{
 		return;
 	}
@@ -23,7 +36,7 @@ void Mango::Input::KeyCallback(Mango::Key key, Mango::KeyAction action)
 
 void Mango::Input::MouseCallback(Mango::MouseButton button, Mango::MouseAction action)
 {
-	if (button == MouseButton::None || action == MouseAction::None)
+	if (_handlingStopped || button == MouseButton::None || action == MouseAction::None)
 	{
 		return;
 	}
@@ -40,5 +53,11 @@ void Mango::Input::MouseCallback(Mango::MouseButton button, Mango::MouseAction a
 
 void Mango::Input::CursorPositionCallback(float x, float y)
 {
+	if (_handlingStopped)
+	{
+		_cursorPosition = glm::vec2(0);
+		return;
+	}
+
 	_cursorPosition = glm::vec2(x, y);
 }
