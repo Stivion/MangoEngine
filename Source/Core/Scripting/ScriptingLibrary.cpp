@@ -82,6 +82,50 @@ static PyObject* ApplyForce(Mango::Scripting::PyEntity* self, PyObject* args)
     return result;
 }
 
+static PyObject* GetRotation(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "GetRotation";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* SetRotation(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "SetRotation";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* GetScale(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "GetScale";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* SetScale(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "SetScale";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
 static PyMethodDef _entityMethods[] =
 {
     {
@@ -128,6 +172,34 @@ static PyMethodDef _entityMethods[] =
         METH_VARARGS,
         "Set position of the current entity. \
          Call example: super().SetPosition(x: float, y: float) -> None"
+    },
+    {
+        "GetRotation",
+        (PyCFunction)GetRotation,
+        METH_NOARGS,
+        "Get rotation of the current entity in degress. \
+         Call example: super().GetRotation() -> float"
+    },
+    {
+        "SetRotation",
+        (PyCFunction)SetRotation,
+        METH_VARARGS,
+        "Set rotation of the current entity in degrees. \
+         Call example: super().SetRotation(angleDegress: float) -> None"
+    },
+    {
+        "GetScale",
+        (PyCFunction)GetScale,
+        METH_VARARGS,
+        "Get scale of the current entity. \
+         Call example: super().GetScale() -> (x: float, y: float)"
+    },
+    {
+        "SetScale",
+        (PyCFunction)SetScale,
+        METH_VARARGS,
+        "Set scale of the current entity. \
+         Call example: super().SetScale(x: float, y: float) -> None"
     },
     {
         "ApplyForce",

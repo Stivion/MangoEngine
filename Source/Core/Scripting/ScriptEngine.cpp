@@ -173,6 +173,22 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     {
         return scriptEngine->HandleGetMouseCursorPositionEvent();
     }
+    else if (event.EventName == "GetRotation")
+    {
+        return scriptEngine->HandleGetRotationEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "SetRotation")
+    {
+        return scriptEngine->HandleSetRotationEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "GetScale")
+    {
+        return scriptEngine->HandleGetScaleEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "SetScale")
+    {
+        return scriptEngine->HandleSetScaleEvent(event.ScriptableEntity, event.Args);
+    }
     Py_IncRef(Py_None);
     return Py_None;
 }
@@ -231,4 +247,40 @@ PyObject* Mango::ScriptEngine::HandleGetMouseCursorPositionEvent()
     PyObject* pyX = PyFloat_FromDouble(mousePosition.x);
     PyObject* pyY = PyFloat_FromDouble(mousePosition.y);
     return PyTuple_Pack(2, pyX, pyY);
+}
+
+PyObject* Mango::ScriptEngine::HandleGetRotationEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    float rotation = _getRotationEventHandler(this, entityId);
+    return PyFloat_FromDouble(rotation);
+}
+
+PyObject* Mango::ScriptEngine::HandleSetRotationEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyRotation = PyTuple_GetItem(args, 0);
+    float rotation = PyFloat_AsDouble(pyRotation);
+    _setRotationEventHandler(this, entityId, rotation);
+    return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleGetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    glm::vec2 scale = _getScaleEventHandler(this, entityId);
+    PyObject* pyScaleX = PyFloat_FromDouble(scale.x);
+    PyObject* pyScaleY = PyFloat_FromDouble(scale.y);
+    return PyTuple_Pack(2, pyScaleX, pyScaleY);
+}
+
+PyObject* Mango::ScriptEngine::HandleSetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyScaleX = PyTuple_GetItem(args, 0);
+    PyObject* pyScaleY = PyTuple_GetItem(args, 1);
+    float scaleX = PyFloat_AsDouble(pyScaleX);
+    float scaleY = PyFloat_AsDouble(pyScaleX);
+    _setScaleEventHandler(this, entityId, glm::vec2(scaleX, scaleY));
+    return Py_None;
 }

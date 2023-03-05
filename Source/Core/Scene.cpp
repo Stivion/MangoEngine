@@ -179,6 +179,10 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetIsKeyPressedEventHandler(GetKeyPressed);
     _scriptEngine->SetIsMouseButtonPressedEventHandler(GetMouseButtonPressed);
     _scriptEngine->SetGetMouseCursorPositionEventHandler(GetMouseCursorPosition);
+    _scriptEngine->SetGetRotationEventHandler(GetRotation);
+    _scriptEngine->SetSetRotationEventHandler(SetRotation);
+    _scriptEngine->SetGetScaleEventHandler(GetScale);
+    _scriptEngine->SetSetScaleEventHandler(SetScale);
 
     try
     {
@@ -328,6 +332,77 @@ bool Mango::Scene::GetMouseButtonPressed(Mango::ScriptEngine* scriptEngine, Mang
 glm::vec2 Mango::Scene::GetMouseCursorPosition(Mango::ScriptEngine* scriptEngine)
 {
     return Mango::Input::GetMouseCursorPosition();
+}
+
+float Mango::Scene::GetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            return glm::degrees(rigidbody.GetAngle());
+        }
+    }
+    return 0;
+}
+
+void Mango::Scene::SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float rotation)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            glm::vec3 currentRotation = transformComponent.GetRotation();
+            transformComponent.SetRotation(glm::vec3(currentRotation.x, currentRotation.y, rotation));
+            rigidbody.SetTransform(rigidbody.GetPosition(), glm::radians(rotation));
+            break;
+        }
+    }
+}
+
+glm::vec2 Mango::Scene::GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, transform] : registry.view<IdComponent, TransformComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            auto scale = transform.GetScale();
+            return glm::vec2(scale.x, scale.y);
+        }
+    }
+    return glm::vec2(0, 0);
+}
+
+void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    {
+        if (id.GetId() == entityId)
+        {
+            auto scaleZ = transformComponent.GetScale().z;
+            transformComponent.SetScale(glm::vec3(scale, scaleZ));
+            rigidbody.DestroyFixture();
+
+            b2PolygonShape bodyBox;
+            // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+            bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+
+            b2FixtureDef fixtureDefinition;
+            fixtureDefinition.shape = &bodyBox;
+            fixtureDefinition.density = 1.0f;
+            fixtureDefinition.friction = 0.3f;
+            rigidbody.SetFixture(fixtureDefinition);
+            break;
+        }
+    }
 }
 
 void Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)

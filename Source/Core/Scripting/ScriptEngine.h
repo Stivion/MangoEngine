@@ -23,6 +23,10 @@ namespace Mango
 		typedef bool (*IsKeyPressedEventHandler)(Mango::ScriptEngine*, Mango::Key);
 		typedef bool (*IsMouseButtonPressedEventHandler)(Mango::ScriptEngine*, Mango::MouseButton);
 		typedef glm::vec2 (*GetMouseCursorPositionEventHandler)(Mango::ScriptEngine*);
+		typedef float (*GetRotationEventHandler)(Mango::ScriptEngine*, Mango::GUID);
+		typedef void (*SetRotationEventHandler)(Mango::ScriptEngine*, Mango::GUID, float);
+		typedef glm::vec2 (*GetScaleEventHandler)(Mango::ScriptEngine*, Mango::GUID);
+		typedef void (*SetScaleEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -41,6 +45,10 @@ namespace Mango
 		void SetIsKeyPressedEventHandler(IsKeyPressedEventHandler handler) { _isKeyPressedHandler = handler; }
 		void SetIsMouseButtonPressedEventHandler(IsMouseButtonPressedEventHandler handler) { _isMouseButtonPressedHandler = handler; }
 		void SetGetMouseCursorPositionEventHandler(GetMouseCursorPositionEventHandler handler) { _getMouseCursorPositionEventHandler = handler; }
+		void SetGetRotationEventHandler(GetRotationEventHandler handler) { _getRotationEventHandler = handler; }
+		void SetSetRotationEventHandler(SetRotationEventHandler handler) { _setRotationEventHandler = handler; }
+		void SetGetScaleEventHandler(GetScaleEventHandler handler) { _getScaleEventHandler = handler; }
+		void SetSetScaleEventHandler(SetScaleEventHandler handler) { _setScaleEventHandler = handler; }
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
@@ -57,6 +65,10 @@ namespace Mango
 		PyObject* HandleIsKeyPressedEvent(PyObject* args);
 		PyObject* HandleIsMouseButtonPressedEvent(PyObject* args);
 		PyObject* HandleGetMouseCursorPositionEvent();
+		PyObject* HandleGetRotationEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleSetRotationEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleGetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleSetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
@@ -65,6 +77,10 @@ namespace Mango
 		IsKeyPressedEventHandler _isKeyPressedHandler;
 		IsMouseButtonPressedEventHandler _isMouseButtonPressedHandler;
 		GetMouseCursorPositionEventHandler _getMouseCursorPositionEventHandler;
+		GetRotationEventHandler _getRotationEventHandler;
+		SetRotationEventHandler _setRotationEventHandler;
+		GetScaleEventHandler _getScaleEventHandler;
+		SetScaleEventHandler _setScaleEventHandler;
 		void* _userData;
 	};
 }

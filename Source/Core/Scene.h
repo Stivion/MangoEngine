@@ -69,6 +69,10 @@ namespace Mango
 		static bool GetKeyPressed(Mango::ScriptEngine* scriptEngine, Mango::Key key);
 		static bool GetMouseButtonPressed(Mango::ScriptEngine* scriptEngine, Mango::MouseButton mouseButton);
 		static glm::vec2 GetMouseCursorPosition(Mango::ScriptEngine* scriptEngine);
+		static float GetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
+		static void SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float rotation);
+		static glm::vec2 GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
+		static void SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale);
 
 	private:
 		Mango::Renderer& _renderer;

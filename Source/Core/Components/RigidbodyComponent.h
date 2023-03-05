@@ -14,6 +14,7 @@ namespace Mango
 
 		inline bool IsDynamic() { return _isDynamic; }
 		inline glm::vec2 GetPosition() { b2Vec2 position = _body->GetPosition(); return glm::vec2(position.x, position.y); }
+		// Returns rotation in radians
 		inline float GetAngle() { return _body->GetAngle(); }
 		inline b2Body* GetBody() { return _body; }
 
