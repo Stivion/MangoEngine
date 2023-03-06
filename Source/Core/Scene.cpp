@@ -185,6 +185,8 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetSetScaleEventHandler(SetScale);
     _scriptEngine->SetCreateEntityEventHandler(CreateEntity);
     _scriptEngine->SetDestroyEntityEventHandler(DestroyEntity);
+    _scriptEngine->SetSetRigidEntityEventHandler(SetRigid);
+    _scriptEngine->SetConfigureRigidbodyEventHandler(ConfigureRigidbody);
 
     try
     {
@@ -284,41 +286,48 @@ void Mango::Scene::ApplyForce(Mango::ScriptEngine* scriptEngine, Mango::GUID ent
         return;
     }
 
-    scene->AddRigidbody(entity);
-    auto& rigidbody = registry.get<RigidbodyComponent>(entity);
-    rigidbody.ApplyForce(force);
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody == nullptr)
+    {
+        return;
+    }
+    rigidbody->ApplyForce(force);
 }
 
 glm::vec2 Mango::Scene::GetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            return rigidbody.GetPosition();
-        }
+        return glm::vec2(std::numeric_limits<float>().min());
     }
-    return glm::vec2(0, 0); // Unable to find correct entity
+
+    auto& transform = registry.get<TransformComponent>(entity);
+    auto translation = transform.GetTranslation();
+    return glm::vec2(translation.x, translation.y);
 }
 
 void Mango::Scene::SetPosition(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 transform)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            float angleRadians = glm::radians(transformComponent.GetRotation().z);
-            float zPos = transformComponent.GetTranslation().z;
-            transformComponent.SetTranslation(glm::vec3(transform, zPos));
-            rigidbody.SetTransform(transform, angleRadians);
-            break;
-        }
+        return;
+    }
+
+    auto& transformComponent = registry.get<TransformComponent>(entity);
+    auto zPosition = transformComponent.GetTranslation().z;
+    transformComponent.SetTranslation(glm::vec3(transform, zPosition));
+    
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody != nullptr)
+    {
+        float angleRadians = glm::radians(transformComponent.GetRotation().z);
+        rigidbody->SetTransform(transform, angleRadians);
     }
 }
 
@@ -341,76 +350,82 @@ glm::vec2 Mango::Scene::GetMouseCursorPosition(Mango::ScriptEngine* scriptEngine
 
 float Mango::Scene::GetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, rigidbody] : registry.view<IdComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            return glm::degrees(rigidbody.GetAngle());
-        }
+        return std::numeric_limits<float>().min();
     }
-    return 0;
+
+    auto& transform = registry.get<TransformComponent>(entity);
+    return transform.GetRotation().z;
 }
 
 void Mango::Scene::SetRotation(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float rotation)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            glm::vec3 currentRotation = transformComponent.GetRotation();
-            transformComponent.SetRotation(glm::vec3(currentRotation.x, currentRotation.y, rotation));
-            rigidbody.SetTransform(rigidbody.GetPosition(), glm::radians(rotation));
-            break;
-        }
+        return;
+    }
+
+    auto& transform = registry.get<TransformComponent>(entity);
+    auto r = transform.GetRotation();
+    transform.SetRotation(glm::vec3(r.x, r.y, rotation));
+
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody != nullptr)
+    {
+        rigidbody->SetTransform(rigidbody->GetPosition(), glm::radians(rotation));
     }
 }
 
 glm::vec2 Mango::Scene::GetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, transform] : registry.view<IdComponent, TransformComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            auto scale = transform.GetScale();
-            return glm::vec2(scale.x, scale.y);
-        }
+        return glm::vec2(std::numeric_limits<float>().min());
     }
-    return glm::vec2(0, 0);
+
+    auto& transform = registry.get<TransformComponent>(entity);
+    auto scale = transform.GetScale();
+    return glm::vec2(scale.x, scale.y);
 }
 
 void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale)
 {
-    // TODO: Add rigidbody if it is not exist
     Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
     auto& registry = scene->GetRegistry();
-    for (auto [_, id, transformComponent, rigidbody] : registry.view<IdComponent, TransformComponent, RigidbodyComponent>().each())
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
     {
-        if (id.GetId() == entityId)
-        {
-            auto scaleZ = transformComponent.GetScale().z;
-            transformComponent.SetScale(glm::vec3(scale, scaleZ));
-            rigidbody.DestroyFixture();
+        return;
+    }
 
-            b2PolygonShape bodyBox;
-            // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
-            bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+    auto& transform = registry.get<TransformComponent>(entity);
+    auto scaleZ = transform.GetScale().z;
+    transform.SetScale(glm::vec3(scale, scaleZ));
 
-            b2FixtureDef fixtureDefinition;
-            fixtureDefinition.shape = &bodyBox;
-            fixtureDefinition.density = 1.0f;
-            fixtureDefinition.friction = 0.3f;
-            rigidbody.SetFixture(fixtureDefinition);
-            break;
-        }
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody != nullptr)
+    {
+        rigidbody->DestroyFixture();
+
+        b2PolygonShape bodyBox;
+        // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
+        bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+
+        b2FixtureDef fixtureDefinition;
+        fixtureDefinition.shape = &bodyBox;
+        fixtureDefinition.density = 1.0f;
+        fixtureDefinition.friction = 0.3f;
+        rigidbody->SetFixture(fixtureDefinition);
     }
 }
 
@@ -449,6 +464,50 @@ void Mango::Scene::DestroyEntity(Mango::ScriptEngine* scriptEngine, Mango::GUID 
     }
 
     registry.destroy(entity);
+}
+
+void Mango::Scene::SetRigid(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, bool isRigid)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
+    {
+        return;
+    }
+
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    bool shouldAddRigidbody = rigidbody == nullptr && isRigid == true;
+    bool shouldRemoveRigidbody = rigidbody != nullptr && isRigid == false;
+    if (shouldAddRigidbody)
+    {
+        scene->AddRigidbody(entity);
+    }
+    if (shouldRemoveRigidbody)
+    {
+        registry.remove<RigidbodyComponent>(entity);
+    }
+}
+
+void Mango::Scene::ConfigureRigidbody(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float density, float friction, bool isDynamic)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    auto entity = scene->GetEntityById(entityId);
+    if (!registry.valid(entity))
+    {
+        return;
+    }
+
+    auto rigidbody = registry.try_get<RigidbodyComponent>(entity);
+    if (rigidbody == nullptr)
+    {
+        return;
+    }
+
+    rigidbody->SetDensity(density);
+    rigidbody->SetFriction(friction);
+    rigidbody->SetDynamic(isDynamic);
 }
 
 entt::entity Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)

@@ -30,6 +30,8 @@ namespace Mango
 		typedef void (*SetScaleEventHandler)(Mango::ScriptEngine*, Mango::GUID, glm::vec2);
 		typedef Mango::GUID (*CreateEntityEventHandler)(Mango::ScriptEngine*);
 		typedef void (*DestroyEntityEventHandler)(Mango::ScriptEngine*, Mango::GUID);
+		typedef void (*SetRigidEntityEventHandler)(Mango::ScriptEngine*, Mango::GUID, bool);
+		typedef void (*ConfigureRigidbodyEventHandler)(Mango::ScriptEngine*, Mango::GUID, float, float, bool);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -54,6 +56,9 @@ namespace Mango
 		void SetSetScaleEventHandler(SetScaleEventHandler handler) { _setScaleEventHandler = handler; }
 		void SetCreateEntityEventHandler(CreateEntityEventHandler handler) { _createEntityEventHandler = handler; }
 		void SetDestroyEntityEventHandler(DestroyEntityEventHandler handler) { _destroyEntityEventHandler = handler; }
+		void SetSetRigidEntityEventHandler(SetRigidEntityEventHandler handler) { _setRigidEntityEventHandler = handler; }
+		void SetConfigureRigidbodyEventHandler(ConfigureRigidbodyEventHandler handler) { _configureRigidbodyEventHandler = handler; }
+		
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
 
@@ -78,6 +83,8 @@ namespace Mango
 		PyObject* HandleSetScaleEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleCreateEntityEvent();
 		PyObject* HandleDestroyEntityEvent(PyObject* args);
+		PyObject* HandleSetRigidEntityEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleConfigureRigidbodyEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
@@ -92,6 +99,8 @@ namespace Mango
 		SetScaleEventHandler _setScaleEventHandler;
 		CreateEntityEventHandler _createEntityEventHandler;
 		DestroyEntityEventHandler _destroyEntityEventHandler;
+		SetRigidEntityEventHandler _setRigidEntityEventHandler;
+		ConfigureRigidbodyEventHandler _configureRigidbodyEventHandler;
 		void* _userData;
 	};
 }

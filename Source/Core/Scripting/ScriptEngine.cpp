@@ -222,6 +222,14 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     {
         return scriptEngine->HandleDestroyEntityEvent(event.Args);
     }
+    else if (event.EventName == "SetRigid")
+    {
+        return scriptEngine->HandleSetRigidEntityEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "ConfigureRigidbody")
+    {
+        return scriptEngine->HandleConfigureRigidbodyEvent(event.ScriptableEntity, event.Args);
+    }
     Py_IncRef(Py_None);
     return Py_None;
 }
@@ -339,5 +347,27 @@ PyObject* Mango::ScriptEngine::HandleDestroyEntityEvent(PyObject* args)
     Mango::GUID entityId(scriptableEntity->objPtr->_id);
     _destroyEntityEventHandler(this, entityId);
     _markedForDeletionEntities.insert(entityId);
+    return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleSetRigidEntityEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyIsRigid = PyTuple_GetItem(args, 0);
+    bool isRigid = Py_IsTrue(pyIsRigid);
+    _setRigidEntityEventHandler(this, entityId, isRigid);
+    return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleConfigureRigidbodyEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args)
+{
+    Mango::GUID entityId(entity->_id);
+    PyObject* pyDensity = PyTuple_GetItem(args, 0);
+    PyObject* pyFriction = PyTuple_GetItem(args, 1);
+    PyObject* pyDynamic = PyTuple_GetItem(args, 2);
+    float density = PyFloat_AsDouble(pyDensity);
+    float friction = PyFloat_AsDouble(pyFriction);
+    bool dynamic = Py_IsTrue(pyDynamic);
+    _configureRigidbodyEventHandler(this, entityId, density, friction, dynamic);
     return Py_None;
 }

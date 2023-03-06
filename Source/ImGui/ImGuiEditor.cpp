@@ -408,8 +408,6 @@ void Mango::ImGuiEditor::ConstructEditor()
 	ImGui::Begin("Assets");
 	// Assets placeholder
 	ImGui::End();
-
-	ImGui::ShowDemoWindow();
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)

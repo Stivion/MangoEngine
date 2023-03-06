@@ -71,17 +71,6 @@ static PyObject* SetPosition(Mango::Scripting::PyEntity* self, PyObject* args)
     return result;
 }
 
-static PyObject* ApplyForce(Mango::Scripting::PyEntity* self, PyObject* args)
-{
-    Mango::Scripting::ScriptEvent event;
-    event.EventName = "ApplyForce";
-    event.ScriptableEntity = self->objPtr;
-    event.Args = args;
-    PyObject* result = _eventHandler(event);
-    Py_IncRef(result);
-    return result;
-}
-
 static PyObject* GetRotation(Mango::Scripting::PyEntity* self, PyObject* args)
 {
     Mango::Scripting::ScriptEvent event;
@@ -119,6 +108,39 @@ static PyObject* SetScale(Mango::Scripting::PyEntity* self, PyObject* args)
 {
     Mango::Scripting::ScriptEvent event;
     event.EventName = "SetScale";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* ApplyForce(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "ApplyForce";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* SetRigid(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "SetRigid";
+    event.ScriptableEntity = self->objPtr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
+static PyObject* ConfigureRigidbody(Mango::Scripting::PyEntity* self, PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "ConfigureRigidbody";
     event.ScriptableEntity = self->objPtr;
     event.Args = args;
     PyObject* result = _eventHandler(event);
@@ -207,6 +229,21 @@ static PyMethodDef _entityMethods[] =
         METH_VARARGS,
         "Apply force to current entity. \
          Call example: super().ApplyForce(x: float, y: float) -> None"
+    },
+    {
+        "SetRigid",
+        (PyCFunction)SetRigid,
+        METH_VARARGS,
+        "Configure rigidbody for current entity. \
+         Setting rigidbody will reset all transform, so make sure to set it before applying tranforms. \
+         Call example: super().SetRigid(isRigid: Boolean) -> None"
+    },
+    {
+        "ConfigureRigidbody",
+        (PyCFunction)ConfigureRigidbody,
+        METH_VARARGS,
+        "Configure rigidbody for current entity. \
+         Call example: super().ConfigureRigidbody(density: float, friction: float, dynamic: Boolean) -> None"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };

@@ -75,6 +75,8 @@ namespace Mango
 		static void SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, glm::vec2 scale);
 		static Mango::GUID CreateEntity(Mango::ScriptEngine* scriptEngine);
 		static void DestroyEntity(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
+		static void SetRigid(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, bool isRigid);
+		static void ConfigureRigidbody(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float density, float friction, bool isDynamic);
 
 	private:
 		Mango::Renderer& _renderer;

@@ -21,6 +21,8 @@ namespace Mango
 		void SetDynamic(bool isDynamic);
 		void SetTransform(glm::vec2 position, float angleRadians);
 		void SetFixture(b2FixtureDef fixture);
+		void SetDensity(float density);
+		void SetFriction(float friction);
 		void DestroyFixture();
 
 		void ApplyForce(glm::vec2 force);

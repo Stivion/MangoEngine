@@ -21,6 +21,26 @@ void Mango::RigidbodyComponent::SetFixture(b2FixtureDef fixture)
 	_fixture = _body->CreateFixture(&fixture);
 }
 
+void Mango::RigidbodyComponent::SetDensity(float density)
+{
+	if (_fixture == nullptr)
+	{
+		return;
+	}
+
+	_fixture->SetDensity(density);
+}
+
+void Mango::RigidbodyComponent::SetFriction(float friction)
+{
+	if (_fixture == nullptr)
+	{
+		return;
+	}
+
+	_fixture->SetFriction(friction);
+}
+
 void Mango::RigidbodyComponent::DestroyFixture()
 {
 	_body->DestroyFixture(_fixture);
