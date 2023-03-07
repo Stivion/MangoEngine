@@ -249,15 +249,30 @@ entt::entity Mango::Scene::AddCamera()
 
 void Mango::Scene::AddRigidbody(entt::entity entity)
 {
-    auto rigidbody = _registry.try_get<RigidbodyComponent>(entity);
-    if (rigidbody != nullptr)
+    if (_registry.try_get<RigidbodyComponent>(entity) != nullptr)
     {
         return;
     }
 
     b2BodyDef bodyDefinition;
     b2Body* body = _physicsWorld.CreateBody(&bodyDefinition);
-    _registry.emplace<RigidbodyComponent>(entity, body);
+    
+    auto& rigidbody = _registry.emplace<RigidbodyComponent>(entity, body);
+    auto& transform = _registry.get<TransformComponent>(entity);
+
+    auto translation = transform.GetTranslation();
+    auto rotation = transform.GetRotation().z;
+    auto scale = transform.GetScale();
+
+    rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
+    b2PolygonShape bodyBox;
+    // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+    bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+    b2FixtureDef fixtureDefinition;
+    fixtureDefinition.shape = &bodyBox;
+    fixtureDefinition.density = 1.0f;
+    fixtureDefinition.friction = 0.3f;
+    rigidbody.SetFixture(fixtureDefinition);
 }
 
 void Mango::Scene::AddScript(entt::entity entity)
