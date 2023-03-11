@@ -19,11 +19,13 @@ namespace Mango
 		}
 
 		inline glm::vec3 GetTranslation() { return _translation; }
+		// Rotation in degrees
 		inline glm::vec3 GetRotation() { return _rotation; }
 		inline glm::quat GetQuaternionRotation() { return glm::quat({ glm::radians(_rotation.x), glm::radians(_rotation.y), glm::radians(_rotation.z) }); }
 		inline glm::vec3 GetScale() { return _scale; }
 
 		void SetTranslation(glm::vec3 translation) { _translation = translation; }
+		// Rotation in degrees
 		void SetRotation(glm::vec3 rotation) { _rotation = rotation; }
 		void SetScale(glm::vec3 scale) { _scale = scale; }
 

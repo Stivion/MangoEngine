@@ -5,7 +5,7 @@
 namespace Mango
 {
 #ifdef DEBUG
-#define M_TRACE(message) std::cout << "[TRACE]: " << message << std::endl;
+#define M_TRACE(message) // std::cout << "[TRACE]: " << message << std::endl;
 #else
 #define M_TRACE(message)
 #endif

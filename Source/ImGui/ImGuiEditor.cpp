@@ -37,6 +37,8 @@ void Mango::ImGuiEditor::ConstructEditor()
 		{
 			if (ImGui::MenuItem("Open", "Ctrl+O"))
 			{
+				// Bug: Add entity, Play, Stop, Remove Entity, Play, Stop - Crash
+
 				Mango::FileDialog fileDialog;
 				std::filesystem::path filePath;
 				const auto succeeded = fileDialog.Open(&filePath, { { L"JSON (*.json)", L"*.json" } });
@@ -140,6 +142,17 @@ void Mango::ImGuiEditor::ConstructEditor()
 	viewportPanelSize = ImGui::GetContentRegionAvail();
 	_viewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 	ImGui::Image(_viewportTextureId, ImVec2{ _viewportSize.x, _viewportSize.y });
+
+	// Disable engine inputs handling
+	// Editor only
+	if (ImGui::IsWindowHovered())
+	{
+		Mango::Input::ResumeHandlingInput();
+	}
+	else
+	{
+		Mango::Input::StopHandlingInput();
+	}
 
 	// Moving camera
 	if (ImGui::IsWindowHovered() && ImGui::IsMouseDown(ImGuiMouseButton_Right) && !_viewportCameraMoveStarted && Mango::SceneManager::GetScene().GetSceneState() != Mango::SceneState::Play)
@@ -357,6 +370,13 @@ void Mango::ImGuiEditor::ConstructEditor()
 			}
 		}
 
+		// Script component
+		auto script = Mango::SceneManager::GetScene().GetRegistry().try_get<ScriptComponent>(_selectedEntity);
+		if (script != nullptr)
+		{
+			ImGui::InputText("Script", script->GetFileName(), script->GetBufferSize());
+		}
+
 		ImGui::PopID();
 
 		// Components popup
@@ -366,6 +386,12 @@ void Mango::ImGuiEditor::ConstructEditor()
 			if (!rigidbodyExist && ImGui::Button("Add rigidbody"))
 			{
 				Mango::SceneManager::GetScene().AddRigidbody(_selectedEntity);
+			}
+
+			auto scriptExist = Mango::SceneManager::GetScene().GetRegistry().try_get<ScriptComponent>(_selectedEntity) != nullptr;
+			if (!scriptExist && ImGui::Button("Add script"))
+			{
+				Mango::SceneManager::GetScene().AddScript(_selectedEntity);
 			}
 
 			ImGui::EndPopup();
@@ -382,8 +408,6 @@ void Mango::ImGuiEditor::ConstructEditor()
 	ImGui::Begin("Assets");
 	// Assets placeholder
 	ImGui::End();
-
-	ImGui::ShowDemoWindow();
 }
 
 void Mango::ImGuiEditor::NewFrame(uint32_t currentFrame)

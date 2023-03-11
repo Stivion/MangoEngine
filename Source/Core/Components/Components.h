@@ -7,3 +7,4 @@
 #include "GeometryComponent.h"
 #include "CameraComponent.h"
 #include "RigidbodyComponent.h"
+#include "ScriptComponent.h"
