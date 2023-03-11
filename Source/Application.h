@@ -8,6 +8,7 @@
 #include "Platform/Vulkan/RenderingLayer_ImplVulkan.h"
 
 #include <memory>
+#include <chrono>
 
 namespace Mango
 {
@@ -30,5 +31,7 @@ namespace Mango
         std::unique_ptr<Mango::GLFWWindow> _window;
         std::unique_ptr<const Mango::Context> _vulkanContext;
         std::unique_ptr<Mango::RenderingLayer_ImplVulkan> _renderingLayer;
+
+        std::chrono::steady_clock::time_point _lastOnFixedUpdate = std::chrono::steady_clock::now();
     };
 }

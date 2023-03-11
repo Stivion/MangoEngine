@@ -4,6 +4,9 @@
 #include "Infrastructure/Assert/Assert.h"
 #include "Infrastructure/Logging/Logging.h"
 
+const uint32_t _fixedUpdatePerSecond = 60;
+const uint32_t _fixedUpdateStepMillisecond = std::ceil((1.0f / _fixedUpdatePerSecond) * 1000);
+
 Mango::Application::Application()
 {
     InitializeWindow();
@@ -52,8 +55,14 @@ void Mango::Application::DrawFrame()
     auto& scene = Mango::SceneManager::GetScene();
     
     scene.OnUpdate();
-    // TODO: Should be independent from frame-rate
-    scene.OnFixedUpdate();
+    
+    auto currentTime = std::chrono::steady_clock::now();
+    auto timeDiff = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - _lastOnFixedUpdate);
+    if (timeDiff.count() > _fixedUpdateStepMillisecond)
+    {
+        scene.OnFixedUpdate();
+        _lastOnFixedUpdate = std::chrono::steady_clock::now();
+    }
 
     _renderingLayer->EndFrame();
 }
