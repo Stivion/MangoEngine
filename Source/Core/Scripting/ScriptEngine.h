@@ -42,6 +42,8 @@ namespace Mango
 		void OnCreate();
 		void OnUpdate();
 		void OnFixedUpdate();
+		void OnCollisionBegin(Mango::GUID first, Mango::GUID second);
+		void OnCollisionEnd(Mango::GUID first, Mango::GUID second);
 
 	public:
 		void SetApplyForceEventHandler(ApplyForceEventHandler handler) { _applyForceHandler = handler; }
@@ -68,6 +70,7 @@ namespace Mango
 		std::set<Mango::GUID> _markedForDeletionEntities;
 
 		void CallMethod(PyObject* entity, std::string methodName);
+		void CallMethod(PyObject* entity, PyObject* args, std::string methodName);
 		void DeletePyEntity(Mango::GUID entityId);
 		static PyObject* HandleScriptEvent(Mango::Scripting::ScriptEvent event);
 

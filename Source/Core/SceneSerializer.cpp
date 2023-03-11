@@ -121,7 +121,7 @@ void Mango::SceneSerializer::Populate(Mango::Scene& scene, std::string& sceneJso
 		EnsureComponentExists(currentComponents, "idComponent");
 		uint64_t idValue = currentComponents["idComponent"]["id"];
 		Mango::GUID id(idValue);
-		registry.emplace<IdComponent>(entity, id);
+		auto& idComponent = registry.emplace<IdComponent>(entity, id);
 
 		// NameComponent
 		EnsureComponentExists(currentComponents, "nameComponent");
@@ -169,9 +169,13 @@ void Mango::SceneSerializer::Populate(Mango::Scene& scene, std::string& sceneJso
 		// RigidbodyComponent
 		if (currentComponents.contains("rigidbodyComponent"))
 		{
+			// Get reference to this Id from created component to make sure that reference will point to valid memory address
+			auto& safeId = idComponent.GetId();
+
 			const auto& rigidbodyJson = currentComponents["rigidbodyComponent"];
 			bool isDynamic = rigidbodyJson["isDynamic"];
 			b2BodyDef bodyDefinition;
+			bodyDefinition.userData.pointer = reinterpret_cast<uintptr_t>(&safeId);
 			b2Body* body = scene._physicsWorld.CreateBody(&bodyDefinition);
 			auto& component = registry.emplace<RigidbodyComponent>(entity, body);
 			component.SetDynamic(isDynamic);

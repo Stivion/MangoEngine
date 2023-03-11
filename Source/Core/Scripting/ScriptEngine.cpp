@@ -157,10 +157,49 @@ void Mango::ScriptEngine::OnFixedUpdate()
     }
 }
 
+void Mango::ScriptEngine::OnCollisionBegin(Mango::GUID first, Mango::GUID second)
+{
+    // Entity could not exist here, because we don't create instances for entities without ScriptComponent
+    // Just create new MangoEngine.Entity and pass it to method. This will enable proper lifecycle of this object
+    if (!_entities.contains(first))
+    {
+        auto entity = PyObject_New(Mango::Scripting::PyEntity, Mango::Scripting::GetEntityTypeRaw());
+        entity->objPtr = new Mango::Scripting::ScriptableEntity();
+        entity->objPtr->_id = first;
+        _entities[first] = (PyObject*)entity;
+    }
+    if (!_entities.contains(second))
+    {
+        auto entity = PyObject_New(Mango::Scripting::PyEntity, Mango::Scripting::GetEntityTypeRaw());
+        entity->objPtr = new Mango::Scripting::ScriptableEntity();
+        entity->objPtr->_id = second;
+        _entities[second] = (PyObject*)entity;
+    }
+
+    PyObject* firstEntity = _entities[first];
+    PyObject* secondEntity = _entities[second];
+    CallMethod(firstEntity, secondEntity, "OnCollisionBegin");
+}
+
+void Mango::ScriptEngine::OnCollisionEnd(Mango::GUID first, Mango::GUID second)
+{
+    // All entities should always exist in ScriptEngine at this point
+    PyObject* firstEntity = _entities[first];
+    PyObject* secondEntity = _entities[second];
+    CallMethod(firstEntity, secondEntity, "OnCollisionEnd");
+}
+
 void Mango::ScriptEngine::CallMethod(PyObject* entity, std::string methodName)
 {
     PyObject* method = PyUnicode_DecodeFSDefault(methodName.c_str());
     PyObject_CallMethodNoArgs(entity, method);
+    Py_DecRef(method);
+}
+
+void Mango::ScriptEngine::CallMethod(PyObject* entity, PyObject* args, std::string methodName)
+{
+    PyObject* method = PyUnicode_DecodeFSDefault(methodName.c_str());
+    PyObject_CallMethodOneArg(entity, method, args);
     Py_DecRef(method);
 }
 

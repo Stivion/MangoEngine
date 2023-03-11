@@ -40,6 +40,8 @@ static PyObject* ReturnNone()
 static PyObject* OnCreate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
 static PyObject* OnUpdate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
 static PyObject* OnFixedUpdate(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
+static PyObject* OnCollisionBegin(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
+static PyObject* OnCollisionEnd(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args)) { return ReturnNone(); }
 
 static PyObject* GetId(Mango::Scripting::PyEntity* self, PyObject* Py_UNUSED(args))
 {
@@ -175,6 +177,22 @@ static PyMethodDef _entityMethods[] =
          It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
     },
     {
+        "OnCollisionBegin",
+        (PyCFunction)OnCollisionBegin,
+        METH_VARARGS,
+        "Method gets executed every time an object begin to collide with something. \
+         Method signature is: def OnCollisionBegin(self: MangoEntity.Entity, other: MangoEntity.Entity) -> None \
+         It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
+    },
+    {
+        "OnCollisionEnd",
+        (PyCFunction)OnCollisionEnd,
+        METH_VARARGS,
+        "Method gets executed every time an object cease to collide with something. \
+         Method signature is: def OnCollisionEnd(self: MangoEntity.Entity, other: MangoEntity.Entity) -> None \
+         It is a base method on MangoEngine.Entity. It could be defined on custom entities and will be called by engine."
+    },
+    {
         "GetId",
         (PyCFunction)GetId,
         METH_NOARGS,
@@ -235,7 +253,6 @@ static PyMethodDef _entityMethods[] =
         (PyCFunction)SetRigid,
         METH_VARARGS,
         "Configure rigidbody for current entity. \
-         Setting rigidbody will reset all transform, so make sure to set it before applying tranforms. \
          Call example: super().SetRigid(isRigid: Boolean) -> None"
     },
     {

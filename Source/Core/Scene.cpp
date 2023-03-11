@@ -9,6 +9,8 @@ Mango::Scene::Scene(Mango::Renderer& renderer)
     : _renderer(renderer)
 {
     _scriptEngine = std::make_unique<Mango::ScriptEngine>();
+    _collisionListener = std::make_unique<CollisionListener>(_scriptEngine.get());
+    _physicsWorld.SetContactListener(_collisionListener.get());
 }
 
 Mango::Scene::~Scene()
@@ -254,7 +256,10 @@ void Mango::Scene::AddRigidbody(entt::entity entity)
         return;
     }
 
+    auto& id = _registry.get<IdComponent>(entity).GetId();
+
     b2BodyDef bodyDefinition;
+    bodyDefinition.userData.pointer = reinterpret_cast<uintptr_t>(&id);
     b2Body* body = _physicsWorld.CreateBody(&bodyDefinition);
     
     auto& rigidbody = _registry.emplace<RigidbodyComponent>(entity, body);
@@ -557,4 +562,26 @@ entt::entity Mango::Scene::GetEntityById(Mango::GUID entityId)
         }
     }
     return entt::entity();
+}
+
+void Mango::CollisionListener::BeginContact(b2Contact* contact)
+{
+    b2BodyUserData userData = contact->GetFixtureA()->GetBody()->GetUserData();
+    Mango::GUID* firstId = reinterpret_cast<Mango::GUID*>(userData.pointer);
+
+    userData = contact->GetFixtureB()->GetBody()->GetUserData();
+    Mango::GUID* secondId = reinterpret_cast<Mango::GUID*>(userData.pointer);
+
+    _scriptEngine->OnCollisionBegin(*firstId, *secondId);
+}
+
+void Mango::CollisionListener::EndContact(b2Contact* contact)
+{
+    b2BodyUserData userData = contact->GetFixtureA()->GetBody()->GetUserData();
+    Mango::GUID* firstId = reinterpret_cast<Mango::GUID*>(userData.pointer);
+
+    userData = contact->GetFixtureB()->GetBody()->GetUserData();
+    Mango::GUID* secondId = reinterpret_cast<Mango::GUID*>(userData.pointer);
+
+    _scriptEngine->OnCollisionEnd(*firstId, *secondId);
 }

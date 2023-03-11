@@ -13,6 +13,18 @@
 
 namespace Mango
 {
+	class CollisionListener : public b2ContactListener
+	{
+	public:
+		CollisionListener(Mango::ScriptEngine* scriptEngine) { _scriptEngine = scriptEngine; }
+
+		virtual void BeginContact(b2Contact* contact);
+		virtual void EndContact(b2Contact* contact);
+
+	private:
+		Mango::ScriptEngine* _scriptEngine;
+	};
+
 	enum SceneState
 	{
 		Play = 0,
@@ -88,6 +100,7 @@ namespace Mango
 		const int32_t _velocityIterations = 8;
 		const int32_t _positionIterations = 3;
 		b2World _physicsWorld{{ 0.0f, -9.8f }};
+		std::unique_ptr<b2ContactListener> _collisionListener;
 
 		// Scripting
 		std::unique_ptr<Mango::ScriptEngine> _scriptEngine;
