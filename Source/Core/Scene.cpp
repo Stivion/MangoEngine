@@ -139,7 +139,7 @@ void Mango::Scene::OnPlay()
 
         rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
         b2PolygonShape bodyBox;
-        // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+        // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
         bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
         b2FixtureDef fixtureDefinition;
         fixtureDefinition.shape = &bodyBox;
@@ -271,7 +271,7 @@ void Mango::Scene::AddRigidbody(entt::entity entity)
 
     rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
     b2PolygonShape bodyBox;
-    // Some precision magic apparently, fixes checkboxes that are little bigger than actual geometry
+    // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
     bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
     b2FixtureDef fixtureDefinition;
     fixtureDefinition.shape = &bodyBox;
