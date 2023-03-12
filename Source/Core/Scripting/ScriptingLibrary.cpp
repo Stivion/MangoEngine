@@ -352,6 +352,17 @@ static PyObject* DestroyEntity(Mango::Scripting::PyEntity* Py_UNUSED(self), PyOb
     return result;
 }
 
+static PyObject* FindEntityByName(Mango::Scripting::PyEntity* Py_UNUSED(self), PyObject* args)
+{
+    Mango::Scripting::ScriptEvent event;
+    event.EventName = "FindEntityByName";
+    event.ScriptableEntity = nullptr;
+    event.Args = args;
+    PyObject* result = _eventHandler(event);
+    Py_IncRef(result);
+    return result;
+}
+
 static PyMethodDef _moduleMethods[]
 {
     {
@@ -406,6 +417,15 @@ static PyMethodDef _moduleMethods[]
         METH_VARARGS,
         "Destroy passed entity from scene. \
          Call example: MangoEngine.DestroyEntity(MangoEngine.Entity) -> None"
+    },
+    {
+        "FindEntityByName",
+        (PyCFunction)FindEntityByName,
+        METH_VARARGS,
+        "Find entity by specified name. \
+         If multiple entities has the same name method will return first one according to Entities panel. \
+         If entity with specified name doesn't exist method will return None. \
+         Call example: MangoEngine.FindEntityByName(entityName: str) -> MangoEngine.Entity"
     },
     { nullptr, nullptr, 0, nullptr } // This line is required, don't remove!
 };

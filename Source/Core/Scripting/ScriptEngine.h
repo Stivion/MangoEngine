@@ -32,6 +32,7 @@ namespace Mango
 		typedef void (*DestroyEntityEventHandler)(Mango::ScriptEngine*, Mango::GUID);
 		typedef void (*SetRigidEntityEventHandler)(Mango::ScriptEngine*, Mango::GUID, bool);
 		typedef void (*ConfigureRigidbodyEventHandler)(Mango::ScriptEngine*, Mango::GUID, float, float, bool);
+		typedef Mango::GUID (*FindEntityByNameEventHandler)(Mango::ScriptEngine*, std::string);
 
 		ScriptEngine();
 		~ScriptEngine();
@@ -60,6 +61,7 @@ namespace Mango
 		void SetDestroyEntityEventHandler(DestroyEntityEventHandler handler) { _destroyEntityEventHandler = handler; }
 		void SetSetRigidEntityEventHandler(SetRigidEntityEventHandler handler) { _setRigidEntityEventHandler = handler; }
 		void SetConfigureRigidbodyEventHandler(ConfigureRigidbodyEventHandler handler) { _configureRigidbodyEventHandler = handler; }
+		void SetFindEntityByNameEventHandler(FindEntityByNameEventHandler handler) { _findEntityByNameEventHandler = handler; }
 		
 		void SetUserData(void* data) { _userData = data; }
 		void* GetUserData() { return _userData; }
@@ -68,6 +70,11 @@ namespace Mango
 		std::unordered_map<std::string, PyObject*> _loadedModules;
 		std::unordered_map<std::uint64_t, PyObject*> _entities;
 		std::set<Mango::GUID> _markedForDeletionEntities;
+		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionBeginCallList;
+		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionEndCallList;
+
+		void CallOnCollisionBegin();
+		void CallOnCollisionEnd();
 
 		void CallMethod(PyObject* entity, std::string methodName);
 		void CallMethod(PyObject* entity, PyObject* args, std::string methodName);
@@ -88,6 +95,7 @@ namespace Mango
 		PyObject* HandleDestroyEntityEvent(PyObject* args);
 		PyObject* HandleSetRigidEntityEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
 		PyObject* HandleConfigureRigidbodyEvent(Mango::Scripting::ScriptableEntity* entity, PyObject* args);
+		PyObject* HandleFindEntityByNameEvent(PyObject* args);
 
 	private:
 		ApplyForceEventHandler _applyForceHandler;
@@ -104,6 +112,7 @@ namespace Mango
 		DestroyEntityEventHandler _destroyEntityEventHandler;
 		SetRigidEntityEventHandler _setRigidEntityEventHandler;
 		ConfigureRigidbodyEventHandler _configureRigidbodyEventHandler;
+		FindEntityByNameEventHandler _findEntityByNameEventHandler;
 		void* _userData;
 	};
 }

@@ -95,6 +95,12 @@ void Mango::ScriptEngine::LoadScripts(std::unordered_map<Mango::GUID, std::files
                 continue;
             }
 
+            // Skip all functions that aren't bound by a class
+            if (PyFunction_Check(value))
+            {
+                continue;
+            }
+
             // Create PyEnities
             PyObject* entityId = PyLong_FromUnsignedLongLong((uint64_t)it->first);
             PyObject* args = PyTuple_Pack(1, entityId);
@@ -155,6 +161,9 @@ void Mango::ScriptEngine::OnFixedUpdate()
     {
         CallMethod(entity, "OnFixedUpdate");
     }
+
+    CallOnCollisionBegin();
+    CallOnCollisionEnd();
 }
 
 void Mango::ScriptEngine::OnCollisionBegin(Mango::GUID first, Mango::GUID second)
@@ -176,17 +185,35 @@ void Mango::ScriptEngine::OnCollisionBegin(Mango::GUID first, Mango::GUID second
         _entities[second] = (PyObject*)entity;
     }
 
-    PyObject* firstEntity = _entities[first];
-    PyObject* secondEntity = _entities[second];
-    CallMethod(firstEntity, secondEntity, "OnCollisionBegin");
+    _onCollisionBeginCallList.push_back(std::make_pair(first, second));
 }
 
 void Mango::ScriptEngine::OnCollisionEnd(Mango::GUID first, Mango::GUID second)
 {
     // All entities should always exist in ScriptEngine at this point
-    PyObject* firstEntity = _entities[first];
-    PyObject* secondEntity = _entities[second];
-    CallMethod(firstEntity, secondEntity, "OnCollisionEnd");
+    _onCollisionEndCallList.push_back(std::make_pair(first, second));
+}
+
+void Mango::ScriptEngine::CallOnCollisionBegin()
+{
+    for (auto& [first, second] : _onCollisionBeginCallList)
+    {
+        PyObject* firstEntity = _entities[first];
+        PyObject* secondEntity = _entities[second];
+        CallMethod(firstEntity, secondEntity, "OnCollisionBegin");
+    }
+    _onCollisionBeginCallList.clear();
+}
+
+void Mango::ScriptEngine::CallOnCollisionEnd()
+{
+    for (auto& [first, second] : _onCollisionEndCallList)
+    {
+        PyObject* firstEntity = _entities[first];
+        PyObject* secondEntity = _entities[second];
+        CallMethod(firstEntity, secondEntity, "OnCollisionEnd");
+    }
+    _onCollisionEndCallList.clear();
 }
 
 void Mango::ScriptEngine::CallMethod(PyObject* entity, std::string methodName)
@@ -268,6 +295,10 @@ PyObject* Mango::ScriptEngine::HandleScriptEvent(Mango::Scripting::ScriptEvent e
     else if (event.EventName == "ConfigureRigidbody")
     {
         return scriptEngine->HandleConfigureRigidbodyEvent(event.ScriptableEntity, event.Args);
+    }
+    else if (event.EventName == "FindEntityByName")
+    {
+        return scriptEngine->HandleFindEntityByNameEvent(event.Args);
     }
     Py_IncRef(Py_None);
     return Py_None;
@@ -360,7 +391,7 @@ PyObject* Mango::ScriptEngine::HandleSetScaleEvent(Mango::Scripting::ScriptableE
     PyObject* pyScaleX = PyTuple_GetItem(args, 0);
     PyObject* pyScaleY = PyTuple_GetItem(args, 1);
     float scaleX = PyFloat_AsDouble(pyScaleX);
-    float scaleY = PyFloat_AsDouble(pyScaleX);
+    float scaleY = PyFloat_AsDouble(pyScaleY);
     _setScaleEventHandler(this, entityId, glm::vec2(scaleX, scaleY));
     return Py_None;
 }
@@ -409,4 +440,25 @@ PyObject* Mango::ScriptEngine::HandleConfigureRigidbodyEvent(Mango::Scripting::S
     bool dynamic = Py_IsTrue(pyDynamic);
     _configureRigidbodyEventHandler(this, entityId, density, friction, dynamic);
     return Py_None;
+}
+
+PyObject* Mango::ScriptEngine::HandleFindEntityByNameEvent(PyObject* args)
+{
+    PyObject* pyEntityName = PyTuple_GetItem(args, 0);
+    std::string entityName = PyUnicode_AsUTF8(pyEntityName);
+    auto entityId = _findEntityByNameEventHandler(this, entityName);
+    if (entityId == Mango::GUID::Empty())
+    {
+        return Py_None;
+    }
+
+    if (!_entities.contains(entityId))
+    {
+        auto entity = PyObject_New(Mango::Scripting::PyEntity, Mango::Scripting::GetEntityTypeRaw());
+        entity->objPtr = new Mango::Scripting::ScriptableEntity();
+        entity->objPtr->_id = entityId;
+        _entities[entityId] = (PyObject*)entity;
+    }
+
+    return _entities[entityId];
 }

@@ -89,6 +89,7 @@ namespace Mango
 		static void DestroyEntity(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId);
 		static void SetRigid(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, bool isRigid);
 		static void ConfigureRigidbody(Mango::ScriptEngine* scriptEngine, Mango::GUID entityId, float density, float friction, bool isDynamic);
+		static Mango::GUID FindEntityByName(Mango::ScriptEngine* scriptEngine, std::string entityName);
 
 	private:
 		Mango::Renderer& _renderer;

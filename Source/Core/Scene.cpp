@@ -139,8 +139,7 @@ void Mango::Scene::OnPlay()
 
         rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
         b2PolygonShape bodyBox;
-        // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
-        bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+        bodyBox.SetAsBox(scale.x, scale.y);
         b2FixtureDef fixtureDefinition;
         fixtureDefinition.shape = &bodyBox;
         fixtureDefinition.density = 1.0f;
@@ -168,6 +167,7 @@ void Mango::Scene::OnPlay()
         if (!scripts.contains(scriptFileName))
         {
             M_ERROR("Couldn't find " + scriptFileName + " script.");
+            continue;
         }
 
         const auto& scriptFilePath = scripts[scriptFileName];
@@ -189,6 +189,7 @@ void Mango::Scene::OnPlay()
     _scriptEngine->SetDestroyEntityEventHandler(DestroyEntity);
     _scriptEngine->SetSetRigidEntityEventHandler(SetRigid);
     _scriptEngine->SetConfigureRigidbodyEventHandler(ConfigureRigidbody);
+    _scriptEngine->SetFindEntityByNameEventHandler(FindEntityByName);
 
     try
     {
@@ -271,8 +272,7 @@ void Mango::Scene::AddRigidbody(entt::entity entity)
 
     rigidbody.SetTransform(glm::vec2(translation.x, translation.y), glm::radians(rotation));
     b2PolygonShape bodyBox;
-    // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
-    bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+    bodyBox.SetAsBox(scale.x, scale.y);
     b2FixtureDef fixtureDefinition;
     fixtureDefinition.shape = &bodyBox;
     fixtureDefinition.density = 1.0f;
@@ -438,8 +438,7 @@ void Mango::Scene::SetScale(Mango::ScriptEngine* scriptEngine, Mango::GUID entit
         rigidbody->DestroyFixture();
 
         b2PolygonShape bodyBox;
-        // Some precision magic apparently, fixes hitboxes that are little bigger than actual geometry
-        bodyBox.SetAsBox(scale.x * 0.99, scale.y * 0.99);
+        bodyBox.SetAsBox(scale.x, scale.y);
 
         b2FixtureDef fixtureDefinition;
         fixtureDefinition.shape = &bodyBox;
@@ -528,6 +527,21 @@ void Mango::Scene::ConfigureRigidbody(Mango::ScriptEngine* scriptEngine, Mango::
     rigidbody->SetDensity(density);
     rigidbody->SetFriction(friction);
     rigidbody->SetDynamic(isDynamic);
+}
+
+Mango::GUID Mango::Scene::FindEntityByName(Mango::ScriptEngine* scriptEngine, std::string entityName)
+{
+    Mango::Scene* scene = reinterpret_cast<Mango::Scene*>(scriptEngine->GetUserData());
+    auto& registry = scene->GetRegistry();
+    for (auto [entity, id, name] : registry.view<IdComponent, NameComponent>().each())
+    {
+        std::string wrappedName = std::string(name.GetName());
+        if (wrappedName == entityName)
+        {
+            return id.GetId();
+        }
+    }
+    return Mango::GUID::Empty();
 }
 
 entt::entity Mango::Scene::AddDefaultEntity(Mango::GeometryType geometry)
