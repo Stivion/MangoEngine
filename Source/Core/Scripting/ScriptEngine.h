@@ -11,7 +11,7 @@
 #include <string>
 #include <unordered_map>
 #include <filesystem>
-#include <set>
+#include <vector>
 
 namespace Mango
 {
@@ -69,7 +69,7 @@ namespace Mango
 	private:
 		std::unordered_map<std::string, PyObject*> _loadedModules;
 		std::unordered_map<std::uint64_t, PyObject*> _entities;
-		std::set<Mango::GUID> _markedForDeletionEntities;
+		std::vector<Mango::GUID> _markedForDeletionEntities;
 		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionBeginCallList;
 		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionEndCallList;
 

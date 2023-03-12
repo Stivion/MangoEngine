@@ -2,6 +2,7 @@
 
 #include "../../Infrastructure/Logging/Logging.h"
 
+#include <algorithm>
 #include <stdexcept>
 
 Mango::ScriptEngine::ScriptEngine()
@@ -415,8 +416,13 @@ PyObject* Mango::ScriptEngine::HandleDestroyEntityEvent(PyObject* args)
 
     auto scriptableEntity = (Mango::Scripting::PyEntity*)entity;
     Mango::GUID entityId(scriptableEntity->objPtr->_id);
+    if (std::find(_markedForDeletionEntities.begin(), _markedForDeletionEntities.end(), entityId) != _markedForDeletionEntities.end())
+    {
+        return Py_None;
+    }
+
     _destroyEntityEventHandler(this, entityId);
-    _markedForDeletionEntities.insert(entityId);
+    _markedForDeletionEntities.push_back(entityId);
     return Py_None;
 }
 
