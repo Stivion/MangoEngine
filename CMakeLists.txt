@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 3.21)
+﻿cmake_minimum_required(VERSION 3.26)
 project(Mango)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -116,6 +116,22 @@ else()
     configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python3.dll python3.dll COPYONLY)
     configure_file(${PROJECT_SOURCE_DIR}/Libraries/python/dll/python311.dll python311.dll COPYONLY)
 endif()
+
+## Copy runtime libraries and DLLs
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+    ${PROJECT_SOURCE_DIR}/Libraries/python/Lib
+    ./Lib
+)
+add_custom_command(
+    TARGET ${PROJECT_NAME}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+    ${PROJECT_SOURCE_DIR}/Libraries/python/DLLs
+    ./DLLs
+)
 
 # Compile shaders
 file(
