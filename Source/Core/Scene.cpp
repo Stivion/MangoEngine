@@ -151,7 +151,7 @@ void Mango::Scene::OnPlay()
     // Setup ScriptEngine
     std::filesystem::path scriptsPath = std::filesystem::current_path();
     std::unordered_map<std::string, std::filesystem::path> scripts;
-    for (const auto& entry : std::filesystem::directory_iterator(scriptsPath))
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(scriptsPath))
     {
         if (!entry.is_regular_file())
         {

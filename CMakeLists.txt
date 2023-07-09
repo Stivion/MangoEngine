@@ -22,7 +22,10 @@ add_executable(
         Mango
         Source/Main.cpp
         ${PROJECT_SOURCES}
- )
+)
+
+# Test Games
+set(${PROJECT_NAME}_COPY_TEST_GAMES ON)
 
 # Link with Vulkan
 ## Find Vulkan SDK
@@ -145,3 +148,11 @@ foreach(fragmentShader ${FRAGMENT_SHADERS})
             COMMAND glslc -fshader-stage=frag ${fragmentShader} -o frag.spv
     )
 endforeach()
+
+# Copy test games
+if (DEFINED ${PROJECT_NAME}_COPY_TEST_GAMES)
+    file(COPY ${PROJECT_SOURCE_DIR}/TestGames/FloppyBirb DESTINATION .)
+endif()
+
+# Copy imgui config for layout
+configure_file(${PROJECT_SOURCE_DIR}/imgui.ini imgui.ini COPYONLY)

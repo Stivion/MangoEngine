@@ -1,8 +1,10 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "ScriptEngine.h"
 
 #include "../../Infrastructure/Logging/Logging.h"
 
 #include <stdexcept>
+#include <vector>
 
 Mango::ScriptEngine::ScriptEngine()
 {
@@ -18,13 +20,94 @@ Mango::ScriptEngine::ScriptEngine()
         throw std::runtime_error("Unable to initialize MangoEngine python module");
     }
 
-    Py_Initialize();
+    PyConfig config;
+    PyConfig_InitPythonConfig(&config);
+
+    std::vector<std::filesystem::path> pythonAdditionalPath
+    {
+        std::filesystem::current_path() / "DLLs",
+        std::filesystem::current_path() / "Lib"
+    };
+
+    auto currentPath = std::filesystem::current_path();
+    for (const auto& entry : std::filesystem::directory_iterator(currentPath))
+    {
+        if (entry.is_directory())
+        {
+            pythonAdditionalPath.push_back(entry);
+        }
+    }
+
+    auto pythonPath = Py_GetPath();
+    std::vector<std::wstring> initializedPaths;
+    if (pythonPath != nullptr)
+    {
+        std::wstring acc;
+        for (int i = 0; i < wcslen(pythonPath) + 1; i++)
+        {
+            if (pythonPath[i] != L';' && pythonPath[i] != L'\0')
+            {
+                acc += pythonPath[i];
+            }
+            else
+            {
+                initializedPaths.push_back(acc);
+                acc = L"";
+            }
+        }
+    }
+
+    for (const auto& path : pythonAdditionalPath)
+    {
+        //auto pathExists = std::find(initializedPaths.begin(), initializedPaths.end(), path.wstring()) != initializedPaths.end();
+        //if (pathExists)
+        //{
+        //    continue;
+        //}
+
+        wchar_t* pathRaw = new wchar_t[path.wstring().length() + 1];
+        wcsncpy(pathRaw, path.wstring().c_str(), path.wstring().length() + 1);
+        _pythonImportPaths.push_back(pathRaw);
+    }
+
+    //if (!_pythonImportPaths.empty())
+    {
+        PyStatus status = PyConfig_SetWideStringList(&config, &config.module_search_paths, _pythonImportPaths.size(), _pythonImportPaths.data());
+        config.module_search_paths_set = 1;
+        if (PyStatus_Exception(status))
+        {
+            PyErr_Print();
+            PyConfig_Clear(&config);
+            for (const auto& path : _pythonImportPaths)
+            {
+                delete[] path;
+            }
+            throw std::runtime_error("Unable to update Python moudle search paths");
+        }
+    }
+
+    PyStatus status = Py_InitializeFromConfig(&config);
+    if (PyStatus_Exception(status))
+    {
+        PyErr_Print();
+        PyConfig_Clear(&config);
+        for (const auto& path : _pythonImportPaths)
+        {
+            delete[] path;
+        }
+        throw std::runtime_error("Unable to initialize Python interpreter");
+    }
 
     // Import engine scripting library from Python side
     PyObject* engineModule = PyImport_ImportModule(engineModuleName.c_str());
     if (engineModule == nullptr)
     {
         PyErr_Print();
+        PyConfig_Clear(&config);
+        for (const auto& path : _pythonImportPaths)
+        {
+            delete[] path;
+        }
         throw std::runtime_error("Unable to import MangoEngine python module");
     }
     // Py_DecRef(engineModule);

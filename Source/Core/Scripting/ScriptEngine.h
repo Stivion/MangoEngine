@@ -67,7 +67,13 @@ namespace Mango
 	private:
 		std::unordered_map<std::string, PyObject*> _loadedModules;
 		std::unordered_map<std::uint64_t, PyObject*> _entities;
-		std::set<Mango::GUID> _markedForDeletionEntities;
+		std::vector<wchar_t*> _pythonImportPaths;
+		std::vector<Mango::GUID> _markedForDeletionEntities;
+		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionBeginCallList;
+		std::vector<std::pair<Mango::GUID, Mango::GUID>> _onCollisionEndCallList;
+
+		void CallOnCollisionBegin();
+		void CallOnCollisionEnd();
 
 		void CallMethod(PyObject* entity, std::string methodName);
 		void CallMethod(PyObject* entity, PyObject* args, std::string methodName);

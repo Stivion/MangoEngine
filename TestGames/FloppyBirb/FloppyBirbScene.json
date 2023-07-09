@@ -1,0 +1,123 @@
+{
+    "entities": [
+        {
+            "components": {
+                "cameraComponent": {
+                    "farPlane": 10.0,
+                    "fovDegrees": 45.0,
+                    "isEditorCamera": true,
+                    "isPrimary": true,
+                    "nearPlane": 0.10000000149011612
+                },
+                "idComponent": {
+                    "id": 17789599982362830185
+                },
+                "nameComponent": {
+                    "name": "Editor Camera"
+                },
+                "transformComponent": {
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "translation": [
+                        0.0,
+                        0.0,
+                        5.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "colorComponent": {
+                    "color": [
+                        0.0,
+                        1.0,
+                        0.17647051811218262,
+                        1.0
+                    ]
+                },
+                "geometryComponent": {
+                    "geometry": 1
+                },
+                "idComponent": {
+                    "id": 11946489515276238319
+                },
+                "nameComponent": {
+                    "name": "Bird"
+                },
+                "rigidbodyComponent": {
+                    "isDynamic": true
+                },
+                "scriptComponent": {
+                    "scriptFileName": "Bird.py"
+                },
+                "transformComponent": {
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        0.20000000298023224,
+                        0.20000000298023224,
+                        1.0
+                    ],
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            }
+        },
+        {
+            "components": {
+                "colorComponent": {
+                    "color": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "geometryComponent": {
+                    "geometry": 1
+                },
+                "idComponent": {
+                    "id": 607008736135154724
+                },
+                "nameComponent": {
+                    "name": "ObstaclesController"
+                },
+                "scriptComponent": {
+                    "scriptFileName": "ObstaclesController.py"
+                },
+                "transformComponent": {
+                    "rotation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "scale": [
+                        0.0,
+                        0.0,
+                        1.0
+                    ],
+                    "translation": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ]
+                }
+            }
+        }
+    ]
+}
